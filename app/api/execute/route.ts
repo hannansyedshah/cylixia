@@ -1,35 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const R_API_URL = process.env.R_EXECUTION_API_URL || 'https://r-exec-api.onrender.com/run'
+
 export async function POST(request: NextRequest) {
   try {
-    const { code } = await request.json()
+    const { code, csvData } = await request.json()
 
-    console.log('🔧 Execute R Code Request Received')
-    console.log('Code to execute:', code.substring(0, 100) + '...')
+    console.log('🔧 Executing R Code via Render API')
+    console.log('Code length:', code?.length || 0, 'chars')
+    console.log('Has CSV data:', !!csvData)
 
-    // TODO: Integrate with your R execution backend
-    // Options:
-    // 1. Use Plumber API (R web service)
-    // 2. Use Docker container running R
-    // 3. Use cloud R execution service
-    // 4. Use Airia for R execution if it supports it
+    if (!code || code.trim() === '') {
+      return NextResponse.json({
+        error: 'No R code provided',
+        success: false,
+      }, { status: 400 })
+    }
 
-    // For now, return a sample ggplot2 visualization
-    const samplePlotUrl = 'https://ggplot2.tidyverse.org/logo.png'
+    // Prepare R code with CSV data if provided
+    let fullCode = code
+    if (csvData) {
+      // Inject CSV data into R environment
+      fullCode = `# Load CSV data from upload
+data <- read.csv(text='${csvData.replace(/'/g, "\\'")}')
+
+# Execute user code
+${code}
+`
+    }
+
+    console.log('Sending to R API:', R_API_URL)
+
+    // Call your Render R execution API
+    const response = await fetch(R_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code: fullCode }),
+      // Add timeout
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('R API Error Response:', errorText)
+      throw new Error(`R API returned ${response.status}: ${errorText}`)
+    }
+
+    const result = await response.json()
+
+    console.log('R API Response:', {
+      success: result.success,
+      hasPlot: !!result.plot_base64,
+      error: result.error
+    })
+
+    if (!result.success) {
+      return NextResponse.json({
+        error: result.error || 'R execution failed',
+        output: result.output || '',
+        success: false,
+      }, { status: 500 })
+    }
+
+    // Convert base64 plot to data URL for display
+    let plotUrl = null
+    if (result.plot_base64) {
+      plotUrl = `data:image/png;base64,${result.plot_base64}`
+    }
 
     return NextResponse.json({
-      plotUrl: samplePlotUrl,
+      plotUrl,
+      output: result.output || '',
       success: true,
-      message: 'R execution backend not configured yet. This is a sample plot.',
-      needsBackend: true,
     })
   } catch (error: any) {
     console.error('Execute API error:', error)
+    
+    // Provide helpful error messages
+    let errorMessage = error.message
+    if (error.name === 'AbortError') {
+      errorMessage = 'R execution timed out (>30s). Code might be too complex or have infinite loop.'
+    } else if (error.message.includes('fetch')) {
+      errorMessage = 'Cannot connect to R execution API. Check if Render service is running.'
+    }
+    
     return NextResponse.json(
       { 
-        error: 'Failed to execute code',
-        details: error.message,
-        message: 'R execution backend needs to be set up. See INTEGRATION.md'
+        error: errorMessage,
+        details: error.stack,
+        success: false,
       },
       { status: 500 }
     )
