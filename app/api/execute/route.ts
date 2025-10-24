@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     console.log('🔧 Executing R Code via Render API')
     console.log('Code length:', code?.length || 0, 'chars')
     console.log('Has CSV data:', !!csvData)
+    console.log('Full code being sent:', code)
 
     if (!code || code.trim() === '') {
       return NextResponse.json({
@@ -30,6 +31,7 @@ ${code}
     }
 
     console.log('Sending to R API:', R_API_URL)
+    console.log('Request body:', JSON.stringify({ code: fullCode }).substring(0, 200))
 
     // Call your Render R execution API
     const response = await fetch(R_API_URL, {
@@ -38,8 +40,8 @@ ${code}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ code: fullCode }),
-      // Add timeout
-      signal: AbortSignal.timeout(30000), // 30 second timeout
+      // Increase timeout for complex plots
+      signal: AbortSignal.timeout(60000), // 60 second timeout
     })
 
     if (!response.ok) {
