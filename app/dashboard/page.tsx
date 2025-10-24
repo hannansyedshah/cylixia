@@ -26,27 +26,33 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   const loadProjects = useCallback(async () => {
+    if (hasLoaded) return // Prevent duplicate calls
+    
     try {
       const response = await fetch('/api/projects')
       const data = await response.json()
       if (data.projects) {
         setProjects(data.projects)
+        setHasLoaded(true)
       }
     } catch (error) {
       console.error('Failed to load projects:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [hasLoaded])
 
   useEffect(() => {
     let mounted = true
+    let hasChecked = false
     
-    // Don't redirect immediately, give auth time to load
     const checkAuth = async () => {
-      // Check if we have a Supabase session
+      if (hasChecked || !mounted) return
+      hasChecked = true
+      
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!mounted) return
@@ -57,12 +63,11 @@ export default function DashboardPage() {
       }
       
       if (session && !user) {
-        // Update local state with session user
         setUser(session.user)
       }
       
-      // Only load once
-      if (mounted) {
+      // Load projects only once
+      if (mounted && !hasLoaded) {
         loadProjects()
       }
     }
@@ -72,8 +77,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false
     }
-    // Remove loadProjects from dependencies to stop infinite loop!
-  }, [user, router, setUser])
+  }, []) // Empty array - run only once on mount
 
   const handleCreateProject = async (name: string, description: string) => {
     try {
@@ -84,6 +88,8 @@ export default function DashboardPage() {
       })
       const data = await response.json()
       if (data.project) {
+        // Add to local state immediately
+        setProjects(prev => [data.project, ...prev])
         router.push(`/workspace/${data.project.id}`)
       }
     } catch (error) {
