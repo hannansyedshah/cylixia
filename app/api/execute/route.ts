@@ -52,49 +52,63 @@ ${code}
 
     console.log('R API Full Response:', JSON.stringify(result, null, 2))
 
-    if (!result.success) {
+    // R returns data in arrays/objects, need to extract properly
+    // success might be [TRUE] or {0: TRUE}
+    const isSuccess = Array.isArray(result.success) 
+      ? result.success[0] 
+      : typeof result.success === 'object'
+        ? result.success[0] || Object.values(result.success)[0]
+        : result.success
+
+    console.log('Parsed success:', isSuccess)
+
+    if (!isSuccess) {
+      const errorMsg = Array.isArray(result.error) ? result.error[0] : result.error
       return NextResponse.json({
-        error: result.error || 'R execution failed',
-        output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output),
+        error: errorMsg || 'R execution failed',
+        output: JSON.stringify(result.output),
         success: false,
       }, { status: 500 })
     }
 
-    // Extract base64 plot from various possible locations
+    // Extract base64 from R's nested structure
     let base64String = null
     
-    // Check direct field
-    if (result.plot_base64 && typeof result.plot_base64 === 'string') {
+    // R often returns arrays with single elements
+    if (Array.isArray(result.plot_base64) && result.plot_base64.length > 0) {
+      base64String = result.plot_base64[0]
+    }
+    // Or as object {0: "data..."}
+    else if (result.plot_base64 && typeof result.plot_base64 === 'object') {
+      base64String = result.plot_base64[0] || Object.values(result.plot_base64)[0]
+    }
+    // Or direct string
+    else if (typeof result.plot_base64 === 'string') {
       base64String = result.plot_base64
     }
-    // Check if it's nested in output object
-    else if (result.output && typeof result.output === 'object' && result.output.plot_base64) {
-      base64String = result.output.plot_base64
-    }
-    // Check for alternative field names
-    else if (result.plot) {
-      base64String = result.plot
-    }
-    else if (result.image) {
-      base64String = result.image
-    }
 
-    console.log('Extracted base64 string exists:', !!base64String)
-    console.log('Base64 string length:', base64String?.length || 0)
+    console.log('Extracted base64 exists:', !!base64String)
+    console.log('Base64 type:', typeof base64String)
+    console.log('Base64 length:', base64String?.length || 0)
 
     // Convert base64 plot to data URL for display
     let plotUrl = null
-    if (base64String) {
+    if (base64String && typeof base64String === 'string' && base64String.length > 100) {
       plotUrl = `data:image/png;base64,${base64String}`
-      console.log('✅ Created plot data URL successfully')
+      console.log('✅ Created plot data URL successfully, length:', plotUrl.length)
     } else {
-      console.error('❌ Could not find base64 plot data in response')
-      console.log('Available keys:', Object.keys(result))
+      console.error('❌ Could not extract valid base64 string')
+      console.log('Result structure:', {
+        successType: typeof result.success,
+        outputType: typeof result.output,
+        plotType: typeof result.plot_base64,
+        errorType: typeof result.error
+      })
     }
 
     return NextResponse.json({
       plotUrl,
-      output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output),
+      output: JSON.stringify(result.output),
       success: true,
       rawResult: result, // For debugging
     })
