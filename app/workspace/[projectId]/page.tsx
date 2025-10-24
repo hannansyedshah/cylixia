@@ -14,6 +14,15 @@ import { Send, Play, Code2, BarChart3, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  code?: string
+  plot_url?: string
+  created_at: string
+}
+
 export default function WorkspacePage() {
   const router = useRouter()
   const params = useParams()
@@ -208,7 +217,7 @@ export default function WorkspacePage() {
                     </div>
                   </div>
                 ) : (
-                  project.messages.map((message, index) => (
+                  project.messages.map((message: Message, index: number) => (
                     <div
                       key={message.id}
                       className={`flex ${
