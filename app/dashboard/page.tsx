@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ProjectCard } from '@/components/ProjectCard'
@@ -26,33 +26,37 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
-  const [hasLoaded, setHasLoaded] = useState(false)
+  const hasLoadedRef = useRef(false)
 
   const loadProjects = useCallback(async () => {
-    if (hasLoaded) return // Prevent duplicate calls
+    if (hasLoadedRef.current) return // Prevent duplicate calls
     
     try {
+      setLoading(true)
       const response = await fetch('/api/projects')
       const data = await response.json()
       if (data.projects) {
         setProjects(data.projects)
-        setHasLoaded(true)
+        hasLoadedRef.current = true
       }
     } catch (error) {
       console.error('Failed to load projects:', error)
     } finally {
       setLoading(false)
     }
-  }, [hasLoaded])
+  }, [])
+
+  // Load projects when user becomes available
+  useEffect(() => {
+    if (user && !hasLoadedRef.current) {
+      loadProjects()
+    }
+  }, [user, loadProjects])
 
   useEffect(() => {
     let mounted = true
-    let hasChecked = false
     
     const checkAuth = async () => {
-      if (hasChecked || !mounted) return
-      hasChecked = true
-      
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!mounted) return
@@ -65,11 +69,6 @@ export default function DashboardPage() {
       if (session && !user) {
         setUser(session.user)
       }
-      
-      // Load projects only once
-      if (mounted && !hasLoaded) {
-        loadProjects()
-      }
     }
     
     checkAuth()
@@ -77,7 +76,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false
     }
-  }, [hasLoaded, loadProjects, router, setUser, user])
+  }, [router, setUser])
 
   const handleCreateProject = async (name: string, description: string) => {
     try {
@@ -130,6 +129,11 @@ export default function DashboardPage() {
       console.error('Failed to update project:', error)
     }
   }
+
+  const refreshProjects = useCallback(() => {
+    hasLoadedRef.current = false
+    loadProjects()
+  }, [loadProjects])
 
   if (!user) {
     return null
