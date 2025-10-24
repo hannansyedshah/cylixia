@@ -50,41 +50,53 @@ ${code}
 
     const result = await response.json()
 
-    console.log('R API Response:', {
-      success: result.success,
-      hasPlot: !!result.plot_base64,
-      error: result.error
-    })
+    console.log('R API Full Response:', JSON.stringify(result, null, 2))
 
     if (!result.success) {
       return NextResponse.json({
         error: result.error || 'R execution failed',
-        output: result.output || '',
+        output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output),
         success: false,
       }, { status: 500 })
     }
 
+    // Extract base64 plot from various possible locations
+    let base64String = null
+    
+    // Check direct field
+    if (result.plot_base64 && typeof result.plot_base64 === 'string') {
+      base64String = result.plot_base64
+    }
+    // Check if it's nested in output object
+    else if (result.output && typeof result.output === 'object' && result.output.plot_base64) {
+      base64String = result.output.plot_base64
+    }
+    // Check for alternative field names
+    else if (result.plot) {
+      base64String = result.plot
+    }
+    else if (result.image) {
+      base64String = result.image
+    }
+
+    console.log('Extracted base64 string exists:', !!base64String)
+    console.log('Base64 string length:', base64String?.length || 0)
+
     // Convert base64 plot to data URL for display
     let plotUrl = null
-    if (result.plot_base64) {
-      // Make sure we're getting the string value, not the object
-      const base64String = typeof result.plot64 === 'string' 
-        ? result.plot_base64 
-        : String(result.plot_base64)
+    if (base64String) {
       plotUrl = `data:image/png;base64,${base64String}`
-      console.log('Created plot URL, length:', plotUrl.length)
+      console.log('✅ Created plot data URL successfully')
     } else {
-      console.warn('No plot_base64 in result:', Object.keys(result))
+      console.error('❌ Could not find base64 plot data in response')
+      console.log('Available keys:', Object.keys(result))
     }
 
     return NextResponse.json({
       plotUrl,
-      output: result.output || '',
+      output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output),
       success: true,
-      debug: {
-        hasPlotBase64: !!result.plot_base64,
-        resultKeys: Object.keys(result)
-      }
+      rawResult: result, // For debugging
     })
   } catch (error: any) {
     console.error('Execute API error:', error)
