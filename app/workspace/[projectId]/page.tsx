@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ChatBox } from '@/components/ChatBox'
@@ -36,53 +36,148 @@ export default function WorkspacePage() {
   const [loadingProject, setLoadingProject] = useState(true)
   const [csvData, setCsvData] = useState<string | null>(null)
   const [csvFileName, setCsvFileName] = useState<string | null>(null)
-
-  const loadProject = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}`)
-      const data = await response.json()
-      if (data.project) {
-        setProject(data.project)
-      } else if (response.status === 404 || !data.project) {
-        console.warn('Project not found')
-        // Don't redirect immediately, might be loading
-      }
-    } catch (error) {
-      console.error('Failed to load project:', error)
-    } finally {
-      setLoadingProject(false)
-    }
-  }, [projectId])
+  const hasInitializedRef = useRef(false)
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
+    
     let mounted = true
     
-    const checkAuth = async () => {
+    const initializeProject = async () => {
+      console.log('🚀 Initializing project:', projectId)
+      
+      // Check auth first
       const { data: { session } } = await supabase.auth.getSession()
+      console.log('🔐 Auth check:', { hasSession: !!session, hasUser: !!user })
       
       if (!mounted) return
       
       if (!session && !user) {
+        console.log('❌ No auth, redirecting to login')
         router.push('/login')
         return
       }
       
       if (session && !user) {
+        console.log('✅ Setting user from session')
         setUser(session.user)
       }
       
-      // Only load project if we have auth
-      if (session || user) {
-        loadProject()
+      // Load project if we have auth
+      if (mounted && (session || user)) {
+        try {
+          console.log('📡 Loading project data...')
+          setLoadingProject(true)
+          
+          // Add timeout to prevent hanging requests
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => {
+            console.log('⏰ Request timeout, aborting...')
+            controller.abort()
+          }, 10000) // 10 second timeout
+          
+          const response = await fetch(`/api/projects/${projectId}`, {
+            signal: controller.signal
+          })
+          
+          clearTimeout(timeoutId)
+          console.log('📊 Project response:', { status: response.status, hasProject: !!data.project })
+          
+          if (!mounted) return
+          
+          const data = await response.json()
+          
+          if (data.project) {
+            console.log('✅ Project loaded successfully:', data.project.name)
+            setProject(data.project)
+          } else if (response.status === 404 || !data.project) {
+            console.warn('❌ Project not found')
+          }
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            console.error('💥 Request was aborted due to timeout')
+          } else {
+            console.error('💥 Failed to load project:', error)
+          }
+        } finally {
+          if (mounted) {
+            console.log('🏁 Setting loading to false')
+            setLoadingProject(false)
+          }
+        }
       }
     }
     
-    checkAuth()
+    initializeProject()
     
     return () => {
       mounted = false
     }
-  }, [projectId, router, setUser, loadProject, user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty dependency array - run only once
+
+  // Handle projectId changes (when navigating to different project)
+  useEffect(() => {
+    if (hasInitializedRef.current) {
+      // Reset state for new project
+      hasInitializedRef.current = false
+      setProject(null)
+      setLoadingProject(true)
+      
+      // Re-run initialization
+      const initializeProject = async () => {
+        hasInitializedRef.current = true
+        
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session && !user) {
+          router.push('/login')
+          return
+        }
+        
+        if (session && !user) {
+          setUser(session.user)
+        }
+        
+        if (session || user) {
+          try {
+            setLoadingProject(true)
+            
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => {
+              console.log('⏰ Request timeout, aborting...')
+              controller.abort()
+            }, 10000) // 10 second timeout
+            
+            const response = await fetch(`/api/projects/${projectId}`, {
+              signal: controller.signal
+            })
+            
+            clearTimeout(timeoutId)
+            const data = await response.json()
+            
+            if (data.project) {
+              setProject(data.project)
+            }
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              console.error('💥 Request was aborted due to timeout')
+            } else {
+              console.error('Failed to load project:', error)
+            }
+          } finally {
+            setLoadingProject(false)
+          }
+        }
+      }
+      
+      initializeProject()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
@@ -307,7 +402,15 @@ export default function WorkspacePage() {
     }
   }
 
+  console.log('🎨 Render state:', { 
+    hasUser: !!user, 
+    loadingProject, 
+    hasProject: !!project,
+    projectName: project?.name 
+  })
+
   if (!user || loadingProject) {
+    console.log('⏳ Showing loading screen')
     return (
       <Layout>
         <div className="h-[calc(100vh-80px)] flex items-center justify-center">
@@ -318,8 +421,11 @@ export default function WorkspacePage() {
   }
 
   if (!project) {
+    console.log('❌ No project data, returning null')
     return null
   }
+
+  console.log('✅ Rendering project:', project.name)
 
   return (
     <Layout>
