@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { routeIntent, getSystemPrompt } from '@/lib/routerLogic'
-import { callAiriaAgent, extractRCode } from '@/lib/airiaClient'
+import { callAiriaAgent, parseAiriaResponse } from '@/lib/airiaClient'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode, userId } = await request.json()
+    const { prompt, existingCode, userId, csvData, fileName } = await request.json()
 
     // Use router logic to determine intent
     const routeResult = routeIntent(prompt)
@@ -37,17 +37,36 @@ User Request: ${prompt}
 Generate complete, executable R code for this request. Return ONLY the R code, no explanations.`
     }
 
-    // Call Airia agent
-    const airiaResponse = await callAiriaAgent(enhancedPrompt, userId || 'anonymous')
-    const rCode = extractRCode(airiaResponse)
+    // Check if API key is configured
+    if (!process.env.AIRIA_API_KEY) {
+      console.warn('⚠️ AIRIA_API_KEY not configured, using mock response')
+      
+      // Return mock response for testing
+      const mockCode = routeResult.route === 'Route 1' && existingCode
+        ? `# Improved R code\n${existingCode}\n\n# Applied improvements`
+        : `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
+      
+      return NextResponse.json({
+        message: 'Mock response (add AIRIA_API_KEY to use real AI)',
+        code: mockCode,
+        route: routeResult.route,
+        confidence: routeResult.confidence,
+      })
+    }
 
-    const message = routeResult.route === 'Route 1' 
-      ? `I've analyzed and improved your R code based on your request:`
-      : `Here's the R code for your request:`
+    // Call Airia agent with CSV data if available
+    const airiaResponse = await callAiriaAgent(
+      enhancedPrompt, 
+      userId || 'anonymous',
+      csvData,
+      fileName
+    )
+    
+    const parsed = parseAiriaResponse(airiaResponse)
 
     return NextResponse.json({
-      message,
-      code: rCode,
+      message: parsed.message,
+      code: parsed.code,
       route: routeResult.route,
       confidence: routeResult.confidence,
       rawResponse: airiaResponse, // For debugging

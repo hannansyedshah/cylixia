@@ -33,6 +33,8 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(false)
   const [project, setProject] = useState<any>(null)
   const [loadingProject, setLoadingProject] = useState(true)
+  const [csvData, setCsvData] = useState<string | null>(null)
+  const [csvFileName, setCsvFileName] = useState<string | null>(null)
 
   const loadProject = useCallback(async () => {
     try {
@@ -100,7 +102,9 @@ export default function WorkspacePage() {
         body: JSON.stringify({ 
           prompt,
           existingCode: project.code,
-          userId: user?.id || user?.email || 'anonymous'
+          userId: user?.id || user?.email || 'anonymous',
+          csvData,
+          fileName: csvFileName
         }),
       })
 
@@ -240,9 +244,12 @@ export default function WorkspacePage() {
 
         {/* Main Workspace */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Pane */}
-          <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl">
-            <UploadPanel />
+        {/* Left Pane */}
+        <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl">
+          <UploadPanel onDatasetUpload={(data, name) => {
+            setCsvData(data)
+            setCsvFileName(name)
+          }} />
             
             {/* Chat Section */}
             <div className="flex-1 flex flex-col overflow-hidden">

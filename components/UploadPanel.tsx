@@ -4,7 +4,11 @@ import { useState, useRef } from 'react'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export function UploadPanel() {
+interface UploadPanelProps {
+  onDatasetUpload?: (csvData: string, fileName: string) => void
+}
+
+export function UploadPanel({ onDatasetUpload }: UploadPanelProps) {
   const [fileName, setFileName] = useState<string | null>(null)
   const [datasetId, setDatasetId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -15,20 +19,33 @@ export function UploadPanel() {
 
     setFileName(file.name)
     
-    const formData = new FormData()
-    formData.append('file', file)
+    // Read CSV content
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const csvData = event.target?.result as string
+      
+      const formData = new FormData()
+      formData.append('file', file)
 
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
 
-      const data = await response.json()
-      setDatasetId(data.datasetId)
-    } catch (error) {
-      console.error('Upload failed:', error)
+        const data = await response.json()
+        setDatasetId(data.datasetId)
+        
+        // Pass CSV data to parent component
+        if (onDatasetUpload && csvData) {
+          onDatasetUpload(csvData, file.name)
+        }
+      } catch (error) {
+        console.error('Upload failed:', error)
+      }
     }
+    
+    reader.readAsText(file)
   }
 
   const handleClear = () => {
