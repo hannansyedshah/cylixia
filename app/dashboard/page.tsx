@@ -33,8 +33,16 @@ export default function DashboardPage() {
     
     try {
       setLoading(true)
+      console.log('Loading projects...')
       const response = await fetch('/api/projects')
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
       const data = await response.json()
+      console.log('Projects loaded:', data.projects?.length || 0)
+      
       if (data.projects) {
         setProjects(data.projects)
         hasLoadedRef.current = true

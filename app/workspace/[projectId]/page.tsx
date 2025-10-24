@@ -36,23 +36,67 @@ export default function WorkspacePage() {
   const [loadingProject, setLoadingProject] = useState(true)
   const [csvData, setCsvData] = useState<string | null>(null)
   const [csvFileName, setCsvFileName] = useState<string | null>(null)
-  const hasInitializedRef = useRef(false)
+  const hasLoadedRef = useRef(false)
 
+  const loadProject = useCallback(async () => {
+    if (!projectId) return
+    
+    try {
+      console.log('🚀 Loading project:', projectId)
+      setLoadingProject(true)
+      
+      // Load project data
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Request timeout, aborting...')
+        controller.abort()
+      }, 10000) // 10 second timeout
+      
+      const response = await fetch(`/api/projects/${projectId}`, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn('❌ Project not found')
+          router.push('/dashboard')
+          return
+        }
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.project) {
+        console.log('✅ Project loaded successfully:', data.project.name)
+        // Ensure messages array exists
+        const projectWithMessages = {
+          ...data.project,
+          messages: data.project.messages || []
+        }
+        setProject(projectWithMessages)
+      } else {
+        console.warn('❌ No project data received')
+        router.push('/dashboard')
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('💥 Request was aborted due to timeout')
+      } else {
+        console.error('💥 Failed to load project:', error)
+      }
+      router.push('/dashboard')
+    } finally {
+      setLoadingProject(false)
+    }
+  }, [projectId, router])
+
+  // Handle authentication state changes
   useEffect(() => {
-    // Prevent multiple initializations
-    if (hasInitializedRef.current) return
-    hasInitializedRef.current = true
-    
-    let mounted = true
-    
-    const initializeProject = async () => {
-      console.log('🚀 Initializing project:', projectId)
-      
-      // Check auth first
+    const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('🔐 Auth check:', { hasSession: !!session, hasUser: !!user })
-      
-      if (!mounted) return
       
       if (!session && !user) {
         console.log('❌ No auth, redirecting to login')
@@ -64,120 +108,25 @@ export default function WorkspacePage() {
         console.log('✅ Setting user from session')
         setUser(session.user)
       }
-      
-      // Load project if we have auth
-      if (mounted && (session || user)) {
-        try {
-          console.log('📡 Loading project data...')
-          setLoadingProject(true)
-          
-          // Add timeout to prevent hanging requests
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => {
-            console.log('⏰ Request timeout, aborting...')
-            controller.abort()
-          }, 10000) // 10 second timeout
-          
-          const response = await fetch(`/api/projects/${projectId}`, {
-            signal: controller.signal
-          })
-          
-          clearTimeout(timeoutId)
-          console.log('📊 Project response:', { status: response.status, hasProject: !!data.project })
-          
-          if (!mounted) return
-          
-          const data = await response.json()
-          
-          if (data.project) {
-            console.log('✅ Project loaded successfully:', data.project.name)
-            setProject(data.project)
-          } else if (response.status === 404 || !data.project) {
-            console.warn('❌ Project not found')
-          }
-        } catch (error) {
-          if (error.name === 'AbortError') {
-            console.error('💥 Request was aborted due to timeout')
-          } else {
-            console.error('💥 Failed to load project:', error)
-          }
-        } finally {
-          if (mounted) {
-            console.log('🏁 Setting loading to false')
-            setLoadingProject(false)
-          }
-        }
-      }
     }
     
-    initializeProject()
-    
-    return () => {
-      mounted = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty dependency array - run only once
+    checkAuth()
+  }, [user, setUser, router])
 
-  // Handle projectId changes (when navigating to different project)
+  // Reset loading state when projectId changes
   useEffect(() => {
-    if (hasInitializedRef.current) {
-      // Reset state for new project
-      hasInitializedRef.current = false
-      setProject(null)
-      setLoadingProject(true)
-      
-      // Re-run initialization
-      const initializeProject = async () => {
-        hasInitializedRef.current = true
-        
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (!session && !user) {
-          router.push('/login')
-          return
-        }
-        
-        if (session && !user) {
-          setUser(session.user)
-        }
-        
-        if (session || user) {
-          try {
-            setLoadingProject(true)
-            
-            // Add timeout to prevent hanging requests
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => {
-              console.log('⏰ Request timeout, aborting...')
-              controller.abort()
-            }, 10000) // 10 second timeout
-            
-            const response = await fetch(`/api/projects/${projectId}`, {
-              signal: controller.signal
-            })
-            
-            clearTimeout(timeoutId)
-            const data = await response.json()
-            
-            if (data.project) {
-              setProject(data.project)
-            }
-          } catch (error) {
-            if (error.name === 'AbortError') {
-              console.error('💥 Request was aborted due to timeout')
-            } else {
-              console.error('Failed to load project:', error)
-            }
-          } finally {
-            setLoadingProject(false)
-          }
-        }
-      }
-      
-      initializeProject()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    hasLoadedRef.current = false
+    setLoadingProject(true)
+    setProject(null)
   }, [projectId])
+
+  // Load project when projectId changes
+  useEffect(() => {
+    if (projectId && !hasLoadedRef.current) {
+      hasLoadedRef.current = true
+      loadProject()
+    }
+  }, [projectId, loadProject])
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
@@ -402,30 +351,35 @@ export default function WorkspacePage() {
     }
   }
 
-  console.log('🎨 Render state:', { 
-    hasUser: !!user, 
-    loadingProject, 
-    hasProject: !!project,
-    projectName: project?.name 
-  })
-
-  if (!user || loadingProject) {
-    console.log('⏳ Showing loading screen')
+  // Show loading screen while project is loading
+  if (loadingProject) {
     return (
       <Layout>
         <div className="h-[calc(100vh-80px)] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rstudio"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rstudio mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading project...</p>
+          </div>
         </div>
       </Layout>
     )
   }
 
+  // If no project after loading, redirect to dashboard
   if (!project) {
-    console.log('❌ No project data, returning null')
-    return null
+    return (
+      <Layout>
+        <div className="h-[calc(100vh-80px)] flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Project not found</p>
+            <Link href="/dashboard">
+              <Button>Back to Dashboard</Button>
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    )
   }
-
-  console.log('✅ Rendering project:', project.name)
 
   return (
     <Layout>

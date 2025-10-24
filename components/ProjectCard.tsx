@@ -34,6 +34,7 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, onDel
   }
 
   const handleOpen = () => {
+    console.log('Opening project:', id)
     router.push(`/workspace/${id}`)
   }
 
