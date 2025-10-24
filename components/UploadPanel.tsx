@@ -3,12 +3,11 @@
 import { useState, useRef } from 'react'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useSessionStore } from '@/store/useSessionStore'
 
 export function UploadPanel() {
   const [fileName, setFileName] = useState<string | null>(null)
+  const [datasetId, setDatasetId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const setCurrentDataset = useSessionStore((state) => state.setCurrentDataset)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -26,7 +25,7 @@ export function UploadPanel() {
       })
 
       const data = await response.json()
-      setCurrentDataset(data.datasetId)
+      setDatasetId(data.datasetId)
     } catch (error) {
       console.error('Upload failed:', error)
     }
@@ -34,7 +33,7 @@ export function UploadPanel() {
 
   const handleClear = () => {
     setFileName(null)
-    setCurrentDataset(null)
+    setDatasetId(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
