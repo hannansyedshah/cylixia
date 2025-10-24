@@ -186,6 +186,7 @@ export default function WorkspacePage() {
       
       const data = await response.json()
       console.log('Response data:', data)
+      console.log('Raw result from R API:', data.rawResult)
       
       if (!response.ok) {
         console.error('Execute error:', data)
@@ -194,7 +195,7 @@ export default function WorkspacePage() {
       }
       
       if (data.plotUrl) {
-        console.log('✅ Plot URL received:', data.plotUrl.substring(0, 100) + '...')
+        console.log('✅ Plot URL received:', data.plotUrl.substring(0, 50) + '...')
         
         // Update plot URL in database
         await fetch(`/api/projects/${projectId}`, {
