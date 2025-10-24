@@ -166,10 +166,20 @@ export default function WorkspacePage() {
       const response = await fetch('/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: project.code }),
+        body: JSON.stringify({ 
+          code: project.code,
+          csvData,
+          fileName: csvFileName
+        }),
       })
 
       const data = await response.json()
+      
+      if (!response.ok) {
+        console.error('Execute error:', data)
+        alert(data.message || 'Failed to execute code')
+        return
+      }
       
       if (data.plotUrl) {
         // Update plot URL in database
@@ -184,9 +194,15 @@ export default function WorkspacePage() {
           ...prev,
           plot_url: data.plotUrl
         }))
+        
+        // Show message if backend needs configuration
+        if (data.needsBackend) {
+          console.warn('⚠️', data.message)
+        }
       }
     } catch (error) {
       console.error('Execution error:', error)
+      alert('Failed to execute R code. Check console for details.')
     } finally {
       setLoading(false)
     }
