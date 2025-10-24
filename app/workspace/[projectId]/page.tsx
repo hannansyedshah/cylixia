@@ -86,7 +86,10 @@ export default function WorkspacePage() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          prompt,
+          existingCode: project.code 
+        }),
       })
 
       const data = await response.json()
