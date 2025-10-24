@@ -39,11 +39,12 @@ export default function WorkspacePage() {
   const hasLoadedRef = useRef(false)
 
   const loadProject = useCallback(async () => {
-    if (!projectId) return
+    if (!projectId || hasLoadedRef.current) return
     
     try {
       console.log('🚀 Loading project:', projectId)
       setLoadingProject(true)
+      hasLoadedRef.current = true
       
       // Load project data
       const controller = new AbortController()
@@ -95,8 +96,12 @@ export default function WorkspacePage() {
 
   // Handle authentication state changes
   useEffect(() => {
+    let mounted = true
+    
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!mounted) return
       
       if (!session && !user) {
         console.log('❌ No auth, redirecting to login')
@@ -111,6 +116,10 @@ export default function WorkspacePage() {
     }
     
     checkAuth()
+    
+    return () => {
+      mounted = false
+    }
   }, [user, setUser, router])
 
   // Reset loading state when projectId changes
@@ -120,10 +129,9 @@ export default function WorkspacePage() {
     setProject(null)
   }, [projectId])
 
-  // Load project when projectId changes
+  // Load project when projectId changes (only once per projectId)
   useEffect(() => {
     if (projectId && !hasLoadedRef.current) {
-      hasLoadedRef.current = true
       loadProject()
     }
   }, [projectId, loadProject])
@@ -301,11 +309,13 @@ export default function WorkspacePage() {
   const handleCodeChange = async (newCode: string) => {
     if (project) {
       setProject({ ...project, code: newCode })
-      // Debounce the API call
-      await fetch(`/api/projects/${projectId}`, {
+      // Debounce the API call - don't await to prevent blocking
+      fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCode }),
+      }).catch(error => {
+        console.error('Failed to save code:', error)
       })
     }
   }
@@ -318,7 +328,7 @@ export default function WorkspacePage() {
         plot_url: plotUrl || project.plot_url
       })
       
-      // Update the database
+      // Update the database - don't await to prevent blocking
       fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -326,6 +336,8 @@ export default function WorkspacePage() {
           code: code,
           plot_url: plotUrl || project.plot_url
         }),
+      }).catch(error => {
+        console.error('Failed to restore version:', error)
       })
     }
   }

@@ -54,13 +54,7 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Load projects when user becomes available
-  useEffect(() => {
-    if (user && !hasLoadedRef.current) {
-      loadProjects()
-    }
-  }, [user, loadProjects])
-
+  // Handle authentication state changes
   useEffect(() => {
     let mounted = true
     
@@ -84,7 +78,14 @@ export default function DashboardPage() {
     return () => {
       mounted = false
     }
-  }, [router, setUser])
+  }, [user, setUser, router])
+
+  // Load projects when user becomes available (only once)
+  useEffect(() => {
+    if (user && !hasLoadedRef.current) {
+      loadProjects()
+    }
+  }, [user, loadProjects])
 
   const handleCreateProject = async (name: string, description: string) => {
     try {
@@ -140,6 +141,7 @@ export default function DashboardPage() {
 
   const refreshProjects = useCallback(() => {
     hasLoadedRef.current = false
+    setProjects([]) // Clear existing projects
     loadProjects()
   }, [loadProjects])
 
