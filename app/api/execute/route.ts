@@ -67,13 +67,24 @@ ${code}
     // Convert base64 plot to data URL for display
     let plotUrl = null
     if (result.plot_base64) {
-      plotUrl = `data:image/png;base64,${result.plot_base64}`
+      // Make sure we're getting the string value, not the object
+      const base64String = typeof result.plot64 === 'string' 
+        ? result.plot_base64 
+        : String(result.plot_base64)
+      plotUrl = `data:image/png;base64,${base64String}`
+      console.log('Created plot URL, length:', plotUrl.length)
+    } else {
+      console.warn('No plot_base64 in result:', Object.keys(result))
     }
 
     return NextResponse.json({
       plotUrl,
       output: result.output || '',
       success: true,
+      debug: {
+        hasPlotBase64: !!result.plot_base64,
+        resultKeys: Object.keys(result)
+      }
     })
   } catch (error: any) {
     console.error('Execute API error:', error)
