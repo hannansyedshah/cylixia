@@ -158,11 +158,20 @@ export default function WorkspacePage() {
   }
 
   const handleRunCode = async () => {
-    if (!project) return
+    if (!project) {
+      console.error('No project loaded')
+      return
+    }
+    
+    console.log('🚀 Running R code...')
+    console.log('Code:', project.code.substring(0, 100))
+    console.log('Has CSV:', !!csvData)
     
     setLoading(true)
 
     try {
+      console.log('Sending request to /api/execute...')
+      
       const response = await fetch('/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -173,15 +182,20 @@ export default function WorkspacePage() {
         }),
       })
 
+      console.log('Response status:', response.status)
+      
       const data = await response.json()
+      console.log('Response data:', data)
       
       if (!response.ok) {
         console.error('Execute error:', data)
-        alert(data.message || 'Failed to execute code')
+        alert(`Error: ${data.error || 'Failed to execute code'}`)
         return
       }
       
       if (data.plotUrl) {
+        console.log('✅ Plot URL received:', data.plotUrl.substring(0, 100) + '...')
+        
         // Update plot URL in database
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
@@ -195,14 +209,14 @@ export default function WorkspacePage() {
           plot_url: data.plotUrl
         }))
         
-        // Show message if backend needs configuration
-        if (data.needsBackend) {
-          console.warn('⚠️', data.message)
-        }
+        console.log('✅ Plot updated successfully!')
+      } else {
+        console.warn('No plotUrl in response')
+        alert('R code executed but no plot was generated')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Execution error:', error)
-      alert('Failed to execute R code. Check console for details.')
+      alert(`Failed to execute R code: ${error.message}`)
     } finally {
       setLoading(false)
     }
