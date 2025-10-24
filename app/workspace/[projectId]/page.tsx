@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ChatBox } from '@/components/ChatBox'
@@ -25,6 +25,23 @@ export default function WorkspacePage() {
   const [project, setProject] = useState<any>(null)
   const [loadingProject, setLoadingProject] = useState(true)
 
+  const loadProject = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`)
+      const data = await response.json()
+      if (data.project) {
+        setProject(data.project)
+      } else {
+        router.push('/dashboard')
+      }
+    } catch (error) {
+      console.error('Failed to load project:', error)
+      router.push('/dashboard')
+    } finally {
+      setLoadingProject(false)
+    }
+  }, [projectId, router])
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -43,23 +60,6 @@ export default function WorkspacePage() {
     
     checkAuth()
   }, [user, projectId, router, setUser, loadProject])
-
-  const loadProject = async () => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}`)
-      const data = await response.json()
-      if (data.project) {
-        setProject(data.project)
-      } else {
-        router.push('/dashboard')
-      }
-    } catch (error) {
-      console.error('Failed to load project:', error)
-      router.push('/dashboard')
-    } finally {
-      setLoadingProject(false)
-    }
-  }
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return

@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabaseServer'
 // GET single project with messages
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
+  const { projectId } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -18,7 +19,7 @@ export async function GET(
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
-      .eq('id', params.projectId)
+      .eq('id', projectId)
       .eq('user_id', user.id)
       .single()
 
@@ -28,7 +29,7 @@ export async function GET(
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
       .select('*')
-      .eq('project_id', params.projectId)
+      .eq('project_id', projectId)
       .order('created_at', { ascending: true })
 
     if (messagesError) throw messagesError
@@ -42,8 +43,9 @@ export async function GET(
 // PATCH update project
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
+  const { projectId } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -61,7 +63,7 @@ export async function PATCH(
     const { data: project, error } = await supabase
       .from('projects')
       .update(updates)
-      .eq('id', params.projectId)
+      .eq('id', projectId)
       .eq('user_id', user.id)
       .select()
       .single()
@@ -77,8 +79,9 @@ export async function PATCH(
 // DELETE project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
+  const { projectId } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,7 +93,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('projects')
       .delete()
-      .eq('id', params.projectId)
+      .eq('id', projectId)
       .eq('user_id', user.id)
 
     if (error) throw error

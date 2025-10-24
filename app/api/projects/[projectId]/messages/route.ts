@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabaseServer'
 // POST add message to project
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
+  const { projectId } = await params
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -18,7 +19,7 @@ export async function POST(
     const { data: project } = await supabase
       .from('projects')
       .select('id')
-      .eq('id', params.projectId)
+      .eq('id', projectId)
       .eq('user_id', user.id)
       .single()
 
@@ -32,7 +33,7 @@ export async function POST(
     const { data: message, error } = await supabase
       .from('messages')
       .insert({
-        project_id: params.projectId,
+        project_id: projectId,
         role,
         content,
         code,

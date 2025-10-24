@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ProjectCard } from '@/components/ProjectCard'
@@ -27,6 +27,20 @@ export default function DashboardPage() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const loadProjects = useCallback(async () => {
+    try {
+      const response = await fetch('/api/projects')
+      const data = await response.json()
+      if (data.projects) {
+        setProjects(data.projects)
+      }
+    } catch (error) {
+      console.error('Failed to load projects:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     // Don't redirect immediately, give auth time to load
     const checkAuth = async () => {
@@ -48,20 +62,6 @@ export default function DashboardPage() {
     
     checkAuth()
   }, [user, router, setUser, loadProjects])
-
-  const loadProjects = async () => {
-    try {
-      const response = await fetch('/api/projects')
-      const data = await response.json()
-      if (data.projects) {
-        setProjects(data.projects)
-      }
-    } catch (error) {
-      console.error('Failed to load projects:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreateProject = async (name: string, description: string) => {
     try {
