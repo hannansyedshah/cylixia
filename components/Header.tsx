@@ -36,7 +36,7 @@ export function Header() {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [setUser, user])
 
   const handleLogout = async () => {
     // Sign out from Supabase

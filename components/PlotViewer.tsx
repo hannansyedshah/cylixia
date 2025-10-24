@@ -16,6 +16,7 @@ export function PlotViewer({ plotUrl }: PlotViewerProps) {
       </div>
 
       {plotUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={plotUrl}
           alt="Generated plot"

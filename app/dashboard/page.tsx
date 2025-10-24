@@ -47,7 +47,7 @@ export default function DashboardPage() {
     }
     
     checkAuth()
-  }, [user, router])
+  }, [user, router, setUser, loadProjects])
 
   const loadProjects = async () => {
     try {

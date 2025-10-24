@@ -42,7 +42,7 @@ export default function WorkspacePage() {
     }
     
     checkAuth()
-  }, [user, projectId, router])
+  }, [user, projectId, router, setUser, loadProject])
 
   const loadProject = async () => {
     try {
@@ -204,7 +204,7 @@ export default function WorkspacePage() {
                     <div className="text-center animate-fade-in-up">
                       <div className="mb-4 text-6xl animate-float">💬</div>
                       <p className="text-lg">Start a conversation by typing a question below</p>
-                      <p className="text-sm mt-2 opacity-70">Try: "Create a scatter plot of my data"</p>
+                      <p className="text-sm mt-2 opacity-70">Try: &quot;Create a scatter plot of my data&quot;</p>
                     </div>
                   </div>
                 ) : (

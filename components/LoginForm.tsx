@@ -95,7 +95,7 @@ export function LoginForm() {
             {loading ? 'Logging in...' : 'Login'}
           </Button>
           <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account? <a href="/signup" className="text-rstudio hover:underline font-semibold">Sign up</a>
+            Don&apos;t have an account? <a href="/signup" className="text-rstudio hover:underline font-semibold">Sign up</a>
           </p>
         </form>
       </CardContent>
