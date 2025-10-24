@@ -40,20 +40,24 @@ export default function WorkspacePage() {
       const data = await response.json()
       if (data.project) {
         setProject(data.project)
-      } else {
-        router.push('/dashboard')
+      } else if (response.status === 404 || !data.project) {
+        console.warn('Project not found')
+        // Don't redirect immediately, might be loading
       }
     } catch (error) {
       console.error('Failed to load project:', error)
-      router.push('/dashboard')
     } finally {
       setLoadingProject(false)
     }
-  }, [projectId, router])
+  }, [projectId])
 
   useEffect(() => {
+    let mounted = true
+    
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!mounted) return
       
       if (!session && !user) {
         router.push('/login')
@@ -64,11 +68,18 @@ export default function WorkspacePage() {
         setUser(session.user)
       }
       
-      loadProject()
+      // Only load project if we have auth
+      if (session || user) {
+        loadProject()
+      }
     }
     
     checkAuth()
-  }, [user, projectId, router, setUser, loadProject])
+    
+    return () => {
+      mounted = false
+    }
+  }, [projectId, router, setUser, loadProject])
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
@@ -96,26 +107,44 @@ export default function WorkspacePage() {
       const data = await response.json()
       
       if (data.code) {
+        // Update code in database
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: data.code }),
         })
+        
+        // Update local state immediately for better UX
+        setProject((prev: any) => ({
+          ...prev,
+          code: data.code
+        }))
       }
 
       // Add assistant message
+      const newMessage = {
+        id: Math.random().toString(36).substring(7),
+        role: 'assistant',
+        content: data.message || 'Here\'s the R code for your request:',
+        code: data.code,
+        created_at: new Date().toISOString()
+      }
+      
       await fetch(`/api/projects/${projectId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           role: 'assistant',
-          content: data.message || 'Here\'s the R code for your request:',
+          content: newMessage.content,
           code: data.code,
         }),
       })
-
-      // Reload project to get updated data
-      await loadProject()
+      
+      // Update messages locally
+      setProject((prev: any) => ({
+        ...prev,
+        messages: [...prev.messages, newMessage]
+      }))
     } catch (error) {
       console.error('Chat error:', error)
     } finally {
@@ -139,12 +168,18 @@ export default function WorkspacePage() {
       const data = await response.json()
       
       if (data.plotUrl) {
+        // Update plot URL in database
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ plot_url: data.plotUrl }),
         })
-        await loadProject()
+        
+        // Update local state immediately
+        setProject((prev: any) => ({
+          ...prev,
+          plot_url: data.plotUrl
+        }))
       }
     } catch (error) {
       console.error('Execution error:', error)
