@@ -7,6 +7,7 @@ import { ChatBox } from '@/components/ChatBox'
 import { CodeEditor } from '@/components/CodeEditor'
 import { PlotViewer } from '@/components/PlotViewer'
 import { UploadPanel } from '@/components/UploadPanel'
+import { VersionHistory } from '@/components/VersionHistory'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
@@ -81,7 +82,7 @@ export default function WorkspacePage() {
     return () => {
       mounted = false
     }
-  }, [projectId, router, setUser, loadProject])
+  }, [projectId, router, setUser, loadProject, user])
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
@@ -123,6 +124,21 @@ export default function WorkspacePage() {
           ...prev,
           code: data.code
         }))
+
+        // Auto-save version when new code is generated
+        try {
+          await fetch(`/api/projects/${projectId}/versions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: data.code,
+              plot_url: project.plot_url,
+              description: `Auto-saved: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`
+            })
+          })
+        } catch (error) {
+          console.error('Failed to auto-save version:', error)
+        }
       }
 
       // Add assistant message
@@ -209,6 +225,21 @@ export default function WorkspacePage() {
           ...prev,
           plot_url: data.plotUrl
         }))
+
+        // Auto-save version when plot is generated
+        try {
+          await fetch(`/api/projects/${projectId}/versions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: project.code,
+              plot_url: data.plotUrl,
+              description: `Plot generated: ${new Date().toLocaleString()}`
+            })
+          })
+        } catch (error) {
+          console.error('Failed to auto-save version with plot:', error)
+        }
         
         console.log('✅ Plot updated successfully!')
       } else {
@@ -232,6 +263,47 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCode }),
       })
+    }
+  }
+
+  const handleVersionRestore = (code: string, plotUrl?: string) => {
+    if (project) {
+      setProject({ 
+        ...project, 
+        code: code,
+        plot_url: plotUrl || project.plot_url
+      })
+      
+      // Update the database
+      fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          code: code,
+          plot_url: plotUrl || project.plot_url
+        }),
+      })
+    }
+  }
+
+  const handleSaveVersion = async (code: string, plotUrl?: string, description?: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code,
+          plot_url: plotUrl,
+          description: description || `Version ${new Date().toLocaleString()}`
+        })
+      })
+
+      const data = await response.json()
+      if (data.version) {
+        console.log('Version saved successfully:', data.version.version_number)
+      }
+    } catch (error) {
+      console.error('Failed to save version:', error)
     }
   }
 
@@ -342,10 +414,19 @@ export default function WorkspacePage() {
             {/* Code Editor Section */}
             <div className="h-1/2 border-t border-gray-200 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 shadow-inner">
               <div className="p-3 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 border-b flex items-center justify-between">
-                <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
-                  <Code2 className="h-4 w-4 mr-2 text-rstudio" />
-                  R Code Editor
-                </span>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
+                    <Code2 className="h-4 w-4 mr-2 text-rstudio" />
+                    R Code Editor
+                  </span>
+                  <VersionHistory
+                    projectId={projectId}
+                    currentCode={project.code}
+                    currentPlotUrl={project.plot_url}
+                    onVersionRestore={handleVersionRestore}
+                    onSaveVersion={handleSaveVersion}
+                  />
+                </div>
                 <Button onClick={handleRunCode} size="sm" disabled={loading} className="shadow-md">
                   <Play className="h-4 w-4 mr-2" />
                   Run
