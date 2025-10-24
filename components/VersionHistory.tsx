@@ -108,7 +108,7 @@ export function VersionHistory({
     if (showHistory) {
       loadVersions()
     }
-  }, [showHistory, projectId])
+  }, [showHistory, projectId, loadVersions])
 
   return (
     <div className="relative">

@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseServer'
+import { createClient } from '@/lib/supabaseServer'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { projectId } = await params
+
     const { data: versions, error } = await supabase
       .from('code_versions')
       .select('*')
-      .eq('project_id', params.projectId)
+      .eq('project_id', projectId)
       .order('version_number', { ascending: false })
 
     if (error) {
@@ -32,15 +35,17 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { projectId } = await params
     const { code, plot_url, description } = await request.json()
 
     if (!code) {
@@ -51,7 +56,7 @@ export async function POST(
     const { data: lastVersion } = await supabase
       .from('code_versions')
       .select('version_number')
-      .eq('project_id', params.projectId)
+      .eq('project_id', projectId)
       .order('version_number', { ascending: false })
       .limit(1)
       .single()
@@ -61,7 +66,7 @@ export async function POST(
     const { data: version, error } = await supabase
       .from('code_versions')
       .insert({
-        project_id: params.projectId,
+        project_id: projectId,
         version_number: nextVersionNumber,
         code,
         plot_url,

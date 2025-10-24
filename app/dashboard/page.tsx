@@ -77,7 +77,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false
     }
-  }, []) // Empty array - run only once on mount
+  }, [hasLoaded, loadProjects, router, setUser, user])
 
   const handleCreateProject = async (name: string, description: string) => {
     try {

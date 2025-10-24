@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseServer'
+import { createClient } from '@/lib/supabaseServer'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string; versionId: string } }
+  { params }: { params: Promise<{ projectId: string; versionId: string }> }
 ) {
   try {
+    const supabase = await createClient()
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { projectId, versionId } = await params
+
     // Get the version to restore
     const { data: version, error: versionError } = await supabase
       .from('code_versions')
       .select('*')
-      .eq('id', params.versionId)
-      .eq('project_id', params.projectId)
+      .eq('id', versionId)
+      .eq('project_id', projectId)
       .single()
 
     if (versionError || !version) {
@@ -31,7 +34,7 @@ export async function POST(
         code: version.code,
         plot_url: version.plot_url
       })
-      .eq('id', params.projectId)
+      .eq('id', projectId)
 
     if (updateError) {
       console.error('Error restoring version:', updateError)
