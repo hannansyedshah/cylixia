@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { routeIntent, getSystemPrompt, type RouteType } from '@/lib/routerLogic'
+import { routeIntent, getSystemPrompt } from '@/lib/routerLogic'
+import { callAiriaAgent, extractRCode } from '@/lib/airiaClient'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode } = await request.json()
+    const { prompt, existingCode, userId } = await request.json()
 
     // Use router logic to determine intent
     const routeResult = routeIntent(prompt)
@@ -12,61 +13,52 @@ export async function POST(request: NextRequest) {
     console.log(`🧠 Route Decision: ${routeResult.route} (${routeResult.confidence} confidence)`)
     console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
 
-    // TODO: Integrate with your AI backend (OpenAI, Anthropic, etc.)
-    // For now, return a mock response based on route
-    let mockCode = ''
-    let message = ''
+    // Build enhanced prompt for Airia
+    let enhancedPrompt = ''
+    
+    if (routeResult.route === 'Route 1' && existingCode) {
+      // Fix existing code route
+      enhancedPrompt = `${systemPrompt}
 
-    if (routeResult.route === 'Route 1') {
-      // Fixing/modifying existing code
-      mockCode = `# Fixed R code based on your request: ${prompt}
-library(ggplot2)
+User Request: ${prompt}
 
-# Improved version with better practices
-${existingCode || '# Original code here'}
+Current R Code:
+\`\`\`r
+${existingCode}
+\`\`\`
 
-# Applied fixes:
-# - Added error handling
-# - Improved visualization styling
-# - Added comments
-`
-      message = `I've analyzed and improved your R code based on your request. Here's the updated version:`
+Please analyze and improve this code based on the user's request. Return ONLY the complete R code, no explanations.`
     } else {
-      // Generating new code
-      mockCode = `# Generated R code for: ${prompt}
-library(ggplot2)
+      // Generate new code route
+      enhancedPrompt = `${systemPrompt}
 
-# Load and prepare data
-# data <- read.csv("your_data.csv")
+User Request: ${prompt}
 
-# Create visualization
-ggplot(data, aes(x = x_var, y = y_var)) +
-  geom_point(color = "#276DC3", size = 3, alpha = 0.7) +
-  geom_smooth(method = "lm", color = "#E74C3C") +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 16, face = "bold"),
-    axis.title = element_text(size = 12)
-  ) +
-  labs(
-    title = "Data Visualization",
-    x = "X Variable",
-    y = "Y Variable"
-  )
-`
-      message = `Here's the R code for your request:`
+Generate complete, executable R code for this request. Return ONLY the R code, no explanations.`
     }
+
+    // Call Airia agent
+    const airiaResponse = await callAiriaAgent(enhancedPrompt, userId || 'anonymous')
+    const rCode = extractRCode(airiaResponse)
+
+    const message = routeResult.route === 'Route 1' 
+      ? `I've analyzed and improved your R code based on your request:`
+      : `Here's the R code for your request:`
 
     return NextResponse.json({
       message,
-      code: mockCode,
+      code: rCode,
       route: routeResult.route,
       confidence: routeResult.confidence,
+      rawResponse: airiaResponse, // For debugging
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API error:', error)
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { 
+        error: error.message || 'Failed to process request',
+        details: 'Check that AIRIA_API_KEY is set in environment variables'
+      },
       { status: 500 }
     )
   }

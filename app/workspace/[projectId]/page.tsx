@@ -88,7 +88,8 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt,
-          existingCode: project.code 
+          existingCode: project.code,
+          userId: user?.id || user?.email || 'anonymous'
         }),
       })
 
