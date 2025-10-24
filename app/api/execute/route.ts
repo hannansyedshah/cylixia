@@ -71,25 +71,34 @@ ${code}
       }, { status: 500 })
     }
 
-    // Extract base64 from R's nested structure
+    // Extract base64 from R's array/object structure
     let base64String = null
     
-    // R often returns arrays with single elements
+    console.log('plot_base64 type:', typeof result.plot_base64)
+    console.log('plot_base64 is array:', Array.isArray(result.plot_base64))
+    
+    // R Plumber returns arrays: plot_base64: ["iVBORw..."]
     if (Array.isArray(result.plot_base64) && result.plot_base64.length > 0) {
-      base64String = result.plot_base64[0]
+      base64String = String(result.plot_base64[0])
+      console.log('✅ Extracted from array, first 50 chars:', base64String.substring(0, 50))
     }
     // Or as object {0: "data..."}
-    else if (result.plot_base64 && typeof result.plot_base64 === 'object') {
-      base64String = result.plot_base64[0] || Object.values(result.plot_base64)[0]
+    else if (result.plot_base64 && typeof result.plot_base64 === 'object' && !Array.isArray(result.plot_base64)) {
+      const values = Object.values(result.plot_base64)
+      if (values.length > 0) {
+        base64String = String(values[0])
+        console.log('✅ Extracted from object')
+      }
     }
-    // Or direct string
+    // Or direct string (unlikely with R)
     else if (typeof result.plot_base64 === 'string') {
       base64String = result.plot_base64
+      console.log('✅ Direct string')
     }
 
-    console.log('Extracted base64 exists:', !!base64String)
-    console.log('Base64 type:', typeof base64String)
-    console.log('Base64 length:', base64String?.length || 0)
+    console.log('Final base64 exists:', !!base64String)
+    console.log('Final base64 type:', typeof base64String)
+    console.log('Final base64 length:', base64String?.length || 0)
 
     // Convert base64 plot to data URL for display
     let plotUrl = null
