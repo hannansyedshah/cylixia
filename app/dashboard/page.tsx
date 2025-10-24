@@ -42,10 +42,14 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    let mounted = true
+    
     // Don't redirect immediately, give auth time to load
     const checkAuth = async () => {
       // Check if we have a Supabase session
       const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!mounted) return
       
       if (!session && !user) {
         router.push('/login')
@@ -57,11 +61,19 @@ export default function DashboardPage() {
         setUser(session.user)
       }
       
-      loadProjects()
+      // Only load once
+      if (mounted) {
+        loadProjects()
+      }
     }
     
     checkAuth()
-  }, [user, router, setUser, loadProjects])
+    
+    return () => {
+      mounted = false
+    }
+    // Remove loadProjects from dependencies to stop infinite loop!
+  }, [user, router, setUser])
 
   const handleCreateProject = async (name: string, description: string) => {
     try {
