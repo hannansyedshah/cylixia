@@ -24,24 +24,13 @@ export function UploadPanel({ onDatasetUpload }: UploadPanelProps) {
     reader.onload = async (event) => {
       const csvData = event.target?.result as string
       
-      const formData = new FormData()
-      formData.append('file', file)
-
-      try {
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-
-        const data = await response.json()
-        setDatasetId(data.datasetId)
-        
-        // Pass CSV data to parent component
-        if (onDatasetUpload && csvData) {
-          onDatasetUpload(csvData, file.name)
-        }
-      } catch (error) {
-        console.error('Upload failed:', error)
+      // Store dataset ID for potential future use
+      setDatasetId(file.name)
+      
+      // Pass CSV data to parent component immediately
+      if (onDatasetUpload && csvData) {
+        onDatasetUpload(csvData, file.name)
+        console.log('✅ CSV data passed to workspace:', file.name, csvData.length, 'chars')
       }
     }
     
@@ -53,6 +42,10 @@ export function UploadPanel({ onDatasetUpload }: UploadPanelProps) {
     setDatasetId(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+    // Notify parent component that CSV data should be cleared
+    if (onDatasetUpload) {
+      onDatasetUpload('', '')
     }
   }
 

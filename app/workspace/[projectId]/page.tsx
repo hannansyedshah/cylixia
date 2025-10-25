@@ -234,20 +234,29 @@ export default function WorkspacePage() {
     console.log('🚀 Running R code...')
     console.log('Code:', project.code.substring(0, 100))
     console.log('Has CSV:', !!csvData)
+    console.log('CSV data length:', csvData?.length || 0)
+    console.log('CSV file name:', csvFileName)
     
     setLoading(true)
 
     try {
       console.log('Sending request to /api/execute...')
       
+      // Create FormData to send code and CSV file
+      const formData = new FormData()
+      formData.append('code', project.code)
+      
+      // If we have CSV data, create a File object from it
+      if (csvData && csvFileName) {
+        const csvBlob = new Blob([csvData], { type: 'text/csv' })
+        const csvFile = new File([csvBlob], csvFileName, { type: 'text/csv' })
+        formData.append('file', csvFile)
+        console.log('Added CSV file to FormData:', csvFileName)
+      }
+      
       const response = await fetch('/api/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          code: project.code,
-          csvData,
-          fileName: csvFileName
-        }),
+        body: formData,
       })
 
       console.log('Response status:', response.status)
@@ -258,7 +267,23 @@ export default function WorkspacePage() {
       
       if (!response.ok) {
         console.error('Execute error:', data)
-        alert(`Error: ${data.error || 'Failed to execute code'}`)
+        const errorMessage = data.error || 'Failed to execute code'
+        const stdout = data.stdout || ''
+        const stderr = data.stderr || ''
+        const details = data.details || ''
+        
+        // Show detailed error information
+        let fullErrorMessage = `Error: ${errorMessage}`
+        if (details) fullErrorMessage += `\n\nDetails: ${details}`
+        if (stdout) fullErrorMessage += `\n\nOutput: ${stdout}`
+        if (stderr) fullErrorMessage += `\n\nError Details: ${stderr}`
+        
+        // Special handling for service not deployed
+        if (response.status === 503) {
+          fullErrorMessage += `\n\n🔧 The R execution service is not yet deployed. Please check the Cloud Run service status.`
+        }
+        
+        alert(fullErrorMessage)
         return
       }
       
@@ -296,7 +321,14 @@ export default function WorkspacePage() {
         console.log('✅ Plot updated successfully!')
       } else {
         console.warn('No plotUrl in response')
-        alert('R code executed but no plot was generated')
+        // Show console output if available
+        if (data.stdout) {
+          console.log('Console output:', data.stdout)
+        }
+        if (data.stderr) {
+          console.log('Console errors:', data.stderr)
+        }
+        alert('R code executed successfully but no plot was generated')
       }
     } catch (error: any) {
       console.error('Execution error:', error)
