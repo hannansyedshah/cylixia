@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DataPreview } from '@/components/DataPreview'
 
 interface UploadPanelProps {
   onDatasetUpload?: (csvData: string, fileName: string) => void
@@ -75,15 +74,6 @@ export function UploadPanel({ onDatasetUpload, privacyMode = true }: UploadPanel
           }`}>
             {privacyMode ? '🔒 Privacy Protected: AI will receive randomized data' : '⚠️ Privacy Warning: AI will receive original data'}
           </div>
-          
-          {/* Data Preview */}
-          {csvData && (
-            <DataPreview 
-              originalData={csvData}
-              fileName={fileName}
-              privacyMode={privacyMode}
-            />
-          )}
         </div>
       ) : (
         <div className="flex items-center space-x-2">

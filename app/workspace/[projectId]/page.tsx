@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { PlotViewer } from '@/components/PlotViewer'
 import { UploadPanel } from '@/components/UploadPanel'
 import { VersionHistory } from '@/components/VersionHistory'
+import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
@@ -465,7 +466,7 @@ export default function WorkspacePage() {
 
         {/* Main Workspace */}
         <div className="flex-1 flex overflow-hidden">
-        {/* Left Pane */}
+        {/* Left Pane - Chat & Code */}
         <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl">
           <UploadPanel 
             onDatasetUpload={(data, name) => {
@@ -514,34 +515,28 @@ export default function WorkspacePage() {
                 )}
               </div>
               
-              {/* Privacy Toggle */}
+              {/* Privacy Toggle - Compact */}
               {csvData && (
-                <div className="px-4 py-2 bg-blue-50/50 dark:bg-blue-950/20 border-t border-blue-200/50 dark:border-blue-800/50">
+                <div className="px-4 py-2 bg-blue-50/30 dark:bg-blue-950/10 border-t border-blue-200/30 dark:border-blue-800/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${privacyMode ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {privacyMode ? '🔒 Privacy Mode: Randomized Data' : '⚠️ Privacy Mode: Original Data'}
+                      <div className={`w-2 h-2 rounded-full ${privacyMode ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                        {privacyMode ? '🔒 Privacy ON' : '⚠️ Privacy OFF'}
                       </span>
                     </div>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        {privacyMode ? 'Randomized' : 'Original'}
-                      </span>
+                    <label className="flex items-center space-x-1 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={privacyMode}
                         onChange={(e) => setPrivacyMode(e.target.checked)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-1 dark:bg-gray-700 dark:border-gray-600"
                       />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Randomize
+                      </span>
                     </label>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {privacyMode 
-                      ? 'AI receives randomized data to protect your privacy. Original data is used for execution.'
-                      : 'AI receives your original data. Use with caution for sensitive information.'
-                    }
-                  </p>
                 </div>
               )}
 
@@ -563,8 +558,8 @@ export default function WorkspacePage() {
               </div>
             </div>
 
-            {/* Code Editor Section */}
-            <div className="h-1/2 border-t border-gray-200 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 shadow-inner">
+            {/* Code Editor Section - Smaller */}
+            <div className="h-1/3 border-t border-gray-200 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 shadow-inner">
               <div className="p-3 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 border-b flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
@@ -590,16 +585,38 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          {/* Right Pane - Plot Viewer */}
-          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl">
-            <div className="p-3 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b">
-              <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
-                <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
-                Plot Display
-              </span>
-            </div>
-                <div className="h-[calc(100%-48px)]">
-              <PlotViewer plotUrl={project.plot_url || null} />
+          {/* Right Pane - Data Preview & Plot Viewer */}
+          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col">
+            {/* Data Preview Section */}
+            {csvData && (
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <div className="p-3 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b">
+                  <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
+                    <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
+                    Data Preview
+                  </span>
+                </div>
+                <div className="p-3">
+                  <DataPreview 
+                    originalData={csvData}
+                    fileName={csvFileName || 'data.csv'}
+                    privacyMode={privacyMode}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Plot Display Section */}
+            <div className="flex-1 flex flex-col">
+              <div className="p-3 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b">
+                <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
+                  <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
+                  Plot Display
+                </span>
+              </div>
+              <div className="flex-1">
+                <PlotViewer plotUrl={project.plot_url || null} />
+              </div>
             </div>
           </div>
         </div>
