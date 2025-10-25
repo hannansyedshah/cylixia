@@ -21,7 +21,7 @@ export function PlotViewer({ plotUrl, projectName = 'plot' }: PlotViewerProps) {
   }
 
   return (
-    <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 relative overflow-hidden border-2 border-gray-200 dark:border-gray-700 rounded-lg m-2">
+    <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 relative overflow-hidden border-2 border-gray-200 dark:border-gray-700 rounded-lg m-1">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
         <div className="absolute top-10 left-10 w-32 h-32 bg-rstudio/5 rounded-full blur-2xl animate-pulse"></div>
@@ -29,7 +29,7 @@ export function PlotViewer({ plotUrl, projectName = 'plot' }: PlotViewerProps) {
       </div>
 
       {plotUrl ? (
-        <div className="relative z-10 flex flex-col items-center justify-center h-full w-full p-4">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full w-full p-2">
           {/* Download button overlay */}
           <div className="absolute top-2 right-2 z-20">
             <Button
@@ -43,13 +43,17 @@ export function PlotViewer({ plotUrl, projectName = 'plot' }: PlotViewerProps) {
             </Button>
           </div>
           
-          {/* Plot image with proper containment */}
-          <div className="w-full h-full flex items-center justify-center">
+          {/* Plot image with proper containment and no cutoff */}
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
             <img
               src={plotUrl}
               alt="Generated plot"
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-fade-in-up"
-              style={{ maxWidth: 'calc(100% - 2rem)', maxHeight: 'calc(100% - 2rem)' }}
+              style={{ 
+                maxWidth: 'calc(100% - 1rem)', 
+                maxHeight: 'calc(100% - 1rem)',
+                objectFit: 'contain'
+              }}
             />
           </div>
         </div>
