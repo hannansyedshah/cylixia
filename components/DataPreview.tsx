@@ -12,7 +12,7 @@ interface DataPreviewProps {
 }
 
 export function DataPreview({ originalData, fileName, privacyMode }: DataPreviewProps) {
-  const [showPreview, setShowPreview] = useState(false)
+  const [showPreview, setShowPreview] = useState(true) // Show by default
   const [viewMode, setViewMode] = useState<'original' | 'randomized'>('original')
   const [copied, setCopied] = useState(false)
 
@@ -43,16 +43,16 @@ export function DataPreview({ originalData, fileName, privacyMode }: DataPreview
 
   const formatDataForDisplay = (data: string) => {
     const lines = data.split('\n').filter(line => line.trim())
-    const maxLines = 10 // Show first 10 rows
+    const maxLines = 15 // Show first 15 rows
     
     return lines.slice(0, maxLines).map((line, index) => {
       const cells = line.split(',')
       return (
-        <div key={index} className="flex space-x-2 text-xs">
+        <div key={index} className="flex space-x-1 text-xs">
           {cells.map((cell, cellIndex) => (
             <div 
               key={cellIndex} 
-              className="flex-1 p-1 bg-gray-50 dark:bg-gray-800 rounded truncate"
+              className="flex-1 p-1 bg-gray-50 dark:bg-gray-800 rounded truncate min-w-0"
               title={cell.trim()}
             >
               {cell.trim()}
@@ -138,9 +138,9 @@ export function DataPreview({ originalData, fileName, privacyMode }: DataPreview
       <div className="p-3 max-h-64 overflow-y-auto">
         <div className="space-y-1">
           {formatDataForDisplay(currentData)}
-          {originalData.split('\n').length > 10 && (
+          {originalData.split('\n').length > 15 && (
             <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-              ... and {originalData.split('\n').length - 10} more rows
+              ... and {originalData.split('\n').length - 15} more rows
             </div>
           )}
         </div>

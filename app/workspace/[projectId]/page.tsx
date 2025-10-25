@@ -267,6 +267,9 @@ export default function WorkspacePage() {
       
       const data = await response.json()
       console.log('Full response data:', JSON.stringify(data, null, 2))
+      console.log('Response keys:', Object.keys(data))
+      console.log('Success status:', data.success)
+      console.log('Plot data present:', !!(data.plot_base64 || data.plot || data.image || data.plot_data || data.result))
       
       if (!response.ok) {
         console.error('Execute error:', data)
@@ -292,36 +295,36 @@ export default function WorkspacePage() {
           const plotUrl = `data:image/png;base64,${plotData}`
           console.log('✅ Plot URL created from base64 data')
         
-        // Update plot URL in database
-        await fetch(`/api/projects/${projectId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plot_url: plotUrl }),
-        })
-        
-        // Update local state immediately
-        setProject((prev: any) => ({
-          ...prev,
-            plot_url: plotUrl
-        }))
-
-        // Auto-save version when plot is generated
-        try {
-          await fetch(`/api/projects/${projectId}/versions`, {
-            method: 'POST',
+          // Update plot URL in database
+          await fetch(`/api/projects/${projectId}`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: project.code,
-                plot_url: plotUrl,
-              description: `Plot generated: ${new Date().toLocaleString()}`
-            })
+            body: JSON.stringify({ plot_url: plotUrl }),
           })
-        } catch (error) {
-          console.error('Failed to auto-save version with plot:', error)
-        }
-        
-        console.log('✅ Plot updated successfully!')
-      } else {
+          
+          // Update local state immediately
+          setProject((prev: any) => ({
+            ...prev,
+            plot_url: plotUrl
+          }))
+
+          // Auto-save version when plot is generated
+          try {
+            await fetch(`/api/projects/${projectId}/versions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                code: project.code,
+                plot_url: plotUrl,
+                description: `Plot generated: ${new Date().toLocaleString()}`
+              })
+            })
+          } catch (error) {
+            console.error('Failed to auto-save version with plot:', error)
+          }
+          
+          console.log('✅ Plot updated successfully!')
+        } else {
           console.warn('No plot data found in response')
           console.log('Available fields:', Object.keys(data))
           // Show message if available
