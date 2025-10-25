@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 interface PlotViewerProps {
   plotUrl: string | null
   projectName?: string
+  hasCsvData?: boolean
 }
 
-export function PlotViewer({ plotUrl, projectName = 'plot' }: PlotViewerProps) {
+export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }: PlotViewerProps) {
   const handleDownload = () => {
     if (!plotUrl) return
     
@@ -43,16 +44,16 @@ export function PlotViewer({ plotUrl, projectName = 'plot' }: PlotViewerProps) {
             </Button>
           </div>
           
-          {/* Dedicated Plot Container Box */}
-          <div className="flex-1 flex items-center justify-center p-4">
+          {/* Dedicated Plot Container Box - Adjust padding based on CSV data presence */}
+          <div className={`flex-1 flex items-center justify-center ${hasCsvData ? 'p-2' : 'p-4'}`}>
             <div className="w-full h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden">
               <img
                 src={plotUrl}
                 alt="Generated plot"
                 className="max-w-full max-h-full object-contain rounded-lg animate-fade-in-up"
                 style={{ 
-                  maxWidth: 'calc(100% - 2rem)', 
-                  maxHeight: 'calc(100% - 2rem)',
+                  maxWidth: hasCsvData ? 'calc(100% - 1rem)' : 'calc(100% - 2rem)', 
+                  maxHeight: hasCsvData ? 'calc(100% - 1rem)' : 'calc(100% - 2rem)',
                   objectFit: 'contain'
                 }}
               />

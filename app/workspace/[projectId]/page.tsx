@@ -590,9 +590,9 @@ export default function WorkspacePage() {
 
           {/* Right Pane - Data Preview & Plot Viewer */}
           <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col">
-            {/* Data Preview Section - Enhanced height when present */}
+            {/* Data Preview Section - Compact height when present to give more space to plot */}
             {csvData && (
-              <div className="h-48 border-b border-gray-200 dark:border-gray-700 flex flex-col">
+              <div className="h-40 border-b border-gray-200 dark:border-gray-700 flex flex-col">
                 <div className="p-3 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b">
                   <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
                     <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
@@ -618,7 +618,11 @@ export default function WorkspacePage() {
                 </span>
               </div>
               <div className="flex-1 p-1 overflow-hidden">
-                <PlotViewer plotUrl={project.plot_url || null} projectName={project.name} />
+                <PlotViewer 
+                  plotUrl={project.plot_url || null} 
+                  projectName={project.name} 
+                  hasCsvData={!!csvData}
+                />
               </div>
             </div>
           </div>
