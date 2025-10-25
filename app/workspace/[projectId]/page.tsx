@@ -243,7 +243,7 @@ export default function WorkspacePage() {
       console.log('Sending request to /api/execute proxy...')
       
       // Prepare CSV data as base64 if available
-      let csv_base64 = null
+      let csv_base64 = ""
       if (csvData && csvFileName) {
         csv_base64 = btoa(csvData)
         console.log('Added CSV data as base64:', csvFileName)
@@ -288,37 +288,37 @@ export default function WorkspacePage() {
         if (plotData) {
           const plotUrl = `data:image/png;base64,${plotData}`
           console.log('✅ Plot URL created from base64 data')
-          
-          // Update plot URL in database
-          await fetch(`/api/projects/${projectId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+        
+        // Update plot URL in database
+        await fetch(`/api/projects/${projectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ plot_url: plotUrl }),
-          })
-          
-          // Update local state immediately
-          setProject((prev: any) => ({
-            ...prev,
+        })
+        
+        // Update local state immediately
+        setProject((prev: any) => ({
+          ...prev,
             plot_url: plotUrl
-          }))
+        }))
 
-          // Auto-save version when plot is generated
-          try {
-            await fetch(`/api/projects/${projectId}/versions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                code: project.code,
+        // Auto-save version when plot is generated
+        try {
+          await fetch(`/api/projects/${projectId}/versions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: project.code,
                 plot_url: plotUrl,
-                description: `Plot generated: ${new Date().toLocaleString()}`
-              })
+              description: `Plot generated: ${new Date().toLocaleString()}`
             })
-          } catch (error) {
-            console.error('Failed to auto-save version with plot:', error)
-          }
-          
-          console.log('✅ Plot updated successfully!')
-        } else {
+          })
+        } catch (error) {
+          console.error('Failed to auto-save version with plot:', error)
+        }
+        
+        console.log('✅ Plot updated successfully!')
+      } else {
           console.warn('No plot data found in response')
           console.log('Available fields:', Object.keys(data))
           // Show message if available
