@@ -36,6 +36,7 @@ export default function WorkspacePage() {
   const [loadingProject, setLoadingProject] = useState(true)
   const [csvData, setCsvData] = useState<string | null>(null)
   const [csvFileName, setCsvFileName] = useState<string | null>(null)
+  const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
   const hasLoadedRef = useRef(false)
 
   const loadProject = useCallback(async () => {
@@ -157,7 +158,8 @@ export default function WorkspacePage() {
           existingCode: project.code,
           userId: user?.id || user?.email || 'anonymous',
           csvData,
-          fileName: csvFileName
+          fileName: csvFileName,
+          privacyMode
         }),
       })
 
@@ -438,9 +440,20 @@ export default function WorkspacePage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-lg font-semibold text-darktext dark:text-white">
-                {project.name}
-              </h1>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-lg font-semibold text-darktext dark:text-white">
+                  {project.name}
+                </h1>
+                {csvData && (
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    privacyMode 
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                  }`}>
+                    {privacyMode ? '🔒 Privacy Protected' : '⚠️ Original Data'}
+                  </div>
+                )}
+              </div>
               {project.description && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {project.description}
@@ -454,10 +467,13 @@ export default function WorkspacePage() {
         <div className="flex-1 flex overflow-hidden">
         {/* Left Pane */}
         <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl">
-          <UploadPanel onDatasetUpload={(data, name) => {
-            setCsvData(data)
-            setCsvFileName(name)
-          }} />
+          <UploadPanel 
+            onDatasetUpload={(data, name) => {
+              setCsvData(data)
+              setCsvFileName(name)
+            }}
+            privacyMode={privacyMode}
+          />
             
             {/* Chat Section */}
             <div className="flex-1 flex flex-col overflow-hidden">
@@ -498,6 +514,37 @@ export default function WorkspacePage() {
                 )}
               </div>
               
+              {/* Privacy Toggle */}
+              {csvData && (
+                <div className="px-4 py-2 bg-blue-50/50 dark:bg-blue-950/20 border-t border-blue-200/50 dark:border-blue-800/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${privacyMode ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {privacyMode ? '🔒 Privacy Mode: Randomized Data' : '⚠️ Privacy Mode: Original Data'}
+                      </span>
+                    </div>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {privacyMode ? 'Randomized' : 'Original'}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={privacyMode}
+                        onChange={(e) => setPrivacyMode(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {privacyMode 
+                      ? 'AI receives randomized data to protect your privacy. Original data is used for execution.'
+                      : 'AI receives your original data. Use with caution for sensitive information.'
+                    }
+                  </p>
+                </div>
+              )}
+
               {/* Prompt Input */}
               <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                 <div className="flex space-x-2">

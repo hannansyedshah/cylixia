@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { routeIntent, getSystemPrompt } from '@/lib/routerLogic'
 import { callAiriaAgent, parseAiriaResponse } from '@/lib/airiaClient'
+import { randomizeCSVData } from '@/lib/dataRandomizer'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode, userId, csvData, fileName } = await request.json()
+    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true } = await request.json()
 
     // Use router logic to determine intent
     const routeResult = routeIntent(prompt)
@@ -54,11 +55,30 @@ Generate complete, executable R code for this request. Return ONLY the R code, n
       })
     }
 
-    // Call Airia agent with CSV data if available
+    // Call Airia agent with CSV data (randomized or original based on privacy preference)
+    let csvDataToSend = csvData
+    if (csvData && fileName) {
+      if (privacyMode) {
+        // Privacy mode: Use randomized data for AI code generation
+        csvDataToSend = randomizeCSVData(csvData)
+        console.log(`🔒 Privacy Protection: Using randomized CSV data for AI code generation`)
+        console.log(`   - Original data: ${csvData.length} characters`)
+        console.log(`   - Randomized data: ${csvDataToSend.length} characters`)
+        console.log(`   - File: ${fileName}`)
+        console.log(`   - Note: Original data will be used for actual R code execution`)
+      } else {
+        // Non-privacy mode: Use original data (user choice)
+        console.log(`⚠️ Privacy Warning: Using original CSV data for AI code generation`)
+        console.log(`   - Data length: ${csvData.length} characters`)
+        console.log(`   - File: ${fileName}`)
+        console.log(`   - Warning: Original data is being sent to AI service`)
+      }
+    }
+    
     const airiaResponse = await callAiriaAgent(
       enhancedPrompt, 
       userId || 'anonymous',
-      csvData,
+      csvDataToSend,
       fileName
     )
     
