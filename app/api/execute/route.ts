@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Use environment variable for R API URL, fallback to Hugging Face
+// Try different endpoint patterns: /run, /predict, /api/predict
 const R_EXEC_API = process.env.R_EXEC_API_URL || "https://huggingface.co/spaces/ShayanShah1124/cReate/run"
 
 // Helper function to fix common R syntax errors
@@ -388,6 +389,41 @@ function fixRSyntaxErrors(code: string): string {
   return fixedCode
 }
 
+// Helper function to try multiple endpoint patterns
+async function tryMultipleEndpoints(baseUrl: string, requestBody: any): Promise<Response> {
+  // Python + R backend uses /run endpoint
+  const endpoints = [
+    '/run'  // Primary endpoint for your Python + R backend
+  ]
+  
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Trying endpoint: ${baseUrl}${endpoint}`)
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(10000), // 10 second timeout per attempt
+      })
+      
+      if (response.ok) {
+        console.log(`✅ Success with endpoint: ${endpoint}`)
+        return response
+      } else if (response.status !== 404) {
+        // If it's not a 404, this might be the right endpoint but with an error
+        console.log(`⚠️ Endpoint ${endpoint} returned ${response.status}, trying next...`)
+      }
+    } catch (error) {
+      console.log(`❌ Endpoint ${endpoint} failed:`, error.message)
+    }
+  }
+  
+  // If all endpoints failed, throw an error
+  throw new Error('All endpoint patterns failed. Please check your Space configuration.')
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -423,23 +459,15 @@ export async function POST(request: NextRequest) {
     }
 
     const requestBody = {
-      code: fixedCode,
-      csv_base64: csvBase64
+      code: fixedCode
     }
 
     console.log('Sending to Hugging Face R API:', R_EXEC_API)
     console.log('Request includes CSV file:', !!csvBase64)
 
-    // Call Hugging Face R execution API (public Space - no auth needed)
-    const response = await fetch(R_EXEC_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-      // Increase timeout for complex plots and package installation
-      signal: AbortSignal.timeout(120000), // 120 second timeout
-    })
+    // Try multiple endpoint patterns
+    const baseUrl = R_EXEC_API.replace(/\/[^\/]*$/, '') // Remove the last part after the last slash
+    const response = await tryMultipleEndpoints(baseUrl, requestBody)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -450,14 +478,15 @@ export async function POST(request: NextRequest) {
       let errorMessage = `Hugging Face R API returned ${response.status}: ${errorText}`
       
       if (response.status === 404) {
-        errorMessage += '\n\n🔧 The Hugging Face Space might not be accessible or the endpoint path might be incorrect.'
+        errorMessage += '\n\n🔧 Docker-based Space endpoint might not be configured correctly.'
         errorMessage += '\nPlease check:'
-        errorMessage += '\n1. Is the Space URL correct?'
-        errorMessage += '\n2. Is the Space publicly accessible?'
-        errorMessage += '\n3. Is the Space running (not sleeping)?'
-        errorMessage += '\n4. Is the endpoint path correct?'
+        errorMessage += '\n1. Is your Docker container exposing the right port?'
+        errorMessage += '\n2. Does your app have the correct API endpoint (e.g., /run, /predict, /execute)?'
+        errorMessage += '\n3. Is your Space running and not sleeping?'
+        errorMessage += '\n4. Check your Space logs for any Docker/container errors'
+        errorMessage += '\n5. Make sure your app is listening on the correct port (usually 7860)'
       } else if (response.status === 503) {
-        errorMessage += '\n\n🔧 The Hugging Face Space might be sleeping or starting up.'
+        errorMessage += '\n\n🔧 The Docker container might be starting up or sleeping.'
         errorMessage += '\nPlease wait a moment and try again.'
       }
       
@@ -496,14 +525,12 @@ export async function POST(request: NextRequest) {
     if (!result.success) {
       console.error('R execution failed:', {
         error: result.error,
-        stdout: result.stdout,
-        stderr: result.stderr
+        message: result.message
       })
       
       return NextResponse.json({
         error: result.error || 'R execution failed',
-        stdout: result.stdout,
-        stderr: result.stderr,
+        message: result.message,
         success: false,
         rawResult: result, // Include full result for debugging
       }, { status: 500 })
@@ -520,8 +547,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       plotUrl,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      message: result.message,
       success: true,
       rawResult: result, // For debugging
     })

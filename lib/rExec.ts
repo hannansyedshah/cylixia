@@ -19,8 +19,7 @@ export async function runRCode(code: string, csvData?: string): Promise<RExecuti
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      code,
-      csv_base64: csvData || null, // optional base64 CSV
+      code  // Your Python backend only needs the code
     }),
   });
 
