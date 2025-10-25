@@ -43,19 +43,19 @@ export function DataPreview({ originalData, fileName, privacyMode }: DataPreview
 
   const formatDataForDisplay = (data: string) => {
     const lines = data.split('\n').filter(line => line.trim())
-    const maxLines = 15 // Show first 15 rows
+    const maxLines = 8 // Show first 8 rows for compact display
     
     return lines.slice(0, maxLines).map((line, index) => {
       const cells = line.split(',')
       return (
-        <div key={index} className="flex space-x-1 text-xs">
+        <div key={index} className="flex space-x-1 text-xs mb-1">
           {cells.map((cell, cellIndex) => (
             <div 
               key={cellIndex} 
-              className="flex-1 p-1 bg-gray-50 dark:bg-gray-800 rounded truncate min-w-0"
+              className="flex-1 p-1 bg-gray-100 dark:bg-gray-700 rounded text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600"
               title={cell.trim()}
             >
-              {cell.trim()}
+              <span className="block truncate">{cell.trim()}</span>
             </div>
           ))}
         </div>
@@ -78,33 +78,34 @@ export function DataPreview({ originalData, fileName, privacyMode }: DataPreview
   }
 
   return (
-    <div className="mt-2 border rounded-lg bg-white dark:bg-gray-800">
-      {/* Preview Header */}
-      <div className="p-3 border-b bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+    <div className="border rounded-lg bg-white dark:bg-gray-800">
+      {/* Compact Header */}
+      <div className="p-2 border-b bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Eye className="h-4 w-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Data Preview: {fileName}
+          <Eye className="h-3 w-3 text-gray-600" />
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+            {fileName}
           </span>
         </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowPreview(false)}
+          className="h-6 w-6 p-0"
         >
-          <EyeOff className="h-4 w-4" />
+          <EyeOff className="h-3 w-3" />
         </Button>
       </div>
 
-      {/* View Mode Toggle */}
-      <div className="p-3 border-b bg-blue-50/50 dark:bg-blue-950/20">
+      {/* Compact View Mode Toggle */}
+      <div className="p-2 border-b bg-blue-50/50 dark:bg-blue-950/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
               viewMode === 'original' ? 'bg-blue-500' : 'bg-green-500'
             }`}></div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {viewMode === 'original' ? '📊 Original Data' : '🔒 Randomized Data'}
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              {viewMode === 'original' ? 'Original' : 'Randomized'}
             </span>
           </div>
           <div className="flex space-x-1">
@@ -112,7 +113,7 @@ export function DataPreview({ originalData, fileName, privacyMode }: DataPreview
               variant={viewMode === 'original' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('original')}
-              className="text-xs"
+              className="text-xs h-6 px-2"
             >
               Original
             </Button>
@@ -120,57 +121,47 @@ export function DataPreview({ originalData, fileName, privacyMode }: DataPreview
               variant={viewMode === 'randomized' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('randomized')}
-              className="text-xs"
+              className="text-xs h-6 px-2"
             >
               Randomized
             </Button>
           </div>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {viewMode === 'original' 
-            ? 'This is your actual data. AI will see this when privacy mode is OFF.'
-            : 'This is what AI sees when privacy mode is ON. Values are randomized but structure is preserved.'
-          }
-        </p>
       </div>
 
-      {/* Data Display */}
-      <div className="p-3 max-h-64 overflow-y-auto">
-        <div className="space-y-1">
+      {/* Compact Data Display */}
+      <div className="p-2 max-h-32 overflow-y-auto">
+        <div>
           {formatDataForDisplay(currentData)}
-          {originalData.split('\n').length > 15 && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
-              ... and {originalData.split('\n').length - 15} more rows
+          {originalData.split('\n').length > 8 && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
+              ... and {originalData.split('\n').length - 8} more rows
             </div>
           )}
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="p-3 border-t bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {currentData.length} characters, {currentData.split('\n').length} rows
-          </span>
-        </div>
-        <div className="flex space-x-2">
+      {/* Compact Action Buttons */}
+      <div className="p-2 border-t bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {currentData.split('\n').length} rows
+        </span>
+        <div className="flex space-x-1">
           <Button
             variant="outline"
             size="sm"
             onClick={handleCopy}
-            className="text-xs"
+            className="text-xs h-6 px-2"
           >
-            {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleDownload}
-            className="text-xs"
+            className="text-xs h-6 px-2"
           >
-            <Download className="h-3 w-3 mr-1" />
-            Download
+            <Download className="h-3 w-3" />
           </Button>
         </div>
       </div>
