@@ -411,9 +411,14 @@ async function tryMultipleEndpoints(baseUrl: string, requestBody: any): Promise<
       if (response.ok) {
         console.log(`✅ Success with endpoint: ${endpoint}`)
         return response
-      } else if (response.status !== 404) {
-        // If it's not a 404, this might be the right endpoint but with an error
-        console.log(`⚠️ Endpoint ${endpoint} returned ${response.status}, trying next...`)
+      } else {
+        // Log all response statuses for debugging
+        console.log(`⚠️ Endpoint ${endpoint} returned ${response.status}`)
+        if (response.status === 405) {
+          console.log(`❌ Method Not Allowed - endpoint exists but doesn't accept POST requests`)
+          // Don't try other endpoints if we get 405 - this is the right endpoint but wrong method
+          throw new Error(`Endpoint ${endpoint} exists but doesn't accept POST requests. Check your FastAPI route definition.`)
+        }
       }
     } catch (error) {
       console.log(`❌ Endpoint ${endpoint} failed:`, error instanceof Error ? error.message : String(error))
@@ -477,7 +482,13 @@ export async function POST(request: NextRequest) {
       
       let errorMessage = `Hugging Face R API returned ${response.status}: ${errorText}`
       
-      if (response.status === 404) {
+      if (response.status === 405) {
+        errorMessage += '\n\n🔧 Method Not Allowed - The endpoint exists but doesn\'t accept POST requests.'
+        errorMessage += '\nPlease check your FastAPI backend:'
+        errorMessage += '\n1. Make sure you have `@app.post("/run")` not `@app.get("/run")`'
+        errorMessage += '\n2. Add CORS middleware to allow cross-origin requests'
+        errorMessage += '\n3. Ensure your route is properly defined'
+      } else if (response.status === 404) {
         errorMessage += '\n\n🔧 Docker-based Space endpoint might not be configured correctly.'
         errorMessage += '\nPlease check:'
         errorMessage += '\n1. Is your Docker container exposing the right port?'
