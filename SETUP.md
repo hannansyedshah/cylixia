@@ -47,7 +47,7 @@ NEXT_PUBLIC_USE_MOCK_AUTH=false
 2. Make sure **Email** is enabled
 3. (Optional) Configure email templates under **Authentication** → **Email Templates**
 
-### 5. Run the Application
+### 5. Run the Applicationf
 
 ```bash
 npm install
