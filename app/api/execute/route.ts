@@ -416,7 +416,7 @@ async function tryMultipleEndpoints(baseUrl: string, requestBody: any): Promise<
         console.log(`⚠️ Endpoint ${endpoint} returned ${response.status}, trying next...`)
       }
     } catch (error) {
-      console.log(`❌ Endpoint ${endpoint} failed:`, error.message)
+      console.log(`❌ Endpoint ${endpoint} failed:`, error instanceof Error ? error.message : String(error))
     }
   }
   

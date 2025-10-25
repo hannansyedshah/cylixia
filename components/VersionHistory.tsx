@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -37,7 +37,7 @@ export function VersionHistory({
   const [description, setDescription] = useState('')
   const [showDescriptionInput, setShowDescriptionInput] = useState(false)
 
-  const loadVersions = async () => {
+  const loadVersions = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/projects/${projectId}/versions`)
@@ -50,7 +50,7 @@ export function VersionHistory({
     } finally {
       setLoading(false)
     }
-  }
+  }, [projectId])
 
   const saveCurrentVersion = async () => {
     if (!currentCode.trim()) return
