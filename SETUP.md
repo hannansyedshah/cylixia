@@ -34,7 +34,7 @@
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
-# Backend API (for R execution - optional)
+# Backend API (for custom Python backend - optional)
 BACKEND_API_URL=http://localhost:8000
 
 # Set to 'false' to use real Supabase auth
@@ -110,6 +110,14 @@ Open [http://localhost:3001](http://localhost:3001)
 - Check the browser console for errors
 - Verify the SQL schema was run successfully
 - Try signing out and back in
+
+### R Code Execution Errors
+- **Error**: "Hugging Face R API returned 404" - Space not found or endpoint incorrect
+  - Check if the Space URL is correct
+  - Verify the Space is publicly accessible
+- **Error**: "Hugging Face R API returned 503" - Space is sleeping or starting up
+  - Wait a moment and try again
+  - The Space may need to be woken up
 
 ## 📝 Next Steps
 

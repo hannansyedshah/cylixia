@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const R_EXEC_API = "https://r-exec-api-919344974581.us-east4.run.app/run"
+// Use environment variable for R API URL, fallback to Hugging Face
+const R_EXEC_API = process.env.R_EXEC_API_URL || "https://huggingface.co/spaces/ShayanShah1124/cReate/run"
 
 // Helper function to fix common R syntax errors
 function fixRSyntaxErrors(code: string): string {
@@ -393,7 +394,7 @@ export async function POST(request: NextRequest) {
     const code = formData.get("code") as string
     const file = formData.get("file") as File | null
 
-    console.log('🔧 Executing R Code via Cloud Run R API')
+    console.log('🔧 Executing R Code via Hugging Face R API')
     console.log('Code length:', code?.length || 0, 'chars')
     console.log('Has CSV file:', !!file)
     console.log('File name:', file?.name)
@@ -414,39 +415,64 @@ export async function POST(request: NextRequest) {
       console.log('Fixed code:', fixedCode.substring(0, 200))
     }
 
-    // Prepare request to Cloud Run R API
-    const sendData = new FormData()
-    sendData.append("code", fixedCode)
+    // Prepare request to Hugging Face R API
+    let csvBase64 = null
     if (file) {
-      sendData.append("file", file)
+      const buffer = await file.arrayBuffer()
+      csvBase64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
     }
 
-    console.log('Sending to Cloud Run R API:', R_EXEC_API)
-    console.log('Request includes file:', !!file)
+    const requestBody = {
+      code: fixedCode,
+      csv_base64: csvBase64
+    }
 
-    // Call Cloud Run R execution API
+    console.log('Sending to Hugging Face R API:', R_EXEC_API)
+    console.log('Request includes CSV file:', !!csvBase64)
+
+    // Call Hugging Face R execution API (public Space - no auth needed)
     const response = await fetch(R_EXEC_API, {
       method: 'POST',
-      body: sendData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
       // Increase timeout for complex plots and package installation
       signal: AbortSignal.timeout(120000), // 120 second timeout
     })
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Cloud Run R API Error Response:', errorText)
-      throw new Error(`Cloud Run R API returned ${response.status}: ${errorText}`)
+      console.error('Hugging Face R API Error Response:', errorText)
+      console.error('Response status:', response.status)
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      let errorMessage = `Hugging Face R API returned ${response.status}: ${errorText}`
+      
+      if (response.status === 404) {
+        errorMessage += '\n\n🔧 The Hugging Face Space might not be accessible or the endpoint path might be incorrect.'
+        errorMessage += '\nPlease check:'
+        errorMessage += '\n1. Is the Space URL correct?'
+        errorMessage += '\n2. Is the Space publicly accessible?'
+        errorMessage += '\n3. Is the Space running (not sleeping)?'
+        errorMessage += '\n4. Is the endpoint path correct?'
+      } else if (response.status === 503) {
+        errorMessage += '\n\n🔧 The Hugging Face Space might be sleeping or starting up.'
+        errorMessage += '\nPlease wait a moment and try again.'
+      }
+      
+      throw new Error(errorMessage)
     }
 
     const responseText = await response.text()
-    console.log('Cloud Run R API Response (first 200 chars):', responseText.substring(0, 200))
+    console.log('Hugging Face R API Response (first 200 chars):', responseText.substring(0, 200))
 
     // Check if response is HTML (placeholder page)
     if (responseText.includes('<!doctype') || responseText.includes('<html') || responseText.includes('placeholder')) {
-      console.error('Cloud Run service is not yet deployed - returning HTML placeholder')
+      console.error('Hugging Face service is not responding properly - returning HTML placeholder')
       return NextResponse.json({
-        error: 'R execution service is not yet deployed. Please check the Cloud Run service status.',
-        details: 'The Cloud Run R API is showing a placeholder page. The service needs to be deployed.',
+        error: 'R execution service is not responding properly. Please check the Hugging Face service status.',
+        details: 'The Hugging Face R API is showing a placeholder page. The service may be starting up or experiencing issues.',
         success: false,
       }, { status: 503 })
     }
@@ -465,7 +491,7 @@ export async function POST(request: NextRequest) {
       }, { status: 502 })
     }
 
-    console.log('Cloud Run R API Response:', JSON.stringify(result, null, 2))
+    console.log('Hugging Face R API Response:', JSON.stringify(result, null, 2))
 
     if (!result.success) {
       console.error('R execution failed:', {
@@ -507,7 +533,7 @@ export async function POST(request: NextRequest) {
     if (error.name === 'AbortError') {
       errorMessage = 'R execution timed out (>120s). Code might be too complex or have infinite loop.'
     } else if (error.message.includes('fetch')) {
-      errorMessage = 'Cannot connect to Cloud Run R API. Check if the service is running.'
+      errorMessage = 'Cannot connect to Hugging Face R API. Check if the service is running.'
     }
     
     return NextResponse.json(

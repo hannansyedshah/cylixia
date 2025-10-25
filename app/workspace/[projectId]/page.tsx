@@ -280,7 +280,7 @@ export default function WorkspacePage() {
         
         // Special handling for service not deployed
         if (response.status === 503) {
-          fullErrorMessage += `\n\n🔧 The R execution service is not yet deployed. Please check the Cloud Run service status.`
+          fullErrorMessage += `\n\n🔧 The R execution service is not responding properly. Please check the Hugging Face service status.`
         }
         
         alert(fullErrorMessage)
