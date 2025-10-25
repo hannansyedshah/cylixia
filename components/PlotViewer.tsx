@@ -44,16 +44,18 @@ export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }
             </Button>
           </div>
           
-          {/* Dedicated Plot Container Box - Adjust padding based on CSV data presence */}
-          <div className={`flex-1 flex items-center justify-center ${hasCsvData ? 'p-2' : 'p-4'}`}>
+          {/* Dedicated Plot Container Box - Responsive sizing */}
+          <div className={`flex-1 flex items-center justify-center ${hasCsvData ? 'p-1' : 'p-2'}`}>
             <div className="w-full h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden">
               <img
                 src={plotUrl}
                 alt="Generated plot"
-                className="max-w-full max-h-full object-contain rounded-lg animate-fade-in-up"
+                className="object-contain rounded-lg animate-fade-in-up"
                 style={{ 
-                  maxWidth: hasCsvData ? 'calc(100% - 1rem)' : 'calc(100% - 2rem)', 
-                  maxHeight: hasCsvData ? 'calc(100% - 1rem)' : 'calc(100% - 2rem)',
+                  maxWidth: hasCsvData ? '85%' : '90%', 
+                  maxHeight: hasCsvData ? '85%' : '90%',
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'contain'
                 }}
               />
