@@ -263,7 +263,7 @@ export default function WorkspacePage() {
       console.log('Response status:', response.status)
       
       const data = await response.json()
-      console.log('Response data:', data)
+      console.log('Full response data:', JSON.stringify(data, null, 2))
       
       if (!response.ok) {
         console.error('Execute error:', data)
@@ -282,46 +282,54 @@ export default function WorkspacePage() {
       }
       
       // Handle successful response from Hugging Face
-      if (data.success && data.plot_base64) {
-        const plotUrl = `data:image/png;base64,${data.plot_base64}`
-        console.log('✅ Plot URL created from base64 data')
-        
-        // Update plot URL in database
-        await fetch(`/api/projects/${projectId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plot_url: plotUrl }),
-        })
-        
-        // Update local state immediately
-        setProject((prev: any) => ({
-          ...prev,
-          plot_url: plotUrl
-        }))
-
-        // Auto-save version when plot is generated
-        try {
-          await fetch(`/api/projects/${projectId}/versions`, {
-            method: 'POST',
+      if (data.success) {
+        // Check for plot data in various possible field names
+        const plotData = data.plot_base64 || data.plot || data.image || data.plot_data || data.result
+        if (plotData) {
+          const plotUrl = `data:image/png;base64,${plotData}`
+          console.log('✅ Plot URL created from base64 data')
+          
+          // Update plot URL in database
+          await fetch(`/api/projects/${projectId}`, {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: project.code,
-              plot_url: plotUrl,
-              description: `Plot generated: ${new Date().toLocaleString()}`
-            })
+            body: JSON.stringify({ plot_url: plotUrl }),
           })
-        } catch (error) {
-          console.error('Failed to auto-save version with plot:', error)
+          
+          // Update local state immediately
+          setProject((prev: any) => ({
+            ...prev,
+            plot_url: plotUrl
+          }))
+
+          // Auto-save version when plot is generated
+          try {
+            await fetch(`/api/projects/${projectId}/versions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                code: project.code,
+                plot_url: plotUrl,
+                description: `Plot generated: ${new Date().toLocaleString()}`
+              })
+            })
+          } catch (error) {
+            console.error('Failed to auto-save version with plot:', error)
+          }
+          
+          console.log('✅ Plot updated successfully!')
+        } else {
+          console.warn('No plot data found in response')
+          console.log('Available fields:', Object.keys(data))
+          // Show message if available
+          if (data.message) {
+            console.log('Response message:', data.message)
+          }
+          alert('R code executed successfully but no plot was generated')
         }
-        
-        console.log('✅ Plot updated successfully!')
       } else {
-        console.warn('No plot generated in response')
-        // Show message if available
-        if (data.message) {
-          console.log('Response message:', data.message)
-        }
-        alert('R code executed successfully but no plot was generated')
+        console.error('Request was not successful:', data)
+        alert('R code execution failed')
       }
     } catch (error: any) {
       console.error('Execution error:', error)
