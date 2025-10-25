@@ -588,11 +588,11 @@ export default function WorkspacePage() {
             </div>
           </div>
 
-          {/* Right Pane - Data Preview & Plot Viewer */}
-          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col">
-            {/* Data Preview Section - Very compact height when present to maximize plot space */}
+          {/* Right Pane - Data Preview & Plot Viewer - Scrollable */}
+          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-y-auto">
+            {/* Data Preview Section - Fixed height when present */}
             {csvData && (
-              <div className="h-32 border-b border-gray-200 dark:border-gray-700 flex flex-col">
+              <div className="h-32 border-b border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
                 <div className="p-2 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b">
                   <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
                     <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
@@ -609,15 +609,15 @@ export default function WorkspacePage() {
               </div>
             )}
             
-            {/* Plot Display Section */}
-            <div className="flex-1 flex flex-col">
-              <div className="p-2 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b">
+            {/* Plot Display Section - Scrollable content */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="p-2 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b flex-shrink-0">
                 <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
                   <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
                   Plot Display
                 </span>
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 min-h-[400px] overflow-auto">
                 <PlotViewer 
                   plotUrl={project.plot_url || null} 
                   projectName={project.name} 

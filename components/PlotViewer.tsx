@@ -22,7 +22,7 @@ export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }
   }
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 relative overflow-hidden border-2 border-gray-200 dark:border-gray-700 rounded-lg m-1">
+    <div className="min-h-[400px] flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 relative overflow-hidden border-2 border-gray-200 dark:border-gray-700 rounded-lg m-2">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
         <div className="absolute top-10 left-10 w-32 h-32 bg-rstudio/5 rounded-full blur-2xl animate-pulse"></div>
@@ -44,16 +44,15 @@ export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }
             </Button>
           </div>
           
-          {/* Dedicated Plot Container Box - Responsive sizing */}
-          <div className={`flex-1 flex items-center justify-center ${hasCsvData ? 'p-1' : 'p-2'}`}>
-            <div className="w-full h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden">
+          {/* Dedicated Plot Container Box - Scrollable and flexible */}
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-visible">
               <img
                 src={plotUrl}
                 alt="Generated plot"
                 className="object-contain rounded-lg animate-fade-in-up"
                 style={{ 
-                  maxWidth: hasCsvData ? '85%' : '90%', 
-                  maxHeight: hasCsvData ? '85%' : '90%',
+                  maxWidth: '100%',
                   width: 'auto',
                   height: 'auto',
                   objectFit: 'contain'
