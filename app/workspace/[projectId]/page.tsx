@@ -240,7 +240,7 @@ export default function WorkspacePage() {
     setLoading(true)
 
     try {
-      console.log('Sending request directly to Hugging Face Space...')
+      console.log('Sending request to /api/execute proxy...')
       
       // Prepare CSV data as base64 if available
       let csv_base64 = null
@@ -249,7 +249,7 @@ export default function WorkspacePage() {
         console.log('Added CSV data as base64:', csvFileName)
       }
       
-      const response = await fetch("https://ShayanShah1124-cReate.hf.space/run", {
+      const response = await fetch("/api/execute", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
