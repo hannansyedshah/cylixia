@@ -240,43 +240,37 @@ export default function WorkspacePage() {
     setLoading(true)
 
     try {
-      console.log('Sending request to /api/execute...')
+      console.log('Sending request directly to Hugging Face Space...')
       
-      // Create FormData to send code and CSV file
-      const formData = new FormData()
-      formData.append('code', project.code)
-      
-      // If we have CSV data, create a File object from it
+      // Prepare CSV data as base64 if available
+      let csv_base64 = null
       if (csvData && csvFileName) {
-        const csvBlob = new Blob([csvData], { type: 'text/csv' })
-        const csvFile = new File([csvBlob], csvFileName, { type: 'text/csv' })
-        formData.append('file', csvFile)
-        console.log('Added CSV file to FormData:', csvFileName)
+        csv_base64 = btoa(csvData)
+        console.log('Added CSV data as base64:', csvFileName)
       }
       
-      const response = await fetch('/api/execute', {
-        method: 'POST',
-        body: formData,
+      const response = await fetch("https://ShayanShah1124-cReate.hf.space/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          code: project.code, 
+          csv_base64 
+        }),
       })
 
       console.log('Response status:', response.status)
       
       const data = await response.json()
       console.log('Response data:', data)
-      console.log('Raw result from R API:', data.rawResult)
       
       if (!response.ok) {
         console.error('Execute error:', data)
         const errorMessage = data.error || 'Failed to execute code'
-        const stdout = data.stdout || ''
-        const stderr = data.stderr || ''
-        const details = data.details || ''
         
         // Show detailed error information
         let fullErrorMessage = `Error: ${errorMessage}`
-        if (details) fullErrorMessage += `\n\nDetails: ${details}`
-        if (stdout) fullErrorMessage += `\n\nOutput: ${stdout}`
-        if (stderr) fullErrorMessage += `\n\nError Details: ${stderr}`
         
         // Special handling for service not deployed
         if (response.status === 503) {
@@ -287,20 +281,22 @@ export default function WorkspacePage() {
         return
       }
       
-      if (data.plotUrl) {
-        console.log('✅ Plot URL received:', data.plotUrl.substring(0, 50) + '...')
+      // Handle successful response from Hugging Face
+      if (data.success && data.plot_base64) {
+        const plotUrl = `data:image/png;base64,${data.plot_base64}`
+        console.log('✅ Plot URL created from base64 data')
         
         // Update plot URL in database
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plot_url: data.plotUrl }),
+          body: JSON.stringify({ plot_url: plotUrl }),
         })
         
         // Update local state immediately
         setProject((prev: any) => ({
           ...prev,
-          plot_url: data.plotUrl
+          plot_url: plotUrl
         }))
 
         // Auto-save version when plot is generated
@@ -310,7 +306,7 @@ export default function WorkspacePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               code: project.code,
-              plot_url: data.plotUrl,
+              plot_url: plotUrl,
               description: `Plot generated: ${new Date().toLocaleString()}`
             })
           })
@@ -320,13 +316,10 @@ export default function WorkspacePage() {
         
         console.log('✅ Plot updated successfully!')
       } else {
-        console.warn('No plotUrl in response')
-        // Show console output if available
-        if (data.stdout) {
-          console.log('Console output:', data.stdout)
-        }
-        if (data.stderr) {
-          console.log('Console errors:', data.stderr)
+        console.warn('No plot generated in response')
+        // Show message if available
+        if (data.message) {
+          console.log('Response message:', data.message)
         }
         alert('R code executed successfully but no plot was generated')
       }
