@@ -27,6 +27,8 @@ export default function DashboardPage() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const hasLoadedRef = useRef(false)
+  const refreshAttemptsRef = useRef(0)
+  const intervalRef = useRef<any>(null)
 
   const loadProjects = useCallback(async () => {
     if (hasLoadedRef.current) return // Prevent duplicate calls
@@ -87,6 +89,8 @@ export default function DashboardPage() {
     }
   }, [user, loadProjects])
 
+  // Auto-refresh will be set up after refreshProjects is defined
+
   const handleCreateProject = async (name: string, description: string) => {
     try {
       const response = await fetch('/api/projects', {
@@ -145,6 +149,33 @@ export default function DashboardPage() {
     loadProjects()
   }, [loadProjects])
 
+  // Auto-refresh with a hard cap of 5 times; cleans up on unmount/navigation
+  useEffect(() => {
+    if (!user) return
+    // Clear any existing interval before starting a new one
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    refreshAttemptsRef.current = 0
+    intervalRef.current = setInterval(() => {
+      if (refreshAttemptsRef.current >= 5) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+        return
+      }
+      refreshProjects()
+      refreshAttemptsRef.current += 1
+    }, 15000) // 15s cadence; adjust if needed
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [user, refreshProjects])
+
   if (!user) {
     return null
   }
@@ -169,16 +200,25 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Create Project Button */}
+          {/* Create / Refresh Buttons */}
           <div className="mb-8 animate-fade-in-up animation-delay-200">
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              size="lg"
-              className="shadow-xl"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              New Project
-            </Button>
+            <div className="flex gap-3 flex-wrap">
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                size="lg"
+                className="shadow-xl"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                New Project
+              </Button>
+              <Button
+                onClick={refreshProjects}
+                size="lg"
+                variant="outline"
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
 
           {/* Projects Grid */}
