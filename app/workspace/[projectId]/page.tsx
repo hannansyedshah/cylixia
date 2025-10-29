@@ -6,6 +6,7 @@ import { Layout } from '@/components/Layout'
 import { ChatBox } from '@/components/ChatBox'
 import { CodeEditor } from '@/components/CodeEditor'
 import { PlotViewer } from '@/components/PlotViewer'
+import { TerminalView } from '@/components/TerminalView'
 import { UploadPanel } from '@/components/UploadPanel'
 import { VersionHistory } from '@/components/VersionHistory'
 import { DataPreview } from '@/components/DataPreview'
@@ -38,6 +39,9 @@ export default function WorkspacePage() {
   const [csvData, setCsvData] = useState<string | null>(null)
   const [csvFileName, setCsvFileName] = useState<string | null>(null)
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
+  const [stdoutText, setStdoutText] = useState<string>('')
+  const [stderrText, setStderrText] = useState<string>('')
+  const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
   const hasLoadedRef = useRef(false)
 
   const loadProject = useCallback(async () => {
@@ -271,6 +275,12 @@ export default function WorkspacePage() {
       console.log('Success status:', data.success)
       console.log('Plot data present:', !!(data.plot_base64 || data.plot || data.image || data.plot_data || data.result))
       
+      // Capture terminal output if available
+      try {
+        if (typeof data?.stdout === 'string') setStdoutText(data.stdout)
+        if (typeof data?.stderr === 'string') setStderrText(data.stderr)
+      } catch {}
+
       if (!response.ok) {
         console.error('Execute error:', data)
         const errorMessage = data.error || 'Failed to execute code'
@@ -331,15 +341,15 @@ export default function WorkspacePage() {
           if (data.message) {
             console.log('Response message:', data.message)
           }
-          alert('R code executed successfully but no plot was generated')
+          // Keep it subtle; output may still be useful in terminal
         }
       } else {
         console.error('Request was not successful:', data)
-        alert('R code execution failed')
+        // Avoid modal spam; terminal shows errors
       }
     } catch (error: any) {
       console.error('Execution error:', error)
-      alert(`Failed to execute R code: ${error.message}`)
+      setStderrText(prev => `${prev}\n${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -500,13 +510,13 @@ export default function WorkspacePage() {
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <div
-                        className={`max-w-[80%] rounded-xl px-4 py-3 shadow-lg transform hover:scale-105 transition-all duration-200 ${
+                        className={`max-w-[70%] rounded-xl px-4 py-3 shadow ${
                           message.role === 'user'
                             ? 'bg-gradient-to-r from-rstudio to-blue-600 text-white'
                             : 'bg-white dark:bg-gray-700 text-darktext dark:text-white border border-gray-200 dark:border-gray-600'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-sm leading-relaxed break-words">{message.content}</p>
                         {message.code && (
                           <pre className="mt-2 p-3 bg-black/10 dark:bg-black/30 rounded-lg text-xs overflow-x-auto border border-white/20">
                             <code>{message.code}</code>
@@ -589,7 +599,7 @@ export default function WorkspacePage() {
           </div>
 
           {/* Right Pane - Data Preview & Plot Viewer - Scrollable */}
-          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-y-auto">
+          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-y-auto min-w-0">
             {/* Data Preview Section - Fixed height when present */}
             {csvData && (
               <div className="h-32 border-b border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
@@ -611,18 +621,49 @@ export default function WorkspacePage() {
             
             {/* Plot Display Section - Scrollable content */}
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="p-2 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b flex-shrink-0">
+              <div className="p-2 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b flex items-center justify-between flex-shrink-0">
                 <span className="text-sm font-semibold text-darktext dark:text-white flex items-center">
                   <BarChart3 className="h-4 w-4 mr-2 text-rstudio" />
-                  Plot Display
+                  View
                 </span>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    className={`px-2 py-1 rounded border ${!showTerminalNextToPlot ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
+                    onClick={() => setShowTerminalNextToPlot(false)}
+                  >
+                    Plot only
+                  </button>
+                  <button
+                    className={`px-2 py-1 rounded border ${showTerminalNextToPlot ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
+                    onClick={() => setShowTerminalNextToPlot(true)}
+                  >
+                    Plot + Terminal
+                  </button>
+                </div>
               </div>
               <div className="flex-1 min-h-[400px] overflow-auto">
-                <PlotViewer 
-                  plotUrl={project.plot_url || null} 
-                  projectName={project.name} 
-                  hasCsvData={!!csvData}
-                />
+                {showTerminalNextToPlot ? (
+                  <div className="h-full w-full flex gap-2 p-2">
+                    <div className="w-1/2 min-w-0">
+                      <TerminalView stdout={stdoutText} stderr={stderrText} />
+                    </div>
+                    <div className="w-1/2 min-w-0">
+                      <PlotViewer 
+                        plotUrl={project.plot_url || null} 
+                        projectName={project.name} 
+                        hasCsvData={!!csvData}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-full w-full">
+                    <PlotViewer 
+                      plotUrl={project.plot_url || null} 
+                      projectName={project.name} 
+                      hasCsvData={!!csvData}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
