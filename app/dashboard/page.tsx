@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ProjectCard } from '@/components/ProjectCard'
 import { CreateProjectModal } from '@/components/CreateProjectModal'
@@ -9,7 +9,7 @@ import { EditProjectModal } from '@/components/EditProjectModal'
 import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/store/useSessionStore'
 import { supabase } from '@/lib/supabaseClient'
-import { Plus, FolderOpen } from 'lucide-react'
+import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
 
 interface Project {
   id: string
@@ -21,11 +21,13 @@ interface Project {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, setUser } = useSessionStore()
   const [projects, setProjects] = useState<Project[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const hasLoadedRef = useRef(false)
   const refreshAttemptsRef = useRef(0)
   const intervalRef = useRef<any>(null)
@@ -143,15 +145,22 @@ export default function DashboardPage() {
     }
   }
 
-  const refreshProjects = useCallback(() => {
-    hasLoadedRef.current = false
-    setProjects([]) // Clear existing projects
-    loadProjects()
+  const refreshProjects = useCallback(async () => {
+    try {
+      setIsRefreshing(true)
+      hasLoadedRef.current = false
+      setProjects([]) // Clear existing projects
+      await loadProjects()
+    } finally {
+      setIsRefreshing(false)
+    }
   }, [loadProjects])
 
   // Auto-refresh with a hard cap of 5 times; cleans up on unmount/navigation
   useEffect(() => {
     if (!user) return
+    // Only auto-refresh on dashboard route
+    if (pathname !== '/dashboard') return
     // Clear any existing interval before starting a new one
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
@@ -159,9 +168,20 @@ export default function DashboardPage() {
     }
     refreshAttemptsRef.current = 0
     intervalRef.current = setInterval(() => {
+      // Stop if navigated away
+      if (pathname !== '/dashboard') {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+        return
+      }
+      // Stop once we've hit the cap
       if (refreshAttemptsRef.current >= 5) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
+        return
+      }
+      // Only refresh when tab is visible
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
         return
       }
       refreshProjects()
@@ -174,7 +194,7 @@ export default function DashboardPage() {
         intervalRef.current = null
       }
     }
-  }, [user, refreshProjects])
+  }, [user, pathname, refreshProjects])
 
   if (!user) {
     return null
@@ -215,8 +235,11 @@ export default function DashboardPage() {
                 onClick={refreshProjects}
                 size="lg"
                 variant="outline"
+                disabled={isRefreshing}
+                className={isRefreshing ? 'pointer-events-none opacity-80' : ''}
               >
-                Refresh
+                <RefreshCw className={isRefreshing ? 'h-5 w-5 mr-2 animate-spin' : 'h-5 w-5 mr-2'} />
+                {isRefreshing ? 'Refreshing' : 'Refresh'}
               </Button>
             </div>
           </div>
