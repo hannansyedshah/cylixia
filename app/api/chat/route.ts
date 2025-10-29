@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { routeIntent, getSystemPrompt } from '@/lib/routerLogic'
 import { callAiriaAgent, parseAiriaResponse } from '@/lib/airiaClient'
 import { randomizeCSVData } from '@/lib/dataRandomizer'
 
@@ -7,51 +6,30 @@ export async function POST(request: NextRequest) {
   try {
     const { prompt, existingCode, userId, csvData, fileName, privacyMode = true } = await request.json()
 
-    // Use router logic to determine intent
-    const routeResult = routeIntent(prompt)
-    const systemPrompt = getSystemPrompt(routeResult.route, existingCode)
-
-    console.log(`🧠 Route Decision: ${routeResult.route} (${routeResult.confidence} confidence)`)
     console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
 
-    // Build enhanced prompt for Airia
-    let enhancedPrompt = ''
-    
-    if (routeResult.route === 'Route 1' && existingCode) {
-      // Fix existing code route
-      enhancedPrompt = `${systemPrompt}
-
-User Request: ${prompt}
+    // Always include user request and existing code (if any)
+    const enhancedPrompt = `User Request: ${prompt}
 
 Current R Code:
 \`\`\`r
-${existingCode}
+${existingCode || ''}
 \`\`\`
 
-Please analyze and improve this code based on the user's request. Return ONLY the complete R code, no explanations.`
-    } else {
-      // Generate new code route
-      enhancedPrompt = `${systemPrompt}
-
-User Request: ${prompt}
-
-Generate complete, executable R code for this request. Return ONLY the R code, no explanations.`
-    }
+Please generate complete, executable R code that applies the user's requested changes to the existing code above. Return ONLY the full R code, with all necessary library() calls.`
 
     // Check if API key is configured
     if (!process.env.AIRIA_API_KEY) {
       console.warn('⚠️ AIRIA_API_KEY not configured, using mock response')
       
       // Return mock response for testing
-      const mockCode = routeResult.route === 'Route 1' && existingCode
-        ? `# Improved R code\n${existingCode}\n\n# Applied improvements`
+      const mockCode = existingCode
+        ? `# Updated R code based on user request\n${existingCode}\n\n# Apply changes here`
         : `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
       
       return NextResponse.json({
         message: 'Mock response (add AIRIA_API_KEY to use real AI)',
         code: mockCode,
-        route: routeResult.route,
-        confidence: routeResult.confidence,
       })
     }
 
@@ -87,8 +65,6 @@ Generate complete, executable R code for this request. Return ONLY the R code, n
     return NextResponse.json({
       message: parsed.message,
       code: parsed.code,
-      route: routeResult.route,
-      confidence: routeResult.confidence,
       rawResponse: airiaResponse, // For debugging
     })
   } catch (error: any) {
