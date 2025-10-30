@@ -4,7 +4,7 @@ import { randomizeCSVData } from '@/lib/dataRandomizer'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true } = await request.json()
+    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true, mode = 'legacy', conversationHistory, preferences } = await request.json()
 
     console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
 
@@ -57,7 +57,11 @@ Please generate complete, executable R code that applies the user's requested ch
       enhancedPrompt, 
       userId || 'anonymous',
       csvDataToSend,
-      fileName
+      fileName,
+      mode,
+      existingCode,
+      conversationHistory,
+      preferences
     )
     
     const parsed = parseAiriaResponse(airiaResponse)
