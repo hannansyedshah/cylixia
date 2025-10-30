@@ -15,6 +15,7 @@ export function SignupForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const setUser = useSessionStore((state) => state.setUser)
@@ -22,6 +23,7 @@ export function SignupForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
     // Enforce invite code if configured
     const expectedCode = process.env.NEXT_PUBLIC_SIGNUP_CODE
@@ -58,9 +60,12 @@ export function SignupForm() {
       if (error) throw error
 
       if (data.user) {
-        setUser(data.user)
-        // Force a hard navigation to ensure cookies are set
-        window.location.href = '/dashboard'
+        // Most setups require email confirmation; do not persist user yet
+        setSuccess('Check your email for a confirmation link to activate your account. You can log in after confirming.')
+        // Redirect to login so user can sign in after confirming email
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 1200)
       }
     } catch (err: any) {
       if (err.message === 'Failed to fetch') {
@@ -133,6 +138,9 @@ export function SignupForm() {
           </div>
           {error && (
             <p className="text-sm text-destructive bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">{error}</p>
+          )}
+          {success && (
+            <p className="text-sm text-green-700 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">{success}</p>
           )}
           <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
             {loading ? 'Creating account...' : 'Sign Up'}
