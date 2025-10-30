@@ -264,7 +264,8 @@ export default function WorkspacePage() {
         },
         body: JSON.stringify({ 
           code: project.code, 
-          csv_base64 
+          csv_base64,
+          file_name: csvFileName || undefined
         }),
       })
 
