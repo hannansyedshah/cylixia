@@ -53,7 +53,7 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
     notifyChange([...(datasets || []), item])
   }
 
-  const handleSelectFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
     if (datasets.length + files.length > 5) {
@@ -61,7 +61,10 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
       if (inputRef.current) inputRef.current.value = ''
       return
     }
-    setPendingFiles(files)
+    for (const f of files) {
+      // eslint-disable-next-line no-await-in-loop
+      await handleLocalAdd(f)
+    }
     if (inputRef.current) inputRef.current.value = ''
   }
 

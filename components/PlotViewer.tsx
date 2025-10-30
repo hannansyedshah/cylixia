@@ -26,6 +26,16 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
     document.body.removeChild(link)
   }
 
+  const handleDownloadUrl = (url: string, index?: number) => {
+    const link = document.createElement('a')
+    link.href = url
+    const suffix = typeof index === 'number' ? `-${index + 1}` : ''
+    link.download = `plot-${projectName}${suffix}-${new Date().toISOString().split('T')[0]}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="min-h-[400px] flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 relative overflow-hidden border-2 border-gray-200 dark:border-gray-700 rounded-lg m-2">
       {/* Animated background */}
@@ -52,7 +62,14 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
           {/* Dedicated Plot Container Box - Scrollable and flexible */}
           <div className="flex-1 flex items-start justify-center p-4 overflow-auto gap-4 flex-wrap">
             {images.map((url, idx) => (
-              <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-visible max-w-full">
+              <div key={idx} className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-visible max-w-full">
+                <button
+                  onClick={() => handleDownloadUrl(url, idx)}
+                  className="absolute top-2 right-2 z-10 text-xs px-2 py-1 rounded border bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow hover:bg-white dark:hover:bg-gray-800"
+                  aria-label={`Download plot ${idx + 1}`}
+                >
+                  Download
+                </button>
                 <img
                   src={url}
                   alt={`Generated plot ${idx + 1}`}
