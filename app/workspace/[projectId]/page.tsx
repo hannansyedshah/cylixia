@@ -39,6 +39,7 @@ export default function WorkspacePage() {
   const [csvData, setCsvData] = useState<string | null>(null)
   const [csvFileName, setCsvFileName] = useState<string | null>(null)
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
+  const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick'>('legacy')
   const [stdoutText, setStdoutText] = useState<string>('')
   const [stderrText, setStderrText] = useState<string>('')
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
@@ -165,7 +166,8 @@ export default function WorkspacePage() {
           userId: user?.id || user?.email || 'anonymous',
           csvData,
           fileName: csvFileName,
-          privacyMode
+          privacyMode,
+          mode: airiaMode
         }),
       })
 
@@ -554,6 +556,26 @@ export default function WorkspacePage() {
                     </div>
                   </div>
                 )}
+                {/* Airia Mode Toggle */}
+                <div className="px-4 py-2 bg-blue-50/20 dark:bg-blue-950/5 border-t border-blue-200/20 dark:border-blue-800/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">AI Mode</span>
+                    <div className="flex gap-1">
+                      <button
+                        className={`px-2 py-1 rounded text-xs border ${airiaMode === 'legacy' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                        onClick={() => setAiriaMode('legacy')}
+                      >
+                        Legacy
+                      </button>
+                      <button
+                        className={`px-2 py-1 rounded text-xs border ${airiaMode === 'quick' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                        onClick={() => setAiriaMode('quick')}
+                      >
+                        Quick
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 {/* Prompt Input */}
                 <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                   <div className="flex space-x-2">
