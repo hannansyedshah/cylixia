@@ -341,17 +341,23 @@ export default function WorkspacePage() {
         }))
 
         try {
-          await fetch(`/api/projects/${projectId}/versions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code: project.code,
-              plot_url: firstUrl,
-              description: `Plot generated: ${new Date().toLocaleString()}`
+          // Save one version per plot image for full history
+          for (let i = 0; i < urls.length; i++) {
+            // eslint-disable-next-line no-await-in-loop
+            await fetch(`/api/projects/${projectId}/versions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                code: project.code,
+                plot_url: urls[i],
+                description: urls.length > 1
+                  ? `Plot ${i + 1}/${urls.length} generated: ${new Date().toLocaleString()}`
+                  : `Plot generated: ${new Date().toLocaleString()}`
+              })
             })
-          })
+          }
         } catch (error) {
-          console.error('Failed to auto-save version with plot:', error)
+          console.error('Failed to auto-save version with plot(s):', error)
         }
 
         console.log(`✅ Plot updated successfully (${urls.length} image(s))`)
