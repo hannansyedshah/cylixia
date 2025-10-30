@@ -13,6 +13,7 @@ export function SignupForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -21,6 +22,17 @@ export function SignupForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Enforce invite code if configured
+    const expectedCode = process.env.NEXT_PUBLIC_SIGNUP_CODE
+    if (!expectedCode) {
+      setError('⚠️ Signup invite code not configured. Set NEXT_PUBLIC_SIGNUP_CODE in .env.local')
+      return
+    }
+    if (inviteCode.trim() !== expectedCode) {
+      setError('Invalid invite code')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -71,6 +83,18 @@ export function SignupForm() {
       </CardHeader>
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="inviteCode" className="text-sm font-semibold">Invite Code</Label>
+            <Input
+              id="inviteCode"
+              type="text"
+              placeholder="Enter invite code"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              required
+              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
             <Input
