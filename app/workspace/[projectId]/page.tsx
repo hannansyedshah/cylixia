@@ -253,9 +253,12 @@ export default function WorkspacePage() {
       console.log('Sending request to /api/execute proxy...')
       
       // Prepare CSV data array for execution (originals)
-      const csv_files = datasets
-        .filter(d => d.includeRun && d.csvText)
-        .map(d => ({ file_name: d.fileName, csv_base64: btoa(d.csvText!) }))
+      const runFiles = datasets.filter(d => d.includeRun && d.csvText)
+      const csv_files = runFiles.map(d => ({ filename: d.fileName, data_base64: btoa(d.csvText!) }))
+      // Backward compatibility: also send the first CSV as single fields expected by backend
+      const primary = runFiles[0]
+      const csv_base64 = primary ? btoa(primary.csvText!) : undefined
+      const file_name = primary ? primary.fileName : undefined
       
       const response = await fetch("/api/execute", {
         method: "POST",
@@ -265,6 +268,8 @@ export default function WorkspacePage() {
         body: JSON.stringify({ 
           code: project.code, 
           csv_files,
+          csv_base64,
+          file_name,
         }),
       })
 
