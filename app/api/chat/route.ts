@@ -4,7 +4,7 @@ import { randomizeCSVData } from '@/lib/dataRandomizer'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true, mode = 'legacy', conversationHistory, preferences } = await request.json()
+    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true, mode = 'legacy', conversationHistory, preferences, csvFilesForChat } = await request.json()
 
     console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
 
@@ -33,31 +33,24 @@ Please generate complete, executable R code that applies the user's requested ch
       })
     }
 
-    // Call Airia agent with CSV data (randomized or original based on privacy preference)
-    let csvDataToSend = csvData
-    if (csvData && fileName) {
-      if (privacyMode) {
-        // Privacy mode: Use randomized data for AI code generation
-        csvDataToSend = randomizeCSVData(csvData)
-        console.log(`🔒 Privacy Protection: Using randomized CSV data for AI code generation`)
-        console.log(`   - Original data: ${csvData.length} characters`)
-        console.log(`   - Randomized data: ${csvDataToSend.length} characters`)
-        console.log(`   - File: ${fileName}`)
-        console.log(`   - Note: Original data will be used for actual R code execution`)
-      } else {
-        // Non-privacy mode: Use original data (user choice)
-        console.log(`⚠️ Privacy Warning: Using original CSV data for AI code generation`)
-        console.log(`   - Data length: ${csvData.length} characters`)
-        console.log(`   - File: ${fileName}`)
-        console.log(`   - Warning: Original data is being sent to AI service`)
-      }
+    // Prepare one or many CSVs for AI (randomized if privacy on)
+    let csvFilesPayload: Array<{ fileName: string, csvData: string }> | undefined
+    if (Array.isArray(csvFilesForChat) && csvFilesForChat.length > 0) {
+      csvFilesPayload = csvFilesForChat.map((f: any) => ({
+        fileName: f.fileName,
+        csvData: privacyMode ? randomizeCSVData(f.csvData) : f.csvData,
+      }))
+      console.log(`📦 Preparing ${csvFilesPayload.length} CSV(s) for AI (${privacyMode ? 'randomized' : 'original'})`)
+    } else if (csvData && fileName) {
+      const single = privacyMode ? randomizeCSVData(csvData) : csvData
+      csvFilesPayload = [{ fileName, csvData: single }]
     }
     
     const airiaResponse = await callAiriaAgent(
       enhancedPrompt, 
       userId || 'anonymous',
-      csvDataToSend,
-      fileName,
+      csvFilesPayload?.[0]?.csvData, // maintain backward compatibility for current client
+      csvFilesPayload?.[0]?.fileName,
       mode,
       existingCode,
       conversationHistory,

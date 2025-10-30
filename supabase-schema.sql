@@ -39,9 +39,17 @@ CREATE TABLE IF NOT EXISTS code_versions (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
 -- Ensure project names are unique per user
-DO $$ BEGIN
+DO $$
+BEGIN
   ALTER TABLE projects ADD CONSTRAINT unique_project_name_per_user UNIQUE (user_id, name);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+EXCEPTION
+  WHEN duplicate_object THEN
+    -- Constraint already exists; nothing to do
+    NULL;
+  WHEN unique_violation THEN
+    -- Duplicates exist; skip adding constraint and show a notice
+    RAISE NOTICE 'Skipped adding unique_project_name_per_user due to duplicate (user_id, name) rows. Deduplicate then re-run.';
+END $$;
 CREATE INDEX IF NOT EXISTS idx_messages_project_id ON messages(project_id);
 CREATE INDEX IF NOT EXISTS idx_code_versions_project_id ON code_versions(project_id);
 CREATE INDEX IF NOT EXISTS idx_code_versions_version_number ON code_versions(project_id, version_number);
@@ -166,4 +174,8 @@ CREATE TRIGGER update_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- (storage bucket/policies for datasets removed for now)
+
+-- (project_datasets table and policies removed for now)
 

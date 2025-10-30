@@ -36,8 +36,8 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(false)
   const [project, setProject] = useState<any>(null)
   const [loadingProject, setLoadingProject] = useState(true)
-  const [csvData, setCsvData] = useState<string | null>(null)
-  const [csvFileName, setCsvFileName] = useState<string | null>(null)
+  type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string }
+  const [datasets, setDatasets] = useState<DatasetItem[]>([])
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
   const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick'>('legacy')
   const [stdoutText, setStdoutText] = useState<string>('')
@@ -45,6 +45,7 @@ export default function WorkspacePage() {
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
   const [editorFocusMode, setEditorFocusMode] = useState<boolean>(false)
   const hasLoadedRef = useRef(false)
+  const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -160,14 +161,15 @@ export default function WorkspacePage() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+          body: JSON.stringify({ 
           prompt,
           existingCode: project.code,
           userId: user?.id || user?.email || 'anonymous',
-          csvData,
-          fileName: csvFileName,
           privacyMode,
-          mode: airiaMode
+          mode: airiaMode,
+          csvFilesForChat: datasets
+            .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
+            .map(d => ({ fileName: d.fileName, csvData: d.csvText! }))
         }),
       })
 
@@ -243,21 +245,17 @@ export default function WorkspacePage() {
     
     console.log('🚀 Running R code...')
     console.log('Code:', project.code.substring(0, 100))
-    console.log('Has CSV:', !!csvData)
-    console.log('CSV data length:', csvData?.length || 0)
-    console.log('CSV file name:', csvFileName)
+    console.log('Selected for run:', datasets.filter(d => d.includeRun).length)
     
     setLoading(true)
 
     try {
       console.log('Sending request to /api/execute proxy...')
       
-      // Prepare CSV data as base64 if available
-      let csv_base64 = ""
-      if (csvData && csvFileName) {
-        csv_base64 = btoa(csvData)
-        console.log('Added CSV data as base64:', csvFileName)
-      }
+      // Prepare CSV data array for execution (originals)
+      const csv_files = datasets
+        .filter(d => d.includeRun && d.csvText)
+        .map(d => ({ file_name: d.fileName, csv_base64: btoa(d.csvText!) }))
       
       const response = await fetch("/api/execute", {
         method: "POST",
@@ -266,8 +264,7 @@ export default function WorkspacePage() {
         },
         body: JSON.stringify({ 
           code: project.code, 
-          csv_base64,
-          file_name: csvFileName || undefined
+          csv_files,
         }),
       })
 
@@ -450,7 +447,7 @@ export default function WorkspacePage() {
     <Layout>
       <div className="h-[calc(100vh-80px)] flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-purple-950/30">
         {/* Project Header */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b px-4 py-3 flex items-center justify-between">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon">
@@ -462,13 +459,13 @@ export default function WorkspacePage() {
                 <h1 className="text-lg font-semibold text-darktext dark:text-white">
                   {project.name}
                 </h1>
-                {csvData && (
+                {datasets.length > 0 && (
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                     privacyMode 
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
                       : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
                   }`}>
-                    {privacyMode ? '🔒 Privacy Protected' : '⚠️ Original Data'}
+                    {privacyMode ? '🔒 Chat uses randomized data' : '⚠️ Chat uses originals'}
                   </div>
                 )}
               </div>
@@ -479,7 +476,40 @@ export default function WorkspacePage() {
               )}
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            {/* Datasets dropdown trigger */}
+            <Button size="sm" variant="outline" onClick={() => setShowDatasetsPanel(v => !v)} className="h-8 px-3">
+              Datasets ({datasets.length})
+            </Button>
+            {/* Compact AI mode pills */}
+            <div className="flex gap-1 text-xs">
+              <button
+                className={`px-2 py-1 rounded border ${airiaMode === 'legacy' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                onClick={() => setAiriaMode('legacy')}
+              >
+                Legacy
+              </button>
+              <button
+                className={`px-2 py-1 rounded border ${airiaMode === 'quick' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                onClick={() => setAiriaMode('quick')}
+              >
+                Quick
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Datasets dropdown panel */}
+        {showDatasetsPanel && (
+          <div className="px-4 pt-2">
+            <div className="border rounded-lg bg-white dark:bg-gray-800 shadow-md">
+              <UploadPanel 
+                privacyMode={privacyMode}
+                onDatasetsChange={(list) => setDatasets(list)}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Main Workspace */}
         <div className="flex-1 flex overflow-hidden">
@@ -487,13 +517,6 @@ export default function WorkspacePage() {
         <div className="w-1/2 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl min-w-0">
           {!editorFocusMode && (
             <>
-              <UploadPanel 
-                onDatasetUpload={(data, name) => {
-                  setCsvData(data)
-                  setCsvFileName(name)
-                }}
-                privacyMode={privacyMode}
-              />
               {/* Chat Section */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -533,7 +556,7 @@ export default function WorkspacePage() {
                   )}
                 </div>
                 {/* Privacy Toggle - Compact */}
-                {csvData && (
+                {datasets.length > 0 && (
                   <div className="px-4 py-2 bg-blue-50/30 dark:bg-blue-950/10 border-t border-blue-200/30 dark:border-blue-800/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
@@ -556,26 +579,7 @@ export default function WorkspacePage() {
                     </div>
                   </div>
                 )}
-                {/* Airia Mode Toggle */}
-                <div className="px-4 py-2 bg-blue-50/20 dark:bg-blue-950/5 border-t border-blue-200/20 dark:border-blue-800/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">AI Mode</span>
-                    <div className="flex gap-1">
-                      <button
-                        className={`px-2 py-1 rounded text-xs border ${airiaMode === 'legacy' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
-                        onClick={() => setAiriaMode('legacy')}
-                      >
-                        Legacy
-                      </button>
-                      <button
-                        className={`px-2 py-1 rounded text-xs border ${airiaMode === 'quick' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
-                        onClick={() => setAiriaMode('quick')}
-                      >
-                        Quick
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                {/* AI Mode now in header; removed here to save space */}
                 {/* Prompt Input */}
                 <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
                   <div className="flex space-x-2">
@@ -672,7 +676,7 @@ export default function WorkspacePage() {
                       <PlotViewer 
                         plotUrl={project.plot_url || null} 
                         projectName={project.name} 
-                        hasCsvData={!!csvData}
+                        hasCsvData={datasets.length > 0}
                       />
                     </div>
                   </div>
@@ -681,7 +685,7 @@ export default function WorkspacePage() {
                     <PlotViewer 
                       plotUrl={project.plot_url || null} 
                       projectName={project.name} 
-                      hasCsvData={!!csvData}
+                      hasCsvData={datasets.length > 0}
                     />
                   </div>
                 )}

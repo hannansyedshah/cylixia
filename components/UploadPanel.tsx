@@ -1,103 +1,169 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Upload, X, Maximize2 } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Upload, X, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataPreview } from '@/components/DataPreview'
 
+interface DatasetItem {
+  id: string
+  fileName: string
+  sizeBytes: number
+  persisted: boolean
+  includeChat: boolean
+  includeRun: boolean
+  csvText?: string // present for ephemeral items
+}
+
 interface UploadPanelProps {
-  onDatasetUpload?: (csvData: string, fileName: string) => void
+  onDatasetsChange?: (datasets: DatasetItem[]) => void
   privacyMode?: boolean
 }
 
-export function UploadPanel({ onDatasetUpload, privacyMode = true }: UploadPanelProps) {
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [csvData, setCsvData] = useState<string | null>(null)
-  const [datasetId, setDatasetId] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [showPreview, setShowPreview] = useState<boolean>(false)
+export function UploadPanel({ onDatasetsChange, privacyMode = true }: UploadPanelProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [items, setItems] = useState<DatasetItem[]>([])
+  const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
+  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const canAddMore = items.length < 5
+  const selectedCounts = useMemo(() => ({
+    chat: items.filter(i => i.includeChat).length,
+    run: items.filter(i => i.includeRun).length,
+  }), [items])
 
-    setFileName(file.name)
-    
-    // Read CSV content
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      const csvData = event.target?.result as string
-      
-      // Store CSV data locally for preview
-      setCsvData(csvData)
-      
-      // Store dataset ID for potential future use
-      setDatasetId(file.name)
-      
-      // Pass CSV data to parent component immediately
-      if (onDatasetUpload && csvData) {
-        onDatasetUpload(csvData, file.name)
-        console.log('✅ CSV data passed to workspace:', file.name, csvData.length, 'chars')
-      }
-    }
-    
-    reader.readAsText(file)
+  const notifyChange = (next: DatasetItem[]) => {
+    setItems(next)
+    onDatasetsChange?.(next)
   }
 
-  const handleClear = () => {
-    setFileName(null)
-    setCsvData(null)
-    setDatasetId(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+  const handleLocalAdd = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.csv')) return alert('Only .csv files are allowed')
+    if (file.size > 10 * 1024 * 1024) return alert('File too large (max 10MB)')
+
+    const text = await file.text()
+    const item: DatasetItem = {
+      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fileName: file.name,
+      sizeBytes: file.size,
+      persisted: false,
+      includeChat: true,
+      includeRun: true,
+      csvText: text,
     }
-    // Notify parent component that CSV data should be cleared
-    if (onDatasetUpload) {
-      onDatasetUpload('', '')
+    notifyChange([...items, item])
+  }
+
+  const handleSelectFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    if (items.length + files.length > 5) {
+      alert('You can add up to 5 datasets')
+      if (inputRef.current) inputRef.current.value = ''
+      return
     }
+    setPendingFiles(files)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
+  const confirmAddPending = async () => {
+    if (!pendingFiles) return
+    for (const f of pendingFiles) {
+      // eslint-disable-next-line no-await-in-loop
+      await handleLocalAdd(f)
+    }
+    setPendingFiles(null)
+  }
+
+  const cancelPending = () => {
+    setPendingFiles(null)
+  }
+
+  const removeItem = (id: string) => {
+    const next = items.filter(i => i.id !== id)
+    notifyChange(next)
+  }
+
+  const toggleFlag = (id: string, key: 'includeChat' | 'includeRun') => {
+    const next = items.map(i => i.id === id ? { ...i, [key]: !i[key] } : i)
+    notifyChange(next)
   }
 
   return (
     <div className="p-3 border-b bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-950/30">
-      {fileName ? (
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center max-w-[60%] truncate px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700">
-            📊 <span className="ml-1 truncate">{fileName}</span>
-          </span>
-          <Button size="sm" variant="outline" onClick={() => setShowPreview(true)} className="h-7 px-2">
-            <Maximize2 className="h-3.5 w-3.5 mr-1" />
-            View data
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleClear} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20 ml-auto">
-            <X className="h-4 w-4 text-red-600" />
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <input
-            ref={fileInputRef}
+            ref={inputRef}
+            id="file-upload"
             type="file"
             accept=".csv"
-            onChange={handleFileSelect}
+            multiple
             className="hidden"
-            id="file-upload"
+            onChange={handleSelectFiles}
           />
           <label htmlFor="file-upload" className="flex-1 cursor-pointer">
-            <div className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 border-2 border-dashed border-rstudio/30 bg-white dark:bg-gray-700 hover:bg-rstudio/5 dark:hover:bg-rstudio/10 text-rstudio dark:text-white h-12 px-4 py-2 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg">
-              <Upload className="h-5 w-5 mr-2 animate-bounce" />
-              <span className="font-semibold">Upload CSV Dataset</span>
+            <div className={`w-full inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 border-2 border-dashed border-rstudio/30 bg-white dark:bg-gray-700 hover:bg-rstudio/5 dark:hover:bg-rstudio/10 text-rstudio dark:text-white h-12 px-4 py-2 transform ${canAddMore ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'}`}>
+              <Upload className="h-5 w-5 mr-2" />
+              <span className="font-semibold">Add CSV</span>
             </div>
           </label>
         </div>
+        <div className="text-xs text-gray-600 dark:text-gray-400 min-w-[160px] text-right">
+          {selectedCounts.chat} in Chat • {selectedCounts.run} in Run
+        </div>
+      </div>
+
+      {/* Add confirmation inline panel (no server save) */}
+      {pendingFiles && (
+        <div className="mt-2 p-3 rounded-lg border bg-white dark:bg-gray-800">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-sm">Add {pendingFiles.length} file{pendingFiles.length > 1 ? 's' : ''} to this session</div>
+              <div className="text-[11px] text-gray-500 mt-1">Files are kept locally in this browser session.</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={cancelPending}>Cancel</Button>
+              <Button size="sm" onClick={confirmAddPending}>Add</Button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {showPreview && csvData && (
+      {/* List */}
+      {items.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {items.map(item => (
+            <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-white dark:bg-gray-800">
+              <span className="inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                📊 <span className="ml-1 truncate">{item.fileName}</span>
+              </span>
+              <span className="text-[10px] text-gray-500">{(item.sizeBytes/1024).toFixed(1)} KB</span>
+              <Button size="sm" variant="outline" onClick={() => setPreviewItem(item)} className="h-7 px-2">
+                <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+              </Button>
+              <label className="ml-auto text-xs flex items-center gap-1">
+                <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} /> Chat
+              </label>
+              <label className="text-xs flex items-center gap-1">
+                <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} /> Run
+              </label>
+              <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
+                <X className="h-4 w-4 text-red-600" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowPreview(false)}></div>
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPreviewItem(null)}></div>
           <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[90vw] max-w-6xl h-[80vh] p-4 flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
-              <div className="text-sm font-semibold text-darktext dark:text-white truncate">{fileName}</div>
-              <Button variant="ghost" size="icon" onClick={() => setShowPreview(false)}>
+              <div className="text-sm font-semibold text-darktext dark:text-white truncate">{previewItem.fileName}</div>
+              <Button variant="ghost" size="icon" onClick={() => setPreviewItem(null)}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -105,13 +171,13 @@ export function UploadPanel({ onDatasetUpload, privacyMode = true }: UploadPanel
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-3 py-2 text-xs font-medium bg-blue-50 dark:bg-blue-950/30 border-b border-gray-200 dark:border-gray-700 text-darktext dark:text-white">Randomized (privacy ON)</div>
                 <div className="p-2 h-[calc(100%-30px)] overflow-auto">
-                  <DataPreview originalData={csvData} fileName={fileName || 'data.csv'} privacyMode={true} />
+                  <DataPreview originalData={previewItem.csvText || ''} fileName={previewItem.fileName} privacyMode={true} />
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-3 py-2 text-xs font-medium bg-orange-50 dark:bg-orange-950/20 border-b border-gray-200 dark:border-gray-700 text-darktext dark:text-white">Original (privacy OFF)</div>
                 <div className="p-2 h-[calc(100%-30px)] overflow-auto">
-                  <DataPreview originalData={csvData} fileName={fileName || 'data.csv'} privacyMode={false} />
+                  <DataPreview originalData={previewItem.csvText || ''} fileName={previewItem.fileName} privacyMode={false} />
                 </div>
               </div>
             </div>
