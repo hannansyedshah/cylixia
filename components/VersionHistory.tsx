@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { History, RotateCcw, Save, Eye, Clock } from 'lucide-react'
+import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface CodeVersion {
   id: string
@@ -36,6 +36,7 @@ export function VersionHistory({
   const [showHistory, setShowHistory] = useState(false)
   const [description, setDescription] = useState('')
   const [showDescriptionInput, setShowDescriptionInput] = useState(false)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const loadVersions = useCallback(async () => {
     setLoading(true)
@@ -104,6 +105,26 @@ export function VersionHistory({
     return code.length > maxLength ? code.substring(0, maxLength) + '...' : code
   }
 
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const expandAll = () => {
+    setExpandedIds(new Set(versions.map(v => v.id)))
+  }
+
+  const collapseAll = () => {
+    setExpandedIds(new Set())
+  }
+
   useEffect(() => {
     if (showHistory) {
       loadVersions()
@@ -166,20 +187,32 @@ export function VersionHistory({
       {/* Version History Panel */}
       {showHistory && (
         <div className="absolute top-full left-0 right-0 mt-2 z-50">
-          <Card className="max-h-96 overflow-y-auto bg-white dark:bg-gray-800 border shadow-lg">
+          <Card className="max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800 border shadow-lg">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold flex items-center">
                   <Clock className="h-5 w-5 mr-2" />
                   Version History
                 </h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowHistory(false)}
-                >
-                  ×
-                </Button>
+                <div className="flex items-center gap-2">
+                  {versions.length > 0 && expandedIds.size !== versions.length && (
+                    <Button variant="outline" size="sm" onClick={expandAll}>
+                      Expand all
+                    </Button>
+                  )}
+                  {expandedIds.size > 0 && (
+                    <Button variant="outline" size="sm" onClick={collapseAll}>
+                      Collapse all
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowHistory(false)}
+                  >
+                    ×
+                  </Button>
+                </div>
               </div>
 
               {loading ? (
@@ -201,29 +234,66 @@ export function VersionHistory({
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <span className="font-semibold text-sm">
-                              Version {version.version_number}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {formatDate(version.created_at)}
-                            </span>
-                          </div>
-                          
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            {version.description}
-                          </p>
-                          
-                          <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono">
-                            <code className="text-gray-700 dark:text-gray-300">
-                              {truncateCode(version.code)}
-                            </code>
-                          </div>
-                          
-                          {version.plot_url && (
-                            <div className="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
-                              <Eye className="h-3 w-3 mr-1" />
-                              Includes plot
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(version.id)}
+                            className="w-full text-left"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                {expandedIds.has(version.id) ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                <span className="font-semibold text-sm">
+                                  Version {version.version_number}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(version.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {version.description}
+                            </p>
+                            {!expandedIds.has(version.id) && (
+                              <div className="mt-2 bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono">
+                                <code className="text-gray-700 dark:text-gray-300">
+                                  {truncateCode(version.code)}
+                                </code>
+                              </div>
+                            )}
+                            {!expandedIds.has(version.id) && version.plot_url && (
+                              <div className="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
+                                <Eye className="h-3 w-3 mr-1" />
+                                Includes plot
+                              </div>
+                            )}
+                          </button>
+
+                          {expandedIds.has(version.id) && (
+                            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div className="border rounded-md overflow-hidden">
+                                <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Code</div>
+                                <pre className="m-0 p-3 bg-gray-100 dark:bg-gray-800 text-xs overflow-auto max-h-60">
+<code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{version.code}</code>
+                                </pre>
+                              </div>
+                              <div className="border rounded-md overflow-hidden">
+                                <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Plot</div>
+                                {version.plot_url ? (
+                                  <div className="p-2 flex items-center justify-center bg-white dark:bg-gray-950">
+                                    <img
+                                      src={version.plot_url}
+                                      alt={`Plot for version ${version.version_number}`}
+                                      className="max-h-60 object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
