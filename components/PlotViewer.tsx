@@ -4,17 +4,22 @@ import { ImageIcon, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface PlotViewerProps {
-  plotUrl: string | null
+  plotUrl?: string | null
+  plotUrls?: string[]
   projectName?: string
   hasCsvData?: boolean
 }
 
-export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }: PlotViewerProps) {
+export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', hasCsvData = false }: PlotViewerProps) {
+  const images: string[] = Array.isArray(plotUrls) && plotUrls.length > 0
+    ? plotUrls
+    : (plotUrl ? [plotUrl] : [])
+
   const handleDownload = () => {
-    if (!plotUrl) return
+    if (!images.length) return
     
     const link = document.createElement('a')
-    link.href = plotUrl
+    link.href = images[0]
     link.download = `plot-${projectName}-${new Date().toISOString().split('T')[0]}.png`
     document.body.appendChild(link)
     link.click()
@@ -29,7 +34,7 @@ export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }
         <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-400/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
       </div>
 
-      {plotUrl ? (
+      {images.length > 0 ? (
         <div className="relative z-10 flex flex-col h-full w-full">
           {/* Download button overlay */}
           <div className="absolute top-2 right-2 z-20">
@@ -45,20 +50,22 @@ export function PlotViewer({ plotUrl, projectName = 'plot', hasCsvData = false }
           </div>
           
           {/* Dedicated Plot Container Box - Scrollable and flexible */}
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-visible">
-              <img
-                src={plotUrl}
-                alt="Generated plot"
-                className="object-contain rounded-lg animate-fade-in-up"
-                style={{ 
-                  maxWidth: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-            </div>
+          <div className="flex-1 flex items-start justify-center p-4 overflow-auto gap-4 flex-wrap">
+            {images.map((url, idx) => (
+              <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-visible max-w-full">
+                <img
+                  src={url}
+                  alt={`Generated plot ${idx + 1}`}
+                  className="object-contain rounded-lg animate-fade-in-up"
+                  style={{ 
+                    maxWidth: '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain'
+                  }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       ) : (

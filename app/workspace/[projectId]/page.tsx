@@ -46,6 +46,7 @@ export default function WorkspacePage() {
   const [editorFocusMode, setEditorFocusMode] = useState<boolean>(false)
   const hasLoadedRef = useRef(false)
   const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
+  const [galleryPlots, setGalleryPlots] = useState<string[]>([])
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -303,55 +304,63 @@ export default function WorkspacePage() {
         return
       }
       
-      // Handle successful response from Hugging Face
-      if (data.success) {
-        // Check for plot data in various possible field names
-        const plotData = data.plot_base64 || data.plot || data.image || data.plot_data || data.result
-        if (plotData) {
-          const plotUrl = `data:image/png;base64,${plotData}`
-          console.log('✅ Plot URL created from base64 data')
-        
-          // Update plot URL in database
-          await fetch(`/api/projects/${projectId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plot_url: plotUrl }),
-          })
-          
-          // Update local state immediately
-          setProject((prev: any) => ({
-            ...prev,
-            plot_url: plotUrl
-          }))
-
-          // Auto-save version when plot is generated
-          try {
-            await fetch(`/api/projects/${projectId}/versions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                code: project.code,
-                plot_url: plotUrl,
-                description: `Plot generated: ${new Date().toLocaleString()}`
-              })
-            })
-          } catch (error) {
-            console.error('Failed to auto-save version with plot:', error)
-          }
-          
-          console.log('✅ Plot updated successfully!')
-        } else {
-          console.warn('No plot data found in response')
-          console.log('Available fields:', Object.keys(data))
-          // Show message if available
-          if (data.message) {
-            console.log('Response message:', data.message)
-          }
-          // Keep it subtle; output may still be useful in terminal
-        }
+      // Handle response payloads: multiple or single plot(s)
+      let urls: string[] = []
+      if (Array.isArray(data.plot_base64)) {
+        urls = data.plot_base64
+          .map((p: any) => (p && (p.data || p)))
+          .filter(Boolean)
+          .map((b64: string) => `data:image/png;base64,${b64}`)
       } else {
-        console.error('Request was not successful:', data)
-        // Avoid modal spam; terminal shows errors
+        const plotData =
+          data.plot_base64 ||
+          data.image_base64 ||
+          data.plot ||
+          data.image ||
+          data.plot_data ||
+          data.result
+        if (plotData) {
+          urls = [`data:image/png;base64,${plotData}`]
+        }
+      }
+
+      if (urls.length > 0) {
+        setGalleryPlots(urls)
+
+        // Persist the first image URL for version/history continuity
+        const firstUrl = urls[0]
+        await fetch(`/api/projects/${projectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plot_url: firstUrl }),
+        })
+
+        setProject((prev: any) => ({
+          ...prev,
+          plot_url: firstUrl
+        }))
+
+        try {
+          await fetch(`/api/projects/${projectId}/versions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: project.code,
+              plot_url: firstUrl,
+              description: `Plot generated: ${new Date().toLocaleString()}`
+            })
+          })
+        } catch (error) {
+          console.error('Failed to auto-save version with plot:', error)
+        }
+
+        console.log(`✅ Plot updated successfully (${urls.length} image(s))`)
+      } else {
+        console.warn('No plot data found in response')
+        console.log('Available fields:', Object.keys(data))
+        if (data.message) {
+          console.log('Response message:', data.message)
+        }
       }
     } catch (error: any) {
       console.error('Execution error:', error)
@@ -680,7 +689,8 @@ export default function WorkspacePage() {
                     </div>
                     <div className="w-1/2 min-w-0">
                       <PlotViewer 
-                        plotUrl={project.plot_url || null} 
+                        plotUrl={project.plot_url || null}
+                        plotUrls={galleryPlots}
                         projectName={project.name} 
                         hasCsvData={datasets.length > 0}
                       />
@@ -689,7 +699,8 @@ export default function WorkspacePage() {
                 ) : (
                   <div className="h-full w-full">
                     <PlotViewer 
-                      plotUrl={project.plot_url || null} 
+                      plotUrl={project.plot_url || null}
+                      plotUrls={galleryPlots}
                       projectName={project.name} 
                       hasCsvData={datasets.length > 0}
                     />
