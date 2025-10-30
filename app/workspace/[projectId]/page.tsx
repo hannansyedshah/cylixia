@@ -505,6 +505,7 @@ export default function WorkspacePage() {
             <div className="border rounded-lg bg-white dark:bg-gray-800 shadow-md">
               <UploadPanel 
                 privacyMode={privacyMode}
+                datasets={datasets}
                 onDatasetsChange={(list) => setDatasets(list)}
               />
             </div>

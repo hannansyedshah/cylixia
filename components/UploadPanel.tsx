@@ -16,24 +16,23 @@ interface DatasetItem {
 }
 
 interface UploadPanelProps {
+  datasets: DatasetItem[]
   onDatasetsChange?: (datasets: DatasetItem[]) => void
   privacyMode?: boolean
 }
 
-export function UploadPanel({ onDatasetsChange, privacyMode = true }: UploadPanelProps) {
+export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: UploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [items, setItems] = useState<DatasetItem[]>([])
   const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
 
-  const canAddMore = items.length < 5
+  const canAddMore = datasets.length < 5
   const selectedCounts = useMemo(() => ({
-    chat: items.filter(i => i.includeChat).length,
-    run: items.filter(i => i.includeRun).length,
-  }), [items])
+    chat: datasets.filter(i => i.includeChat).length,
+    run: datasets.filter(i => i.includeRun).length,
+  }), [datasets])
 
   const notifyChange = (next: DatasetItem[]) => {
-    setItems(next)
     onDatasetsChange?.(next)
   }
 
@@ -51,13 +50,13 @@ export function UploadPanel({ onDatasetsChange, privacyMode = true }: UploadPane
       includeRun: true,
       csvText: text,
     }
-    notifyChange([...items, item])
+    notifyChange([...(datasets || []), item])
   }
 
   const handleSelectFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
-    if (items.length + files.length > 5) {
+    if (datasets.length + files.length > 5) {
       alert('You can add up to 5 datasets')
       if (inputRef.current) inputRef.current.value = ''
       return
@@ -80,12 +79,12 @@ export function UploadPanel({ onDatasetsChange, privacyMode = true }: UploadPane
   }
 
   const removeItem = (id: string) => {
-    const next = items.filter(i => i.id !== id)
+    const next = datasets.filter(i => i.id !== id)
     notifyChange(next)
   }
 
   const toggleFlag = (id: string, key: 'includeChat' | 'includeRun') => {
-    const next = items.map(i => i.id === id ? { ...i, [key]: !i[key] } : i)
+    const next = datasets.map(i => i.id === id ? { ...i, [key]: !i[key] } : i)
     notifyChange(next)
   }
 
@@ -131,9 +130,9 @@ export function UploadPanel({ onDatasetsChange, privacyMode = true }: UploadPane
       )}
 
       {/* List */}
-      {items.length > 0 && (
+      {datasets.length > 0 && (
         <div className="mt-3 space-y-2">
-          {items.map(item => (
+          {datasets.map(item => (
             <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-white dark:bg-gray-800">
               <span className="inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
                 📊 <span className="ml-1 truncate">{item.fileName}</span>
