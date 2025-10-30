@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const pathname = usePathname()
   const { user, setUser } = useSessionStore()
   const [projects, setProjects] = useState<Project[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
@@ -100,6 +101,10 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       })
+      if (response.status === 409) {
+        alert('A project with that name already exists. Please choose a different name.')
+        return
+      }
       const data = await response.json()
       if (data.project) {
         // Add to local state immediately
@@ -136,6 +141,10 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       })
+      if (response.status === 409) {
+        alert('A project with that name already exists. Please choose a different name.')
+        return
+      }
       const data = await response.json()
       if (data.project) {
         setProjects(projects.map(p => p.id === projectId ? data.project : p))
@@ -220,9 +229,9 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Create / Refresh Buttons */}
+          {/* Actions + Search */}
           <div className="mb-8 animate-fade-in-up animation-delay-200">
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-3 flex-wrap items-center">
               <Button
                 onClick={() => setShowCreateModal(true)}
                 size="lg"
@@ -241,6 +250,15 @@ export default function DashboardPage() {
                 <RefreshCw className={isRefreshing ? 'h-5 w-5 mr-2 animate-spin' : 'h-5 w-5 mr-2'} />
                 {isRefreshing ? 'Refreshing' : 'Refresh'}
               </Button>
+              <div className="ml-auto w-full md:w-80">
+                <input
+                  type="text"
+                  placeholder="Search projects…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-11 rounded-md border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-darktext dark:text-white focus:outline-none focus:border-rstudio"
+                />
+              </div>
             </div>
           </div>
 
@@ -267,7 +285,15 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up animation-delay-400">
-              {projects.map((project, index) => (
+              {projects
+                .filter(p => {
+                  const q = searchQuery.trim().toLowerCase()
+                  if (!q) return true
+                  const name = (p.name || '').toLowerCase()
+                  const desc = (p.description || '').toLowerCase()
+                  return name.includes(q) || desc.includes(q)
+                })
+                .map((project, index) => (
                 <div
                   key={project.id}
                   style={{ animationDelay: `${index * 0.1}s` }}

@@ -70,6 +70,26 @@ export async function PATCH(
 
     const body = await request.json()
     const updates = { ...body }
+    // If renaming, enforce per-user uniqueness (case-insensitive)
+    if (typeof updates.name === 'string') {
+      updates.name = updates.name.trim()
+      if (!updates.name) {
+        return NextResponse.json({ error: 'Project name is required' }, { status: 400 })
+      }
+
+      const { data: conflict, error: conflictError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('name', updates.name)
+        .neq('id', projectId)
+        .maybeSingle()
+
+      if (conflictError) throw conflictError
+      if (conflict) {
+        return NextResponse.json({ error: 'You already have a project with this name.' }, { status: 409 })
+      }
+    }
     delete updates.id
     delete updates.user_id
     delete updates.created_at

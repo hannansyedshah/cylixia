@@ -38,6 +38,10 @@ CREATE TABLE IF NOT EXISTS code_versions (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
+-- Ensure project names are unique per user
+DO $$ BEGIN
+  ALTER TABLE projects ADD CONSTRAINT unique_project_name_per_user UNIQUE (user_id, name);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE INDEX IF NOT EXISTS idx_messages_project_id ON messages(project_id);
 CREATE INDEX IF NOT EXISTS idx_code_versions_project_id ON code_versions(project_id);
 CREATE INDEX IF NOT EXISTS idx_code_versions_version_number ON code_versions(project_id, version_number);

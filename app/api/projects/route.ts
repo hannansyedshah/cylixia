@@ -38,11 +38,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, description } = body
 
+    // Basic validation
+    const trimmedName = (name || '').trim()
+    if (!trimmedName) {
+      return NextResponse.json({ error: 'Project name is required' }, { status: 400 })
+    }
+
+    // Enforce unique project name per user (case-insensitive)
+    const { data: existing, error: existingError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('user_id', user.id)
+      .ilike('name', trimmedName)
+      .maybeSingle()
+
+    if (existingError) throw existingError
+    if (existing) {
+      return NextResponse.json({ error: 'You already have a project with this name.' }, { status: 409 })
+    }
+
     const { data: project, error } = await supabase
       .from('projects')
       .insert({
         user_id: user.id,
-        name,
+        name: trimmedName,
         description,
         code: '# Your R code will appear here\n',
       })
