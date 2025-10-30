@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Layout } from '@/components/Layout'
 import { Button } from '@/components/ui/button'
+import { HeroCTA } from '@/components/HeroCTA'
 import { ShieldCheck, Code2, Sparkles, Upload, MessageSquare, BarChart3, History } from 'lucide-react'
 
 export default function Home() {
@@ -26,18 +27,7 @@ export default function Home() {
             <p className="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-2xl mx-auto animate-fade-in-up animation-delay-400 leading-relaxed">
               Upload a dataset, ask in plain English, and get clean R code with publication‑ready plots—fast, transparent, and reproducible.
             </p>
-            <div className="flex justify-center space-x-4 animate-fade-in-up animation-delay-600">
-              <Link href="/signup">
-                <Button size="lg" className="text-lg px-8 py-6">
-                  Get Started
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                  Login
-                </Button>
-              </Link>
-            </div>
+            <HeroCTA />
           </div>
         </div>
 
