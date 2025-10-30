@@ -168,14 +168,14 @@ mtcars %>%
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border flex items-center justify-center">
                     {/* Inline demo chart (SVG) */}
-                    <svg viewBox="0 0 220 140" className="w-full h-32">
+                    <svg viewBox="0 0 220 160" className="w-full h-32">
                       <defs>
                         <linearGradient id="barGrad" x1="0" x2="1">
                           <stop offset="0%" stopColor="#3b82f6" />
                           <stop offset="100%" stopColor="#06b6d4" />
                         </linearGradient>
                       </defs>
-                      <rect x="0" y="0" width="220" height="140" rx="8" fill="transparent" />
+                      <rect x="0" y="0" width="220" height="160" rx="8" fill="transparent" />
                       <g transform="translate(30,10)">
                         <line x1="0" y1="120" x2="170" y2="120" stroke="#94a3b8" strokeWidth="1" />
                         <g className="animate-fade-in-up">
@@ -183,9 +183,9 @@ mtcars %>%
                           <rect x="70" y="40" width="30" height="80" rx="4" fill="url(#barGrad)" className="transform origin-bottom animate-float" />
                           <rect x="130" y="50" width="30" height="70" rx="4" fill="url(#barGrad)" className="transform origin-bottom" />
                         </g>
-                        <text x="15" y="135" fontSize="10" fill="#94a3b8">4</text>
-                        <text x="75" y="135" fontSize="10" fill="#94a3b8">6</text>
-                        <text x="135" y="135" fontSize="10" fill="#94a3b8">8</text>
+                        <text x="15" y="146" fontSize="10" fill="#94a3b8">4</text>
+                        <text x="75" y="146" fontSize="10" fill="#94a3b8">6</text>
+                        <text x="135" y="146" fontSize="10" fill="#94a3b8">8</text>
                       </g>
                     </svg>
                   </div>
