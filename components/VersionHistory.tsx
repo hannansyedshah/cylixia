@@ -184,12 +184,20 @@ export function VersionHistory({
         </div>
       )}
 
-      {/* Version History Panel */}
+      {/* Version History Panel - Fullscreen Overlay */}
       {showHistory && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-50">
-          <Card className="max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800 border shadow-lg">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 z-[100]">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowHistory(false)}
+          />
+
+          {/* Content */}
+          <div className="relative inset-0 w-full h-full flex items-center justify-center p-4">
+            <Card className="w-[95vw] max-w-6xl h-[90vh] bg-white dark:bg-gray-800 border shadow-2xl overflow-hidden">
+              {/* Sticky Header */}
+              <div className="px-4 py-3 border-b bg-white/80 dark:bg-gray-800/80 backdrop-blur flex items-center justify-between sticky top-0 z-10">
                 <h3 className="text-lg font-semibold flex items-center">
                   <Clock className="h-5 w-5 mr-2" />
                   Version History
@@ -215,107 +223,110 @@ export function VersionHistory({
                 </div>
               </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rstudio"></div>
-                </div>
-              ) : versions.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No versions saved yet</p>
-                  <p className="text-sm">Save your first version to get started</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {versions.map((version) => (
-                    <div
-                      key={version.id}
-                      className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <button
-                            type="button"
-                            onClick={() => toggleExpanded(version.id)}
-                            className="w-full text-left"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center space-x-2">
-                                {expandedIds.has(version.id) ? (
-                                  <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4" />
-                                )}
-                                <span className="font-semibold text-sm">
-                                  Version {version.version_number}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {formatDate(version.created_at)}
-                                </span>
+              {/* Scrollable Body */}
+              <div className="p-4 overflow-y-auto h-[calc(90vh-3rem)]">
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rstudio"></div>
+                  </div>
+                ) : versions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No versions saved yet</p>
+                    <p className="text-sm">Save your first version to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {versions.map((version) => (
+                      <div
+                        key={version.id}
+                        className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(version.id)}
+                              className="w-full text-left"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  {expandedIds.has(version.id) ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                  <span className="font-semibold text-sm">
+                                    Version {version.version_number}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {formatDate(version.created_at)}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {version.description}
-                            </p>
-                            {!expandedIds.has(version.id) && (
-                              <div className="mt-2 bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono">
-                                <code className="text-gray-700 dark:text-gray-300">
-                                  {truncateCode(version.code)}
-                                </code>
-                              </div>
-                            )}
-                            {!expandedIds.has(version.id) && version.plot_url && (
-                              <div className="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
-                                <Eye className="h-3 w-3 mr-1" />
-                                Includes plot
-                              </div>
-                            )}
-                          </button>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {version.description}
+                              </p>
+                              {!expandedIds.has(version.id) && (
+                                <div className="mt-2 bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono">
+                                  <code className="text-gray-700 dark:text-gray-300">
+                                    {truncateCode(version.code)}
+                                  </code>
+                                </div>
+                              )}
+                              {!expandedIds.has(version.id) && version.plot_url && (
+                                <div className="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Includes plot
+                                </div>
+                              )}
+                            </button>
 
-                          {expandedIds.has(version.id) && (
-                            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div className="border rounded-md overflow-hidden">
-                                <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Code</div>
-                                <pre className="m-0 p-3 bg-gray-100 dark:bg-gray-800 text-xs overflow-auto max-h-60">
+                            {expandedIds.has(version.id) && (
+                              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="border rounded-md overflow-hidden">
+                                  <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Code</div>
+                                  <pre className="m-0 p-3 bg-gray-100 dark:bg-gray-800 text-xs overflow-auto max-h-60">
 <code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{version.code}</code>
-                                </pre>
+                                  </pre>
+                                </div>
+                                <div className="border rounded-md overflow-hidden">
+                                  <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Plot</div>
+                                  {version.plot_url ? (
+                                    <div className="p-2 flex items-center justify-center bg-white dark:bg-gray-950">
+                                      <img
+                                        src={version.plot_url}
+                                        alt={`Plot for version ${version.version_number}`}
+                                        className="max-h-60 object-contain"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
+                                  )}
+                                </div>
                               </div>
-                              <div className="border rounded-md overflow-hidden">
-                                <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Plot</div>
-                                {version.plot_url ? (
-                                  <div className="p-2 flex items-center justify-center bg-white dark:bg-gray-950">
-                                    <img
-                                      src={version.plot_url}
-                                      alt={`Plot for version ${version.version_number}`}
-                                      className="max-h-60 object-contain"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex flex-col space-y-1 ml-4">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => restoreVersion(version.id)}
-                            className="flex items-center space-x-1"
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                            <span>Restore</span>
-                          </Button>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-col space-y-1 ml-4">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => restoreVersion(version.id)}
+                              className="flex items-center space-x-1"
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              <span>Restore</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
       )}
     </div>
