@@ -53,17 +53,32 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
     notifyChange([...(datasets || []), item])
   }
 
-  const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-    if (datasets.length + files.length > 5) {
-      alert('You can add up to 5 datasets')
-      if (inputRef.current) inputRef.current.value = ''
-      return
+  const fileToItem = async (file: File): Promise<DatasetItem | null> => {
+    if (!file.name.toLowerCase().endsWith('.csv')) { alert('Only .csv files are allowed'); return null }
+    if (file.size > 10 * 1024 * 1024) { alert('File too large (max 10MB)'); return null }
+    const text = await file.text()
+    return {
+      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fileName: file.name,
+      sizeBytes: file.size,
+      persisted: false,
+      includeChat: true,
+      includeRun: true,
+      csvText: text,
     }
-    for (const f of files) {
-      // eslint-disable-next-line no-await-in-loop
-      await handleLocalAdd(f)
+  }
+
+  const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const all = Array.from(e.target.files || [])
+    if (all.length === 0) return
+    const remaining = Math.max(0, 5 - datasets.length)
+    const files = all.slice(0, remaining)
+    if (all.length > files.length) {
+      alert(`Only ${remaining} more dataset(s) can be added (max 5). Extra file(s) skipped.`)
+    }
+    const items = (await Promise.all(files.map(fileToItem))).filter(Boolean) as DatasetItem[]
+    if (items.length > 0) {
+      notifyChange([...(datasets || []), ...items])
     }
     if (inputRef.current) inputRef.current.value = ''
   }
