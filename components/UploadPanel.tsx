@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, X } from 'lucide-react'
+import { Upload, X, Maximize2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DataPreview } from '@/components/DataPreview'
 
 interface UploadPanelProps {
   onDatasetUpload?: (csvData: string, fileName: string) => void
@@ -14,6 +15,7 @@ export function UploadPanel({ onDatasetUpload, privacyMode = true }: UploadPanel
   const [csvData, setCsvData] = useState<string | null>(null)
   const [datasetId, setDatasetId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showPreview, setShowPreview] = useState<boolean>(false)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -56,24 +58,19 @@ export function UploadPanel({ onDatasetUpload, privacyMode = true }: UploadPanel
   }
 
   return (
-    <div className="p-4 border-b bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-950/30">
+    <div className="p-3 border-b bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-950/30">
       {fileName ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-3 rounded-xl shadow-md border border-green-200 dark:border-green-700 animate-fade-in-up">
-            <span className="text-sm font-medium text-green-700 dark:text-green-300">
-              📊 {fileName}
-            </span>
-            <Button variant="ghost" size="icon" onClick={handleClear} className="hover:bg-red-100 dark:hover:bg-red-900/20">
-              <X className="h-4 w-4 text-red-600" />
-            </Button>
-          </div>
-          <div className={`px-3 py-2 rounded-lg text-xs font-medium ${
-            privacyMode 
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-              : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-          }`}>
-            {privacyMode ? '🔒 Privacy Protected: AI will receive randomized data' : '⚠️ Privacy Warning: AI will receive original data'}
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center max-w-[60%] truncate px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700">
+            📊 <span className="ml-1 truncate">{fileName}</span>
+          </span>
+          <Button size="sm" variant="outline" onClick={() => setShowPreview(true)} className="h-7 px-2">
+            <Maximize2 className="h-3.5 w-3.5 mr-1" />
+            View data
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleClear} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20 ml-auto">
+            <X className="h-4 w-4 text-red-600" />
+          </Button>
         </div>
       ) : (
         <div className="flex items-center space-x-2">
@@ -91,6 +88,34 @@ export function UploadPanel({ onDatasetUpload, privacyMode = true }: UploadPanel
               <span className="font-semibold">Upload CSV Dataset</span>
             </div>
           </label>
+        </div>
+      )}
+
+      {showPreview && csvData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowPreview(false)}></div>
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[90vw] max-w-6xl h-[80vh] p-4 flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="text-sm font-semibold text-darktext dark:text-white truncate">{fileName}</div>
+              <Button variant="ghost" size="icon" onClick={() => setShowPreview(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="px-3 py-2 text-xs font-medium bg-blue-50 dark:bg-blue-950/30 border-b border-gray-200 dark:border-gray-700 text-darktext dark:text-white">Randomized (privacy ON)</div>
+                <div className="p-2 h-[calc(100%-30px)] overflow-auto">
+                  <DataPreview originalData={csvData} fileName={fileName || 'data.csv'} privacyMode={true} />
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="px-3 py-2 text-xs font-medium bg-orange-50 dark:bg-orange-950/20 border-b border-gray-200 dark:border-gray-700 text-darktext dark:text-white">Original (privacy OFF)</div>
+                <div className="p-2 h-[calc(100%-30px)] overflow-auto">
+                  <DataPreview originalData={csvData} fileName={fileName || 'data.csv'} privacyMode={false} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
