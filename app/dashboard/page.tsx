@@ -32,14 +32,26 @@ export default function DashboardPage() {
   const hasLoadedRef = useRef(false)
   const refreshAttemptsRef = useRef(0)
   const intervalRef = useRef<any>(null)
+  const inFlightRef = useRef(false)
 
   const loadProjects = useCallback(async () => {
-    if (hasLoadedRef.current) return // Prevent duplicate calls
-    
+    // Avoid spamming requests due to rapid remounts/back nav or render loops
+    if (hasLoadedRef.current || inFlightRef.current) return
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+
+    inFlightRef.current = true
+    hasLoadedRef.current = true // mark early; allow manual/interval refresh to reset
     try {
       setLoading(true)
       console.log('Loading projects...')
-      const response = await fetch('/api/projects')
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const response = await fetch('/api/projects', {
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -50,12 +62,12 @@ export default function DashboardPage() {
       
       if (data.projects) {
         setProjects(data.projects)
-        hasLoadedRef.current = true
       }
     } catch (error) {
       console.error('Failed to load projects:', error)
     } finally {
       setLoading(false)
+      inFlightRef.current = false
     }
   }, [])
 
