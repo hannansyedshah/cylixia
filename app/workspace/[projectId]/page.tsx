@@ -56,6 +56,7 @@ export default function WorkspacePage() {
   const chatAbortControllerRef = useRef<AbortController | null>(null)
   const runAbortControllerRef = useRef<AbortController | null>(null)
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
+  const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -168,26 +169,46 @@ export default function WorkspacePage() {
 
   // Track elapsed time when loading AI response
   useEffect(() => {
+    if (!mountedRef.current) return
+    
     let interval: NodeJS.Timeout | null = null
     let estimateInterval: NodeJS.Timeout | null = null
-    if (loading && loadingStartTime) {
+    if (loading && loadingStartTime && mountedRef.current) {
       // Update elapsed time every second
       interval = setInterval(() => {
+        if (!mountedRef.current) {
+          if (interval) clearInterval(interval)
+          if (estimateInterval) clearInterval(estimateInterval)
+          return
+        }
         const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000)
-        setElapsedSeconds(elapsed)
+        if (mountedRef.current) {
+          setElapsedSeconds(elapsed)
+        }
       }, 1000)
       
       // Update estimated time every 5 seconds (more stable)
       estimateInterval = setInterval(() => {
+        if (!mountedRef.current) {
+          if (interval) clearInterval(interval)
+          if (estimateInterval) clearInterval(estimateInterval)
+          return
+        }
         const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000)
-        setEstimatedSeconds(elapsed + 40)
+        if (mountedRef.current) {
+          setEstimatedSeconds(elapsed + 40)
+        }
       }, 5000)
       
       // Set initial estimate
-      setEstimatedSeconds(40)
+      if (mountedRef.current) {
+        setEstimatedSeconds(40)
+      }
     } else {
-      setElapsedSeconds(0)
-      setEstimatedSeconds(40)
+      if (mountedRef.current) {
+        setElapsedSeconds(0)
+        setEstimatedSeconds(40)
+      }
     }
     return () => {
       if (interval) clearInterval(interval)
@@ -205,18 +226,33 @@ export default function WorkspacePage() {
   // Handle visibility changes to reset stuck states
   useEffect(() => {
     const handleVisibilityChange = () => {
+      // Only handle visibility changes - don't do anything on hidden
+      if (document.visibilityState === 'hidden') {
+        // Clear any pending visibility timeouts when tab becomes hidden
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current)
+          visibilityTimeoutRef.current = null
+        }
+        return
+      }
+
       if (document.visibilityState === 'visible' && mountedRef.current) {
         // Reset stuck loading state if detected
         // If loading state is true but no active operation, something might be stuck
         // This ensures buttons aren't permanently disabled
         if (loading) {
+          // Clear any existing timeout first
+          if (visibilityTimeoutRef.current) {
+            clearTimeout(visibilityTimeoutRef.current)
+          }
           // Check if loading seems stuck (give it a moment)
-          setTimeout(() => {
+          visibilityTimeoutRef.current = setTimeout(() => {
             if (mountedRef.current && loading) {
               // Still loading after delay - might be stuck, but don't reset automatically
               // Only reset if we can confirm there's no active operation
               console.log('Loading state still active after visibility change')
             }
+            visibilityTimeoutRef.current = null
           }, 3000)
         }
       }
@@ -226,6 +262,11 @@ export default function WorkspacePage() {
       document.addEventListener('visibilitychange', handleVisibilityChange)
       return () => {
         document.removeEventListener('visibilitychange', handleVisibilityChange)
+        // Clean up any pending timeout
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current)
+          visibilityTimeoutRef.current = null
+        }
       }
     }
   }, [loading])
@@ -248,25 +289,55 @@ export default function WorkspacePage() {
     }
   }, [loading, loadingProject])
 
+  // Track previous pathname to detect navigation
+  const previousPathnameRef = useRef<string | null>(null)
+  
   // Warn users before client-side navigation during operations
   useEffect(() => {
-    if (pathname && pathname !== `/workspace/${projectId}` && (loading || loadingProject)) {
+    // Skip initial mount - store current pathname for next render
+    if (previousPathnameRef.current === null) {
+      previousPathnameRef.current = pathname
+      return
+    }
+    
+    // Only check if we're actually on a different page (not initial mount)
+    const currentPathname = pathname
+    const expectedPathname = `/workspace/${projectId}`
+    
+    // Only show warning if:
+    // 1. We were on the workspace page before
+    // 2. We're now on a different page
+    // 3. We have active operations
+    // 4. Component is still mounted (about to unmount)
+    const wasOnWorkspace = previousPathnameRef.current === expectedPathname
+    const isLeavingWorkspace = currentPathname !== expectedPathname
+    const hasActiveOperations = loading || loadingProject
+    
+    if (wasOnWorkspace && 
+        isLeavingWorkspace && 
+        hasActiveOperations && 
+        mountedRef.current) {
       // User is navigating away - abort operations and show warning
-      if (mountedRef.current) {
+      try {
         alert('⚠️ Warning: You have operations in progress. They have been cancelled because you navigated away from the page. Please stay on the page while operations are running.')
-        
-        // Abort all active operations
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort()
-        }
-        if (chatAbortControllerRef.current) {
-          chatAbortControllerRef.current.abort()
-        }
-        if (runAbortControllerRef.current) {
-          runAbortControllerRef.current.abort()
-        }
+      } catch (e) {
+        // Alert might fail if already unmounted, ignore
+      }
+      
+      // Abort all active operations
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      if (chatAbortControllerRef.current) {
+        chatAbortControllerRef.current.abort()
+      }
+      if (runAbortControllerRef.current) {
+        runAbortControllerRef.current.abort()
       }
     }
+    
+    // Update previous pathname for next render
+    previousPathnameRef.current = currentPathname
   }, [pathname, projectId, loading, loadingProject])
 
   // Comprehensive cleanup on unmount
@@ -301,9 +372,10 @@ export default function WorkspacePage() {
         timeoutIdRef.current = null
       }
       
-      // Show alert if operations were aborted (only if we can show alerts)
-      if (hasActiveOperations && typeof window !== 'undefined') {
-        // Note: Can't show alert in cleanup, but we'll show it in catch blocks instead
+      // Clear visibility timeout
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current)
+        visibilityTimeoutRef.current = null
       }
     }
   }, [loading])
