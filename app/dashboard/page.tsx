@@ -225,9 +225,9 @@ export default function DashboardPage() {
     <Layout>
       <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-950/30 dark:to-purple-950/30 relative overflow-hidden">
         {/* Animated Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/10 rounded-full blur-3xl animate-pulse will-change-transform"></div>
-          <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-pulse will-change-transform" style={{ animationDelay: '1000ms' }}></div>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ contain: 'layout style paint' }}>
+          <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/10 rounded-full blur-3xl animate-pulse will-change-transform" style={{ transform: 'translateZ(0)' }}></div>
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-pulse will-change-transform" style={{ animationDelay: '1000ms', transform: 'translateZ(0)' }}></div>
         </div>
 
         <div className="container mx-auto px-4 py-12 relative z-10 min-h-[400px]">
@@ -276,7 +276,7 @@ export default function DashboardPage() {
 
           {/* Projects Grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-20 min-h-[300px]">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rstudio"></div>
             </div>
           ) : projects.length === 0 ? (
@@ -296,7 +296,7 @@ export default function DashboardPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up animation-delay-400">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up animation-delay-400 min-h-[200px]">
               {projects
                 .filter(p => {
                   const q = searchQuery.trim().toLowerCase()

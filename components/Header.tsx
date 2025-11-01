@@ -86,27 +86,30 @@ export function Header() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 min-w-[220px] justify-end">
           <ThemeToggle />
           
-          {pathname.startsWith('/workspace') || pathname === '/dashboard' ? (
-            <Button onClick={handleLogout} variant="outline">
-              Logout
-            </Button>
-          ) : actualUser ? (
-            <Link href="/dashboard">
-              <Button>Dashboard</Button>
-            </Link>
-          ) : (
-            <>
-              <Link href="/login">
-                <Button variant="outline">Login</Button>
+          {/* Reserve space for buttons to prevent layout shift - always reserve max width */}
+          <div className="flex items-center space-x-2 min-w-[180px]">
+            {pathname.startsWith('/workspace') || pathname === '/dashboard' ? (
+              <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto">
+                Logout
+              </Button>
+            ) : actualUser ? (
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto">Dashboard</Button>
               </Link>
-              <Link href="/signup">
-                <Button>Sign Up</Button>
-              </Link>
-            </>
-          )}
+            ) : (
+              <>
+                <Link href="/login" className="flex-shrink-0">
+                  <Button variant="outline">Login</Button>
+                </Link>
+                <Link href="/signup" className="flex-shrink-0">
+                  <Button>Sign Up</Button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
