@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const refreshAttemptsRef = useRef(0)
   const intervalRef = useRef<any>(null)
   const inFlightRef = useRef(false)
+  const mountedRef = useRef(true)
 
   const loadProjects = useCallback(async () => {
     // Avoid spamming requests due to rapid remounts/back nav or render loops
@@ -60,13 +61,15 @@ export default function DashboardPage() {
       const data = await response.json()
       console.log('Projects loaded:', data.projects?.length || 0)
       
-      if (data.projects) {
+      if (mountedRef.current && data.projects) {
         setProjects(data.projects)
       }
     } catch (error) {
       console.error('Failed to load projects:', error)
     } finally {
-      setLoading(false)
+      if (mountedRef.current) {
+        setLoading(false)
+      }
       inFlightRef.current = false
     }
   }, [])
@@ -118,7 +121,7 @@ export default function DashboardPage() {
         return
       }
       const data = await response.json()
-      if (data.project) {
+      if (mountedRef.current && data.project) {
         // Add to local state immediately
         setProjects(prev => [data.project, ...prev])
         router.push(`/workspace/${data.project.id}`)
@@ -133,7 +136,9 @@ export default function DashboardPage() {
       await fetch(`/api/projects/${projectId}`, {
         method: 'DELETE',
       })
-      setProjects(projects.filter(p => p.id !== projectId))
+      if (mountedRef.current) {
+        setProjects(projects.filter(p => p.id !== projectId))
+      }
     } catch (error) {
       console.error('Failed to delete project:', error)
     }
@@ -158,7 +163,7 @@ export default function DashboardPage() {
         return
       }
       const data = await response.json()
-      if (data.project) {
+      if (mountedRef.current && data.project) {
         setProjects(projects.map(p => p.id === projectId ? data.project : p))
       }
     } catch (error) {
@@ -168,12 +173,16 @@ export default function DashboardPage() {
 
   const refreshProjects = useCallback(async () => {
     try {
-      setIsRefreshing(true)
-      hasLoadedRef.current = false
-      setProjects([]) // Clear existing projects
+      if (mountedRef.current) {
+        setIsRefreshing(true)
+        hasLoadedRef.current = false
+        setProjects([]) // Clear existing projects
+      }
       await loadProjects()
     } finally {
-      setIsRefreshing(false)
+      if (mountedRef.current) {
+        setIsRefreshing(false)
+      }
     }
   }, [loadProjects])
 
@@ -216,6 +225,13 @@ export default function DashboardPage() {
       }
     }
   }, [user, pathname, refreshProjects])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   if (!user) {
     return null

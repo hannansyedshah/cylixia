@@ -50,6 +50,7 @@ export default function WorkspacePage() {
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40)
+  const mountedRef = useRef(true)
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -83,7 +84,7 @@ export default function WorkspacePage() {
       
       const data = await response.json()
       
-      if (data.project) {
+      if (mountedRef.current && data.project) {
         console.log('✅ Project loaded successfully:', data.project.name)
         // Ensure messages array exists
         const projectWithMessages = {
@@ -91,11 +92,14 @@ export default function WorkspacePage() {
           messages: data.project.messages || []
         }
         setProject(projectWithMessages)
+      } else if (!mountedRef.current) {
+        return // Don't navigate if component unmounted
       } else {
         console.warn('❌ No project data received')
         router.push('/dashboard')
       }
     } catch (error: any) {
+      if (!mountedRef.current) return
       if (error.name === 'AbortError') {
         console.error('💥 Request was aborted due to timeout')
       } else {
@@ -103,7 +107,9 @@ export default function WorkspacePage() {
       }
       router.push('/dashboard')
     } finally {
-      setLoadingProject(false)
+      if (mountedRef.current) {
+        setLoadingProject(false)
+      }
     }
   }, [projectId, router])
 
@@ -178,9 +184,17 @@ export default function WorkspacePage() {
     }
   }, [projectId, loadProject])
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
 
+    if (!mountedRef.current) return
     setLoading(true)
     setLoadingStartTime(Date.now())
     
@@ -209,6 +223,8 @@ export default function WorkspacePage() {
 
       const data = await response.json()
       
+      if (!mountedRef.current) return
+      
       if (data.code) {
         // Update code in database
         await fetch(`/api/projects/${projectId}`, {
@@ -218,10 +234,12 @@ export default function WorkspacePage() {
         })
         
         // Update local state immediately for better UX
-        setProject((prev: any) => ({
-          ...prev,
-          code: data.code
-        }))
+        if (mountedRef.current) {
+          setProject((prev: any) => ({
+            ...prev,
+            code: data.code
+          }))
+        }
 
         // Auto-save version when new code is generated
         try {
@@ -259,17 +277,21 @@ export default function WorkspacePage() {
       })
       
       // Update messages locally
-      setProject((prev: any) => ({
-        ...prev,
-        messages: [...prev.messages, newMessage]
-      }))
+      if (mountedRef.current) {
+        setProject((prev: any) => ({
+          ...prev,
+          messages: [...prev.messages, newMessage]
+        }))
+      }
     } catch (error) {
       console.error('Chat error:', error)
     } finally {
-      setLoading(false)
-      setLoadingStartTime(null)
-      setElapsedSeconds(0)
-      setPrompt('')
+      if (mountedRef.current) {
+        setLoading(false)
+        setLoadingStartTime(null)
+        setElapsedSeconds(0)
+        setPrompt('')
+      }
     }
   }
 
@@ -278,6 +300,8 @@ export default function WorkspacePage() {
       console.error('No project loaded')
       return
     }
+    
+    if (!mountedRef.current) return
     
     console.log('🚀 Running R code...')
     console.log('Code:', project.code.substring(0, 100))
@@ -319,9 +343,13 @@ export default function WorkspacePage() {
       
       // Capture terminal output if available
       try {
-        if (typeof data?.stdout === 'string') setStdoutText(data.stdout)
-        if (typeof data?.stderr === 'string') setStderrText(data.stderr)
+        if (mountedRef.current) {
+          if (typeof data?.stdout === 'string') setStdoutText(data.stdout)
+          if (typeof data?.stderr === 'string') setStderrText(data.stderr)
+        }
       } catch {}
+
+      if (!mountedRef.current) return
 
       if (!response.ok) {
         console.error('Execute error:', data)
@@ -360,7 +388,9 @@ export default function WorkspacePage() {
       }
 
       if (urls.length > 0) {
-        setGalleryPlots(urls)
+        if (mountedRef.current) {
+          setGalleryPlots(urls)
+        }
 
         // Persist the first image URL for version/history continuity
         const firstUrl = urls[0]
@@ -370,10 +400,12 @@ export default function WorkspacePage() {
           body: JSON.stringify({ plot_url: firstUrl }),
         })
 
-        setProject((prev: any) => ({
-          ...prev,
-          plot_url: firstUrl
-        }))
+        if (mountedRef.current) {
+          setProject((prev: any) => ({
+            ...prev,
+            plot_url: firstUrl
+          }))
+        }
 
         try {
           // Save one version per plot image for full history
@@ -405,9 +437,13 @@ export default function WorkspacePage() {
       }
     } catch (error: any) {
       console.error('Execution error:', error)
-      setStderrText(prev => `${prev}\n${error.message}`)
+      if (mountedRef.current) {
+        setStderrText(prev => `${prev}\n${error.message}`)
+      }
     } finally {
-      setLoading(false)
+      if (mountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 
