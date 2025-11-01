@@ -49,6 +49,7 @@ export default function WorkspacePage() {
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
+  const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40)
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -144,16 +145,29 @@ export default function WorkspacePage() {
   // Track elapsed time when loading AI response
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
+    let estimateInterval: NodeJS.Timeout | null = null
     if (loading && loadingStartTime) {
+      // Update elapsed time every second
       interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000)
         setElapsedSeconds(elapsed)
       }, 1000)
+      
+      // Update estimated time every 5 seconds (more stable)
+      estimateInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000)
+        setEstimatedSeconds(elapsed + 40)
+      }, 5000)
+      
+      // Set initial estimate
+      setEstimatedSeconds(40)
     } else {
       setElapsedSeconds(0)
+      setEstimatedSeconds(40)
     }
     return () => {
       if (interval) clearInterval(interval)
+      if (estimateInterval) clearInterval(estimateInterval)
     }
   }, [loading, loadingStartTime])
 
@@ -572,11 +586,8 @@ export default function WorkspacePage() {
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {elapsedSeconds > 0 ? `${elapsedSeconds}s elapsed` : 'Getting started...'}
-                          {airiaMode === 'legacy' && elapsedSeconds > 0 && (
-                            <span className="ml-2">• Estimated: {Math.max(5, Math.min(240, elapsedSeconds + 3))}s total</span>
-                          )}
-                          {airiaMode === 'quick' && elapsedSeconds > 0 && (
-                            <span className="ml-2">• Estimated: {Math.max(3, Math.min(240, elapsedSeconds + 2))}s total</span>
+                          {elapsedSeconds > 0 && (
+                            <span className="ml-2">• Estimated: ~{Math.min(240, estimatedSeconds)}s total</span>
                           )}
                         </span>
                       </div>
