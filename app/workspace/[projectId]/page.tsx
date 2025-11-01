@@ -13,7 +13,7 @@ import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
-import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react'
+import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -47,6 +47,8 @@ export default function WorkspacePage() {
   const hasLoadedRef = useRef(false)
   const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -139,6 +141,22 @@ export default function WorkspacePage() {
     setProject(null)
   }, [projectId])
 
+  // Track elapsed time when loading AI response
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    if (loading && loadingStartTime) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000)
+        setElapsedSeconds(elapsed)
+      }, 1000)
+    } else {
+      setElapsedSeconds(0)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [loading, loadingStartTime])
+
   // Load project when projectId changes (only once per projectId)
   useEffect(() => {
     if (projectId && !hasLoadedRef.current) {
@@ -150,6 +168,7 @@ export default function WorkspacePage() {
     if (!prompt.trim() || !project) return
 
     setLoading(true)
+    setLoadingStartTime(Date.now())
     
     // Add user message
     await fetch(`/api/projects/${projectId}/messages`, {
@@ -234,6 +253,8 @@ export default function WorkspacePage() {
       console.error('Chat error:', error)
     } finally {
       setLoading(false)
+      setLoadingStartTime(null)
+      setElapsedSeconds(0)
       setPrompt('')
     }
   }
@@ -540,6 +561,32 @@ export default function WorkspacePage() {
             <>
               {/* Chat Section */}
               <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Loading Indicator */}
+                {loading && (
+                  <div className="border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 px-4 py-3 flex items-center justify-between animate-fade-in">
+                    <div className="flex items-center space-x-3">
+                      <Loader2 className="h-5 w-5 text-rstudio animate-spin" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          AI is thinking...
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {elapsedSeconds > 0 ? `${elapsedSeconds}s elapsed` : 'Getting started...'}
+                          {airiaMode === 'legacy' && elapsedSeconds > 0 && (
+                            <span className="ml-2">• Estimated: {Math.max(5, Math.min(30, elapsedSeconds + 3))}s total</span>
+                          )}
+                          {airiaMode === 'quick' && elapsedSeconds > 0 && (
+                            <span className="ml-2">• Estimated: {Math.max(3, Math.min(15, elapsedSeconds + 2))}s total</span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-rstudio animate-pulse"></div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{airiaMode === 'legacy' ? 'Legacy Mode' : 'Quick Mode'}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
                   {project.messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
