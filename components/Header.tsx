@@ -70,13 +70,20 @@ export function Header() {
               c<span className="text-rstudio group-hover:animate-pulse inline-block">R</span>eate
             </span>
           </Link>
-          {actualUser && (
-            <div className="hidden sm:flex items-center space-x-2 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-              <span className="truncate max-w-[180px] sm:max-w-[240px]" title={actualUser.email}>{actualUser.email}</span>
-              <span className="opacity-50">•</span>
-              <span className="whitespace-nowrap">{formattedNow}</span>
-            </div>
-          )}
+          {/* Reserve space to prevent layout shift */}
+          <div className="hidden sm:flex items-center space-x-2 text-xs sm:text-sm min-h-[20px]">
+            {actualUser ? (
+              <>
+                <span className="truncate max-w-[180px] sm:max-w-[240px]" title={actualUser.email}>{actualUser.email}</span>
+                <span className="opacity-50">•</span>
+                <span className="whitespace-nowrap">{formattedNow}</span>
+              </>
+            ) : (
+              <span className="opacity-0 pointer-events-none select-none" aria-hidden="true">
+                placeholder@email.com • Jan 1, 2024, 12:00 AM
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center space-x-4">

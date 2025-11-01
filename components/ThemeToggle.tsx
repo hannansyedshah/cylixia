@@ -5,13 +5,20 @@ import { Moon, Sun } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false)
+  // Initialize with proper value immediately to prevent layout shift
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark'
+    }
+    return false
+  })
 
   useEffect(() => {
-    const isDarkMode = localStorage.getItem('theme') === 'dark'
-    setIsDark(isDarkMode)
-    if (isDarkMode) {
+    // Sync theme class on mount
+    if (isDark) {
       document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
     }
   }, [])
 
