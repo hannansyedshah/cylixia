@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const intervalRef = useRef<any>(null)
   const inFlightRef = useRef(false)
   const mountedRef = useRef(true)
+  const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadProjects = useCallback(async () => {
     // Avoid spamming requests due to rapid remounts/back nav or render loops
@@ -227,27 +228,53 @@ export default function DashboardPage() {
   }, [user, pathname, refreshProjects])
 
   // Handle visibility changes to reset stuck states
+  // Use refs to access current state values to avoid recreating listener
+  const loadingRef = useRef(loading)
+  const isRefreshingRef = useRef(isRefreshing)
+  
+  useEffect(() => {
+    loadingRef.current = loading
+    isRefreshingRef.current = isRefreshing
+  }, [loading, isRefreshing])
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && mountedRef.current) {
+        // Clear any existing timeout first
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current)
+          visibilityTimeoutRef.current = null
+        }
+
         // Reset stuck states when tab becomes visible again
+        // Use refs to get current values without causing dependency issues
+        const currentLoading = loadingRef.current
+        const currentIsRefreshing = isRefreshingRef.current
+
         // If in-flight flag is set but not actually loading/refreshing, reset it
-        if (inFlightRef.current && !loading && !isRefreshing) {
+        if (inFlightRef.current && !currentLoading && !currentIsRefreshing) {
           inFlightRef.current = false
         }
         // If refreshing flag is stuck without an active request
-        if (isRefreshing && !inFlightRef.current) {
+        if (currentIsRefreshing && !inFlightRef.current) {
           setIsRefreshing(false)
         }
         // If loading is stuck (no active request), reset it after a delay
         // This ensures buttons become clickable again
-        if (loading && !inFlightRef.current) {
+        if (currentLoading && !inFlightRef.current) {
           // Loading state is stuck - reset it
-          setTimeout(() => {
-            if (mountedRef.current && loading && !inFlightRef.current) {
+          visibilityTimeoutRef.current = setTimeout(() => {
+            if (mountedRef.current && loadingRef.current && !inFlightRef.current) {
               setLoading(false)
             }
+            visibilityTimeoutRef.current = null
           }, 1000)
+        }
+      } else if (document.visibilityState === 'hidden') {
+        // Clear timeout when tab becomes hidden
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current)
+          visibilityTimeoutRef.current = null
         }
       }
     }
@@ -256,9 +283,14 @@ export default function DashboardPage() {
       document.addEventListener('visibilitychange', handleVisibilityChange)
       return () => {
         document.removeEventListener('visibilitychange', handleVisibilityChange)
+        // Clean up any pending timeout
+        if (visibilityTimeoutRef.current) {
+          clearTimeout(visibilityTimeoutRef.current)
+          visibilityTimeoutRef.current = null
+        }
       }
     }
-  }, [loading, isRefreshing])
+  }, []) // Empty deps - use refs to access current state
 
   // Cleanup on unmount
   useEffect(() => {

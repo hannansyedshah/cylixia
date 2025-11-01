@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -13,31 +13,37 @@ export function Header() {
   const { user, setUser } = useSessionStore()
   const [actualUser, setActualUser] = useState<any>(null)
   const [now, setNow] = useState<Date>(new Date())
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null)
 
-  // Check actual Supabase session on mount and auth changes
+  // Check actual Supabase session on mount and set up auth listener once
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       setActualUser(session?.user || null)
-      
-      // Sync with Zustand store
-      if (session?.user && !user) {
-        setUser(session.user)
-      } else if (!session?.user && user) {
-        setUser(null)
-      }
+      // Initial sync with Zustand store
+      setUser(session?.user || null)
     }
 
     checkSession()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setActualUser(session?.user || null)
-      setUser(session?.user || null)
-    })
+    // Listen for auth changes - only set up once on mount
+    // The subscription callback will handle all future updates
+    if (!subscriptionRef.current) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setActualUser(session?.user || null)
+        setUser(session?.user || null)
+      })
+      subscriptionRef.current = subscription
+    }
 
-    return () => subscription.unsubscribe()
-  }, [setUser, user])
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
+        subscriptionRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount
 
   // Live clock
   useEffect(() => {

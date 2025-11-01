@@ -224,6 +224,13 @@ export default function WorkspacePage() {
   }, [projectId, loadProject])
 
   // Handle visibility changes to reset stuck states
+  // Use ref to access current loading value to avoid recreating listener
+  const loadingRef = useRef(loading)
+  
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       // Only handle visibility changes - don't do anything on hidden
@@ -240,14 +247,15 @@ export default function WorkspacePage() {
         // Reset stuck loading state if detected
         // If loading state is true but no active operation, something might be stuck
         // This ensures buttons aren't permanently disabled
-        if (loading) {
+        // Use ref to get current value without dependency issues
+        if (loadingRef.current) {
           // Clear any existing timeout first
           if (visibilityTimeoutRef.current) {
             clearTimeout(visibilityTimeoutRef.current)
           }
           // Check if loading seems stuck (give it a moment)
           visibilityTimeoutRef.current = setTimeout(() => {
-            if (mountedRef.current && loading) {
+            if (mountedRef.current && loadingRef.current) {
               // Still loading after delay - might be stuck, but don't reset automatically
               // Only reset if we can confirm there's no active operation
               console.log('Loading state still active after visibility change')
@@ -269,7 +277,7 @@ export default function WorkspacePage() {
         }
       }
     }
-  }, [loading])
+  }, []) // Empty deps - use refs to access current state
 
   // Warn users before leaving page during operations
   useEffect(() => {
