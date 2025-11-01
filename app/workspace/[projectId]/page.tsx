@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ChatBox } from '@/components/ChatBox'
 import { CodeEditor } from '@/components/CodeEditor'
@@ -29,6 +29,7 @@ interface Message {
 export default function WorkspacePage() {
   const router = useRouter()
   const params = useParams()
+  const pathname = usePathname()
   const projectId = params.projectId as string
   
   const { user, setUser } = useSessionStore()
@@ -51,6 +52,10 @@ export default function WorkspacePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40)
   const mountedRef = useRef(true)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const chatAbortControllerRef = useRef<AbortController | null>(null)
+  const runAbortControllerRef = useRef<AbortController | null>(null)
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
@@ -62,21 +67,26 @@ export default function WorkspacePage() {
       
       // Load project data
       const controller = new AbortController()
+      abortControllerRef.current = controller
       const timeoutId = setTimeout(() => {
         console.log('⏰ Request timeout, aborting...')
         controller.abort()
       }, 10000) // 10 second timeout
+      timeoutIdRef.current = timeoutId
       
       const response = await fetch(`/api/projects/${projectId}`, {
         signal: controller.signal
       })
       
       clearTimeout(timeoutId)
+      timeoutIdRef.current = null
       
       if (!response.ok) {
         if (response.status === 404) {
           console.warn('❌ Project not found')
-          router.push('/dashboard')
+          if (mountedRef.current) {
+            router.push('/dashboard')
+          }
           return
         }
         throw new Error(`HTTP ${response.status}`)
@@ -96,20 +106,26 @@ export default function WorkspacePage() {
         return // Don't navigate if component unmounted
       } else {
         console.warn('❌ No project data received')
-        router.push('/dashboard')
+        if (mountedRef.current) {
+          router.push('/dashboard')
+        }
       }
     } catch (error: any) {
       if (!mountedRef.current) return
       if (error.name === 'AbortError') {
-        console.error('💥 Request was aborted due to timeout')
-      } else {
-        console.error('💥 Failed to load project:', error)
+        console.error('💥 Request was aborted')
+        // Note: Alert shown via pathname change handler or beforeunload
+        return // Don't navigate or set state on abort
       }
-      router.push('/dashboard')
+      console.error('💥 Failed to load project:', error)
+      if (mountedRef.current) {
+        router.push('/dashboard')
+      }
     } finally {
       if (mountedRef.current) {
         setLoadingProject(false)
       }
+      abortControllerRef.current = null
     }
   }, [projectId, router])
 
@@ -124,7 +140,9 @@ export default function WorkspacePage() {
       
       if (!session && !user) {
         console.log('❌ No auth, redirecting to login')
-        router.push('/login')
+        if (mounted) {
+          router.push('/login')
+        }
         return
       }
       
@@ -212,32 +230,110 @@ export default function WorkspacePage() {
     }
   }, [loading])
 
-  // Cleanup on unmount
+  // Warn users before leaving page during operations
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (loading || loadingProject) {
+        e.preventDefault()
+        e.returnValue = 'You have operations in progress. Are you sure you want to leave? This will cancel your current operation.'
+        return e.returnValue
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload)
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload)
+      }
+    }
+  }, [loading, loadingProject])
+
+  // Warn users before client-side navigation during operations
+  useEffect(() => {
+    if (pathname && pathname !== `/workspace/${projectId}` && (loading || loadingProject)) {
+      // User is navigating away - abort operations and show warning
+      if (mountedRef.current) {
+        alert('⚠️ Warning: You have operations in progress. They have been cancelled because you navigated away from the page. Please stay on the page while operations are running.')
+        
+        // Abort all active operations
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+        }
+        if (chatAbortControllerRef.current) {
+          chatAbortControllerRef.current.abort()
+        }
+        if (runAbortControllerRef.current) {
+          runAbortControllerRef.current.abort()
+        }
+      }
+    }
+  }, [pathname, projectId, loading, loadingProject])
+
+  // Comprehensive cleanup on unmount
   useEffect(() => {
     return () => {
+      // Set mounted to false first to prevent any new operations
       mountedRef.current = false
+      
+      // Check if there are active operations before aborting
+      const hasActiveOperations = loading || 
+        abortControllerRef.current || 
+        chatAbortControllerRef.current || 
+        runAbortControllerRef.current
+      
+      // Abort all active fetch requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      if (chatAbortControllerRef.current) {
+        chatAbortControllerRef.current.abort()
+        chatAbortControllerRef.current = null
+      }
+      if (runAbortControllerRef.current) {
+        runAbortControllerRef.current.abort()
+        runAbortControllerRef.current = null
+      }
+      
+      // Clear any pending timeouts
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current)
+        timeoutIdRef.current = null
+      }
+      
+      // Show alert if operations were aborted (only if we can show alerts)
+      if (hasActiveOperations && typeof window !== 'undefined') {
+        // Note: Can't show alert in cleanup, but we'll show it in catch blocks instead
+      }
     }
-  }, [])
+  }, [loading])
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
 
     if (!mountedRef.current) return
+    
+    const controller = new AbortController()
+    chatAbortControllerRef.current = controller
+    
     setLoading(true)
     setLoadingStartTime(Date.now())
     
-    // Add user message
-    await fetch(`/api/projects/${projectId}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'user', content: prompt }),
-    })
-
     try {
+      // Add user message
+      await fetch(`/api/projects/${projectId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'user', content: prompt }),
+        signal: controller.signal,
+      })
+
+      if (!mountedRef.current) return
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+        body: JSON.stringify({ 
           prompt,
           existingCode: project.code,
           userId: user?.id || user?.email || 'anonymous',
@@ -247,20 +343,24 @@ export default function WorkspacePage() {
             .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
             .map(d => ({ fileName: d.fileName, csvData: d.csvText! }))
         }),
+        signal: controller.signal,
       })
 
       const data = await response.json()
       
       if (!mountedRef.current) return
-      
+
       if (data.code) {
         // Update code in database
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: data.code }),
+          signal: controller.signal,
         })
         
+        if (!mountedRef.current) return
+
         // Update local state immediately for better UX
         if (mountedRef.current) {
           setProject((prev: any) => ({
@@ -278,12 +378,17 @@ export default function WorkspacePage() {
               code: data.code,
               plot_url: project.plot_url,
               description: `Auto-saved: ${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}`
-            })
+            }),
+            signal: controller.signal,
           })
-        } catch (error) {
-          console.error('Failed to auto-save version:', error)
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Failed to auto-save version:', error)
+          }
         }
       }
+
+      if (!mountedRef.current) return
 
       // Add assistant message
       const newMessage = {
@@ -302,6 +407,7 @@ export default function WorkspacePage() {
           content: newMessage.content,
           code: data.code,
         }),
+        signal: controller.signal,
       })
       
       // Update messages locally
@@ -311,7 +417,13 @@ export default function WorkspacePage() {
           messages: [...prev.messages, newMessage]
         }))
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (!mountedRef.current) return
+      if (error.name === 'AbortError') {
+        console.log('Chat request was aborted')
+        // Note: Alert shown via pathname change handler or beforeunload
+        return
+      }
       console.error('Chat error:', error)
     } finally {
       if (mountedRef.current) {
@@ -320,6 +432,7 @@ export default function WorkspacePage() {
         setElapsedSeconds(0)
         setPrompt('')
       }
+      chatAbortControllerRef.current = null
     }
   }
 
@@ -330,6 +443,9 @@ export default function WorkspacePage() {
     }
     
     if (!mountedRef.current) return
+    
+    const controller = new AbortController()
+    runAbortControllerRef.current = controller
     
     console.log('🚀 Running R code...')
     console.log('Code:', project.code.substring(0, 100))
@@ -359,6 +475,7 @@ export default function WorkspacePage() {
           csv_base64,
           file_name,
         }),
+        signal: controller.signal,
       })
 
       console.log('Response status:', response.status)
@@ -420,13 +537,18 @@ export default function WorkspacePage() {
           setGalleryPlots(urls)
         }
 
+        if (!mountedRef.current) return
+
         // Persist the first image URL for version/history continuity
         const firstUrl = urls[0]
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ plot_url: firstUrl }),
+          signal: controller.signal,
         })
+
+        if (!mountedRef.current) return
 
         if (mountedRef.current) {
           setProject((prev: any) => ({
@@ -438,6 +560,7 @@ export default function WorkspacePage() {
         try {
           // Save one version per plot image for full history
           for (let i = 0; i < urls.length; i++) {
+            if (!mountedRef.current) break
             // eslint-disable-next-line no-await-in-loop
             await fetch(`/api/projects/${projectId}/versions`, {
               method: 'POST',
@@ -448,11 +571,14 @@ export default function WorkspacePage() {
                 description: urls.length > 1
                   ? `Plot ${i + 1}/${urls.length} generated: ${new Date().toLocaleString()}`
                   : `Plot generated: ${new Date().toLocaleString()}`
-              })
+              }),
+              signal: controller.signal,
             })
           }
-        } catch (error) {
-          console.error('Failed to auto-save version with plot(s):', error)
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Failed to auto-save version with plot(s):', error)
+          }
         }
 
         console.log(`✅ Plot updated successfully (${urls.length} image(s))`)
@@ -464,6 +590,12 @@ export default function WorkspacePage() {
         }
       }
     } catch (error: any) {
+      if (!mountedRef.current) return
+      if (error.name === 'AbortError') {
+        console.log('Execution request was aborted')
+        // Note: Alert shown via pathname change handler or beforeunload
+        return
+      }
       console.error('Execution error:', error)
       if (mountedRef.current) {
         setStderrText(prev => `${prev}\n${error.message}`)
@@ -472,11 +604,12 @@ export default function WorkspacePage() {
       if (mountedRef.current) {
         setLoading(false)
       }
+      runAbortControllerRef.current = null
     }
   }
 
   const handleCodeChange = async (newCode: string) => {
-    if (project) {
+    if (project && mountedRef.current) {
       setProject({ ...project, code: newCode })
       // Debounce the API call - don't await to prevent blocking
       fetch(`/api/projects/${projectId}`, {
@@ -484,13 +617,15 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: newCode }),
       }).catch(error => {
-        console.error('Failed to save code:', error)
+        if (mountedRef.current) {
+          console.error('Failed to save code:', error)
+        }
       })
     }
   }
 
   const handleVersionRestore = (code: string, plotUrl?: string) => {
-    if (project) {
+    if (project && mountedRef.current) {
       setProject({ 
         ...project, 
         code: code,
@@ -506,7 +641,9 @@ export default function WorkspacePage() {
           plot_url: plotUrl || project.plot_url
         }),
       }).catch(error => {
-        console.error('Failed to restore version:', error)
+        if (mountedRef.current) {
+          console.error('Failed to restore version:', error)
+        }
       })
     }
   }
