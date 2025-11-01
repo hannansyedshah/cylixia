@@ -38,7 +38,6 @@ export default function DashboardPage() {
   const loadProjects = useCallback(async () => {
     // Avoid spamming requests due to rapid remounts/back nav or render loops
     if (hasLoadedRef.current || inFlightRef.current) return
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
 
     inFlightRef.current = true
     hasLoadedRef.current = true // mark early; allow manual/interval refresh to reset
@@ -70,6 +69,7 @@ export default function DashboardPage() {
       if (mountedRef.current) {
         setLoading(false)
       }
+      // Always reset inFlight, even on error
       inFlightRef.current = false
     }
   }, [])
@@ -226,6 +226,40 @@ export default function DashboardPage() {
     }
   }, [user, pathname, refreshProjects])
 
+  // Handle visibility changes to reset stuck states
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && mountedRef.current) {
+        // Reset stuck states when tab becomes visible again
+        // If in-flight flag is set but not actually loading/refreshing, reset it
+        if (inFlightRef.current && !loading && !isRefreshing) {
+          inFlightRef.current = false
+        }
+        // If refreshing flag is stuck without an active request
+        if (isRefreshing && !inFlightRef.current) {
+          setIsRefreshing(false)
+        }
+        // If loading is stuck (no active request), reset it after a delay
+        // This ensures buttons become clickable again
+        if (loading && !inFlightRef.current) {
+          // Loading state is stuck - reset it
+          setTimeout(() => {
+            if (mountedRef.current && loading && !inFlightRef.current) {
+              setLoading(false)
+            }
+          }, 1000)
+        }
+      }
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
+  }, [loading, isRefreshing])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -273,7 +307,6 @@ export default function DashboardPage() {
                 size="lg"
                 variant="outline"
                 disabled={isRefreshing}
-                className={isRefreshing ? 'pointer-events-none opacity-80' : ''}
               >
                 <RefreshCw className={isRefreshing ? 'h-5 w-5 mr-2 animate-spin' : 'h-5 w-5 mr-2'} />
                 {isRefreshing ? 'Refreshing' : 'Refresh'}

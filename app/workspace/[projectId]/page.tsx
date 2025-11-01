@@ -184,6 +184,34 @@ export default function WorkspacePage() {
     }
   }, [projectId, loadProject])
 
+  // Handle visibility changes to reset stuck states
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && mountedRef.current) {
+        // Reset stuck loading state if detected
+        // If loading state is true but no active operation, something might be stuck
+        // This ensures buttons aren't permanently disabled
+        if (loading) {
+          // Check if loading seems stuck (give it a moment)
+          setTimeout(() => {
+            if (mountedRef.current && loading) {
+              // Still loading after delay - might be stuck, but don't reset automatically
+              // Only reset if we can confirm there's no active operation
+              console.log('Loading state still active after visibility change')
+            }
+          }, 3000)
+        }
+      }
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    }
+  }, [loading])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
