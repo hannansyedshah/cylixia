@@ -573,10 +573,10 @@ export default function WorkspacePage() {
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {elapsedSeconds > 0 ? `${elapsedSeconds}s elapsed` : 'Getting started...'}
                           {airiaMode === 'legacy' && elapsedSeconds > 0 && (
-                            <span className="ml-2">• Estimated: {Math.max(5, Math.min(30, elapsedSeconds + 3))}s total</span>
+                            <span className="ml-2">• Estimated: {Math.max(5, Math.min(240, elapsedSeconds + 3))}s total</span>
                           )}
                           {airiaMode === 'quick' && elapsedSeconds > 0 && (
-                            <span className="ml-2">• Estimated: {Math.max(3, Math.min(15, elapsedSeconds + 2))}s total</span>
+                            <span className="ml-2">• Estimated: {Math.max(3, Math.min(240, elapsedSeconds + 2))}s total</span>
                           )}
                         </span>
                       </div>
