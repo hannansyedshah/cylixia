@@ -675,22 +675,20 @@ export default function WorkspacePage() {
         }
 
         try {
-          // Save one version per plot image for full history
-          for (let i = 0; i < urls.length; i++) {
-            if (!mountedRef.current) break
-            // eslint-disable-next-line no-await-in-loop
-            await fetch(`/api/projects/${projectId}/versions`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                code: project.code,
-                plot_url: urls[i],
-                description: urls.length > 1
-                  ? `Plot ${i + 1}/${urls.length} generated: ${new Date().toLocaleString()}`
-                  : `Plot generated: ${new Date().toLocaleString()}`
-              }),
-            })
-          }
+          // Save all plots in a single version save
+          // Store multiple plot URLs as a JSON array in the plot_url field
+          const plotUrlsJson = urls.length > 1 ? JSON.stringify(urls) : urls[0]
+          await fetch(`/api/projects/${projectId}/versions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: project.code,
+              plot_url: plotUrlsJson,
+              description: urls.length > 1
+                ? `${urls.length} plots generated: ${new Date().toLocaleString()}`
+                : `Plot generated: ${new Date().toLocaleString()}`
+            }),
+          })
         } catch (error: any) {
           console.error('Failed to auto-save version with plot(s):', error)
         }
@@ -734,23 +732,42 @@ export default function WorkspacePage() {
 
   const handleVersionRestore = (code: string, plotUrl?: string) => {
     if (project && mountedRef.current) {
-      // Update project code and plot URL
+      // Parse plotUrl - could be a single URL string or JSON array of URLs
+      let parsedPlotUrls: string[] = []
+      let plotUrlToSave = plotUrl || project.plot_url
+      
+      if (plotUrl) {
+        try {
+          // Try to parse as JSON array (for multiple plots)
+          const parsed = JSON.parse(plotUrl)
+          if (Array.isArray(parsed)) {
+            parsedPlotUrls = parsed
+            // Save the first URL to project.plot_url for compatibility
+            plotUrlToSave = parsed[0]
+          } else {
+            // Single plot URL
+            parsedPlotUrls = [plotUrl]
+            plotUrlToSave = plotUrl
+          }
+        } catch {
+          // Not JSON, treat as single plot URL
+          parsedPlotUrls = [plotUrl]
+          plotUrlToSave = plotUrl
+        }
+      }
+      
+      // Update project code and plot URL (use first URL for compatibility)
       setProject({ 
         ...project, 
         code: code,
-        plot_url: plotUrl || project.plot_url
+        plot_url: plotUrlToSave
       })
       
       // Force CodeEditor to re-render with new code
       setEditorKey(prev => prev + 1)
       
-      // Update gallery plots to show the restored image if available
-      if (plotUrl) {
-        setGalleryPlots([plotUrl])
-      } else {
-        // Clear gallery plots if no plot URL is provided
-        setGalleryPlots([])
-      }
+      // Update gallery plots with all restored plots
+      setGalleryPlots(parsedPlotUrls)
       
       // Clear terminal output when restoring
       setStdoutText('')
@@ -762,7 +779,7 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           code: code,
-          plot_url: plotUrl || project.plot_url
+          plot_url: plotUrlToSave
         }),
       }).catch(error => {
         if (mountedRef.current) {
