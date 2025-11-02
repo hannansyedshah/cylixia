@@ -49,6 +49,8 @@ export default function WorkspacePage() {
   const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null)
+  const datasetsSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isInitialLoadRef = useRef(true)
   const [editorKey, setEditorKey] = useState<number>(0)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40) // Will be updated based on mode
@@ -104,6 +106,38 @@ export default function WorkspacePage() {
           messages: data.project.messages || []
         }
         setProject(projectWithMessages)
+        
+        // Load saved dataset metadata from project.dataset field
+        isInitialLoadRef.current = true // Mark as initial load to prevent saving
+        if (data.project.dataset) {
+          try {
+            const savedDatasets = JSON.parse(data.project.dataset)
+            if (Array.isArray(savedDatasets) && savedDatasets.length > 0) {
+              // Create placeholder items for previously uploaded files
+              const placeholderItems: DatasetItem[] = savedDatasets.map((meta: any, index: number) => ({
+                id: `saved_${meta.fileName}_${index}`,
+                fileName: meta.fileName,
+                sizeBytes: meta.sizeBytes || 0,
+                persisted: true, // Mark as persisted (needs re-upload)
+                includeChat: meta.includeChat !== false, // Default to true
+                includeRun: meta.includeRun !== false, // Default to true
+                // No csvText - needs to be re-uploaded
+              }))
+              setDatasets(placeholderItems)
+              console.log(`📁 Loaded ${placeholderItems.length} saved dataset metadata entries`)
+              // Auto-open datasets panel if there are files that need re-uploading
+              if (placeholderItems.length > 0) {
+                setShowDatasetsPanel(true)
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to parse saved dataset metadata:', error)
+          }
+        }
+        // Reset flag after a short delay
+        setTimeout(() => {
+          isInitialLoadRef.current = false
+        }, 1000)
       } else if (!mountedRef.current) {
         return // Don't navigate if component unmounted
       } else {
@@ -395,6 +429,12 @@ export default function WorkspacePage() {
       if (visibilityTimeoutRef.current) {
         clearTimeout(visibilityTimeoutRef.current)
         visibilityTimeoutRef.current = null
+      }
+      
+      // Clear dataset save timeout
+      if (datasetsSaveTimeoutRef.current) {
+        clearTimeout(datasetsSaveTimeoutRef.current)
+        datasetsSaveTimeoutRef.current = null
       }
     }
   }, []) // Empty deps - only run on unmount
@@ -730,6 +770,47 @@ export default function WorkspacePage() {
     }
   }
 
+  // Save dataset metadata when datasets change (debounced to avoid excessive saves)
+  useEffect(() => {
+    if (!project || !mountedRef.current || isInitialLoadRef.current) return
+    
+    // Clear existing timeout
+    if (datasetsSaveTimeoutRef.current) {
+      clearTimeout(datasetsSaveTimeoutRef.current)
+    }
+    
+    // Debounce the save
+    datasetsSaveTimeoutRef.current = setTimeout(() => {
+      // Extract metadata (without csvText) for each dataset
+      const datasetMetadata = datasets.map(d => ({
+        fileName: d.fileName,
+        sizeBytes: d.sizeBytes,
+        includeChat: d.includeChat,
+        includeRun: d.includeRun,
+        persisted: d.persisted || !!d.csvText, // Mark as persisted if it has csvText
+      }))
+      
+      // Save to database (don't await to prevent blocking)
+      fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          dataset: datasetMetadata.length > 0 ? JSON.stringify(datasetMetadata) : null 
+        }),
+      }).catch(error => {
+        if (mountedRef.current) {
+          console.error('Failed to save dataset metadata:', error)
+        }
+      })
+    }, 500) // 500ms debounce
+    
+    return () => {
+      if (datasetsSaveTimeoutRef.current) {
+        clearTimeout(datasetsSaveTimeoutRef.current)
+      }
+    }
+  }, [datasets, project, projectId])
+
   const handleVersionRestore = (code: string, plotUrl?: string) => {
     if (project && mountedRef.current) {
       // Parse plotUrl - could be a single URL string or JSON array of URLs
@@ -875,8 +956,18 @@ export default function WorkspacePage() {
           </div>
           <div className="flex items-center gap-2">
             {/* Datasets dropdown trigger */}
-            <Button size="sm" variant="outline" onClick={() => setShowDatasetsPanel(v => !v)} className="h-8 px-3">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => setShowDatasetsPanel(v => !v)} 
+              className={`h-8 px-3 ${datasets.some(d => d.persisted && !d.csvText) ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
+            >
               Datasets ({datasets.length})
+              {datasets.some(d => d.persisted && !d.csvText) && (
+                <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-yellow-900">
+                  {datasets.filter(d => d.persisted && !d.csvText).length} need re-upload
+                </span>
+              )}
             </Button>
             {/* Compact AI mode pills */}
             <div className="flex gap-1 text-xs">
@@ -905,6 +996,27 @@ export default function WorkspacePage() {
         {/* Datasets dropdown panel */}
         {showDatasetsPanel && (
           <div className="px-4 pt-2">
+            {datasets.some(d => d.persisted && !d.csvText) && (
+              <div className="mb-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-400 dark:border-yellow-600">
+                <div className="flex items-start gap-2">
+                  <span className="text-xl">⚠️</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
+                      Files Need to be Re-uploaded
+                    </p>
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-1">
+                      This project previously had {datasets.filter(d => d.persisted && !d.csvText).length} file{datasets.filter(d => d.persisted && !d.csvText).length > 1 ? 's' : ''} uploaded. 
+                      Please re-upload {datasets.filter(d => d.persisted && !d.csvText).length > 1 ? 'them' : 'it'} below to use {datasets.filter(d => d.persisted && !d.csvText).length > 1 ? 'them' : 'it'} again:
+                    </p>
+                    <ul className="mt-2 text-xs text-yellow-800 dark:text-yellow-200 list-disc list-inside">
+                      {datasets.filter(d => d.persisted && !d.csvText).map(d => (
+                        <li key={d.id}>{d.fileName}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="border rounded-lg bg-white dark:bg-gray-800 shadow-md">
               <UploadPanel 
                 privacyMode={privacyMode}
