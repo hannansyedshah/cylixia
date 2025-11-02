@@ -40,7 +40,7 @@ export default function WorkspacePage() {
   type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string }
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
-  const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick'>('quick')
+  const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick' | 'ask'>('quick')
   const [stdoutText, setStdoutText] = useState<string>('')
   const [stderrText, setStderrText] = useState<string>('')
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
@@ -173,7 +173,7 @@ export default function WorkspacePage() {
     if (!mountedRef.current) return
     
     // Determine estimated time based on mode
-    const baseEstimate = airiaMode === 'quick' ? 40 : 130
+    const baseEstimate = airiaMode === 'quick' ? 40 : airiaMode === 'ask' ? 60 : 130
     
     let interval: NodeJS.Timeout | null = null
     let estimateInterval: NodeJS.Timeout | null = null
@@ -844,6 +844,12 @@ export default function WorkspacePage() {
               >
                 Quick
               </button>
+              <button
+                className={`px-2 py-1 rounded border ${airiaMode === 'ask' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                onClick={() => setAiriaMode('ask')}
+              >
+                Ask Data
+              </button>
             </div>
           </div>
         </div>
@@ -888,7 +894,9 @@ export default function WorkspacePage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 rounded-full bg-rstudio animate-pulse"></div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{airiaMode === 'legacy' ? 'Legacy Mode' : 'Quick Mode'}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {airiaMode === 'legacy' ? 'Legacy Mode' : airiaMode === 'ask' ? 'Ask Data Mode' : 'Quick Mode'}
+                      </span>
                     </div>
                   </div>
                 )}

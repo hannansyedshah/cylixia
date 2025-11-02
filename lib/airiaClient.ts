@@ -21,13 +21,14 @@ interface AiriaResponse {
 
 const AIRIA_API_URL_LEGACY = 'https://api.airia.ai/v2/PipelineExecution/3b015c24-44cf-400c-aac7-437fb5963f63'
 const AIRIA_API_URL_QUICK = 'https://api.airia.ai/v2/PipelineExecution/3679b604-284a-40fc-9ebc-e77362d144f6'
+const AIRIA_API_URL_ASK = 'https://api.airia.ai/v2/PipelineExecution/c91515d7-b957-4ada-b94d-5bf1470be7da'
 
 export async function callAiriaAgent(
   userInput: string,
   userId: string = 'default-user',
   csvData?: string,
   fileName?: string,
-  mode: 'legacy' | 'quick' = 'legacy',
+  mode: 'legacy' | 'quick' | 'ask' = 'legacy',
   existingCode?: string,
   conversationHistory?: string,
   preferences?: { style?: string; libraries?: string[] }
@@ -60,6 +61,28 @@ export async function callAiriaAgent(
       payload = {
         userId,
         userInput: JSON.stringify(quickInput),
+        asyncOutput: false,
+        csvData,
+        fileName
+      }
+    } else if (mode === 'ask') {
+      targetUrl = AIRIA_API_URL_ASK
+      // Ask mode: similar structure to quick, optimized for data questions
+      const askInput = {
+        dataset_info: fileName ? `File: ${fileName}` : 'No dataset provided',
+        user_request: userInput,
+        existing_code: existingCode || '',
+        conversation_history: conversationHistory || '',
+        preferences: {
+          style: preferences?.style || 'publication-ready',
+          libraries: preferences?.libraries || [
+            'ggplot2', 'dplyr', 'readr', 'tidyr', 'stringr', 'purrr', 'tibble', 'forcats'
+          ]
+        }
+      }
+      payload = {
+        userId,
+        userInput: JSON.stringify(askInput),
         asyncOutput: false,
         csvData,
         fileName
