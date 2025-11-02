@@ -534,9 +534,6 @@ export default function WorkspacePage() {
     
     if (!mountedRef.current) return
     
-    const controller = new AbortController()
-    runAbortControllerRef.current = controller
-    
     console.log('🚀 Running R code...')
     console.log('Code:', project.code.substring(0, 100))
     console.log('Selected for run:', datasets.filter(d => d.includeRun).length)
@@ -565,7 +562,6 @@ export default function WorkspacePage() {
           csv_base64,
           file_name,
         }),
-        signal: controller.signal,
       })
 
       console.log('Response status:', response.status)
@@ -635,7 +631,6 @@ export default function WorkspacePage() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ plot_url: firstUrl }),
-          signal: controller.signal,
         })
 
         if (!mountedRef.current) return
@@ -662,13 +657,10 @@ export default function WorkspacePage() {
                   ? `Plot ${i + 1}/${urls.length} generated: ${new Date().toLocaleString()}`
                   : `Plot generated: ${new Date().toLocaleString()}`
               }),
-              signal: controller.signal,
             })
           }
         } catch (error: any) {
-          if (error.name !== 'AbortError') {
-            console.error('Failed to auto-save version with plot(s):', error)
-          }
+          console.error('Failed to auto-save version with plot(s):', error)
         }
 
         console.log(`✅ Plot updated successfully (${urls.length} image(s))`)
@@ -681,11 +673,6 @@ export default function WorkspacePage() {
       }
     } catch (error: any) {
       if (!mountedRef.current) return
-      if (error.name === 'AbortError') {
-        console.log('Execution request was aborted')
-        // Note: Alert shown via pathname change handler or beforeunload
-        return
-      }
       console.error('Execution error:', error)
       if (mountedRef.current) {
         setStderrText(prev => `${prev}\n${error.message}`)
@@ -694,7 +681,6 @@ export default function WorkspacePage() {
       if (mountedRef.current) {
         setLoading(false)
       }
-      runAbortControllerRef.current = null
     }
   }
 
