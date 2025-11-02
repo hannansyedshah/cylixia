@@ -486,10 +486,20 @@ export default function WorkspacePage() {
 
       // Add assistant message
       // For ask mode, don't include code - just show text response
+      // Ensure we have content even if message is empty
+      let messageContent = data.message
+      if (isAskMode && (!messageContent || messageContent.trim() === '')) {
+        // For ask mode, if no message but there's a response, use the code as message (it's actually text response)
+        messageContent = data.code || 'Here\'s the answer to your question:'
+      }
+      if (!messageContent || messageContent.trim() === '') {
+        messageContent = isAskMode ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:'
+      }
+      
       const newMessage = {
         id: Math.random().toString(36).substring(7),
         role: 'assistant',
-        content: data.message || (isAskMode ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:'),
+        content: messageContent,
         code: isAskMode ? undefined : data.code, // Don't include code for ask mode
         created_at: new Date().toISOString()
       }

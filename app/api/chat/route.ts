@@ -71,6 +71,17 @@ Please generate complete, executable R code that applies the user's requested ch
     
     const parsed = parseAiriaResponse(airiaResponse)
 
+    // For ask mode, if response is plain text (no code), use the entire response as message
+    if (mode === 'ask' && (!parsed.code || parsed.code === parsed.message || !parsed.code.includes('library(') && !parsed.code.includes('<-'))) {
+      // Use the raw response as message if it's plain text
+      const responseText = airiaResponse.output || airiaResponse.result || parsed.message || parsed.code || ''
+      return NextResponse.json({
+        message: responseText.trim() || parsed.message || 'Here\'s the answer to your question:',
+        code: undefined, // Don't return code for ask mode text responses
+        rawResponse: airiaResponse, // For debugging
+      })
+    }
+
     return NextResponse.json({
       message: parsed.message,
       code: parsed.code,
