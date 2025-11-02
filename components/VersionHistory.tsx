@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight } from 'lucide-react'
+import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
 
 interface CodeVersion {
   id: string
@@ -21,6 +21,127 @@ interface VersionHistoryProps {
   currentPlotUrl?: string
   onVersionRestore: (code: string, plotUrl?: string) => void
   onSaveVersion: (code: string, plotUrl?: string, description?: string) => void
+}
+
+// Component for displaying multiple plots with scroll navigation
+function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionNumber: number }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  // Reset index when plotUrls change (e.g., switching versions)
+  useEffect(() => {
+    setCurrentIndex(0)
+  }, [plotUrls.length, versionNumber])
+
+  if (plotUrls.length === 0) {
+    return (
+      <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
+    )
+  }
+
+  if (plotUrls.length === 1) {
+    return (
+      <div className="p-2 flex items-center justify-center bg-white dark:bg-gray-950">
+        <img
+          src={plotUrls[0]}
+          alt={`Plot for version ${versionNumber}`}
+          className="max-h-60 object-contain"
+        />
+      </div>
+    )
+  }
+
+  // Multiple plots - show scrollable gallery
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? plotUrls.length - 1 : prev - 1))
+  }
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev === plotUrls.length - 1 ? 0 : prev + 1))
+  }
+
+  return (
+    <div className="relative bg-white dark:bg-gray-950">
+      {/* Plot Display Area */}
+      <div className="p-2 flex items-center justify-center min-h-[240px] max-h-60 relative">
+        <img
+          key={currentIndex}
+          src={plotUrls[currentIndex]}
+          alt={`Plot ${currentIndex + 1} of ${plotUrls.length} for version ${versionNumber}`}
+          className="max-h-[232px] object-contain animate-fade-in"
+        />
+      </div>
+
+      {/* Navigation Controls */}
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-2 flex items-center justify-between">
+        {/* Previous Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={goToPrevious}
+          className="h-7 w-7 p-0"
+          aria-label="Previous plot"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        {/* Plot Indicator */}
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            {currentIndex + 1} / {plotUrls.length}
+          </span>
+          {/* Dot indicators */}
+          <div className="flex space-x-1">
+            {plotUrls.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  index === currentIndex
+                    ? 'bg-rstudio dark:bg-blue-400'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+                aria-label={`Go to plot ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Next Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={goToNext}
+          className="h-7 w-7 p-0"
+          aria-label="Next plot"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Horizontal Scrollable Thumbnails (Optional - below main view) */}
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-1 overflow-x-auto">
+        <div className="flex space-x-2">
+          {plotUrls.map((url, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`flex-shrink-0 border-2 rounded transition-all ${
+                index === currentIndex
+                  ? 'border-rstudio dark:border-blue-400'
+                  : 'border-gray-300 dark:border-gray-600 opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img
+                src={url}
+                alt={`Thumbnail ${index + 1}`}
+                className="h-12 w-auto object-contain"
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function VersionHistory({ 
@@ -123,6 +244,24 @@ export function VersionHistory({
 
   const collapseAll = () => {
     setExpandedIds(new Set())
+  }
+
+  // Helper function to parse plot URLs - could be single URL or JSON array
+  const parsePlotUrls = (plotUrl?: string): string[] => {
+    if (!plotUrl) return []
+    
+    try {
+      // Try to parse as JSON array (for multiple plots)
+      const parsed = JSON.parse(plotUrl)
+      if (Array.isArray(parsed)) {
+        return parsed
+      }
+      // Single plot URL
+      return [plotUrl]
+    } catch {
+      // Not JSON, treat as single plot URL
+      return [plotUrl]
+    }
   }
 
   useEffect(() => {
@@ -277,7 +416,7 @@ export function VersionHistory({
                               {!expandedIds.has(version.id) && version.plot_url && (
                                 <div className="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
                                   <Eye className="h-3 w-3 mr-1" />
-                                  Includes plot
+                                  Includes {parsePlotUrls(version.plot_url).length} plot{parsePlotUrls(version.plot_url).length > 1 ? 's' : ''}
                                 </div>
                               )}
                             </button>
@@ -291,15 +430,11 @@ export function VersionHistory({
                                   </pre>
                                 </div>
                                 <div className="border rounded-md overflow-hidden">
-                                  <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Plot</div>
+                                  <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500 flex items-center justify-between">
+                                    <span>Plot{parsePlotUrls(version.plot_url).length > 1 ? `s (${parsePlotUrls(version.plot_url).length})` : ''}</span>
+                                  </div>
                                   {version.plot_url ? (
-                                    <div className="p-2 flex items-center justify-center bg-white dark:bg-gray-950">
-                                      <img
-                                        src={version.plot_url}
-                                        alt={`Plot for version ${version.version_number}`}
-                                        className="max-h-60 object-contain"
-                                      />
-                                    </div>
+                                    <PlotGallery plotUrls={parsePlotUrls(version.plot_url)} versionNumber={version.version_number} />
                                   ) : (
                                     <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
                                   )}
