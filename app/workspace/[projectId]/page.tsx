@@ -959,7 +959,53 @@ export default function WorkspacePage() {
                               : 'bg-white dark:bg-gray-700 text-darktext dark:text-white border border-gray-200 dark:border-gray-600'
                           }`}
                         >
-                          <p className="text-sm leading-relaxed break-words">{message.content}</p>
+                          <div className="text-sm leading-relaxed break-words">
+                            {message.content.split('\n').map((line: string, lineIndex: number) => {
+                              const trimmedLine = line.trim()
+                              
+                              // Check if line is a bullet point (-, *, •)
+                              const bulletMatch = line.match(/^[\s]*[-•*]\s*(.+)$/)
+                              if (bulletMatch) {
+                                return (
+                                  <div key={lineIndex} className="flex items-start gap-3 mb-2 ml-1">
+                                    <span className="text-current mt-0.5 flex-shrink-0">•</span>
+                                    <span className="flex-1 leading-relaxed">{bulletMatch[1]}</span>
+                                  </div>
+                                )
+                              }
+                              // Check if line is a numbered list item (1. or 1))
+                              const numberedMatch = line.match(/^[\s]*(\d+)[.)]\s*(.+)$/)
+                              if (numberedMatch) {
+                                return (
+                                  <div key={lineIndex} className="flex items-start mb-2.5 pl-0">
+                                    <span className="font-medium flex-shrink-0 text-gray-600 dark:text-gray-400 mr-2.5 min-w-[28px]">
+                                      {numberedMatch[1]}.
+                                    </span>
+                                    <span className="flex-1 leading-relaxed">{numberedMatch[2]}</span>
+                                  </div>
+                                )
+                              }
+                              // Check if line is indented (sub-item)
+                              const indentMatch = line.match(/^[\s]{2,}(.+)$/)
+                              if (indentMatch && lineIndex > 0) {
+                                return (
+                                  <div key={lineIndex} className="ml-6 mb-1 text-gray-600 dark:text-gray-300">
+                                    • {indentMatch[1]}
+                                  </div>
+                                )
+                              }
+                              // Regular line
+                              if (trimmedLine) {
+                                return (
+                                  <div key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
+                                    {trimmedLine}
+                                  </div>
+                                )
+                              }
+                              // Empty line
+                              return <div key={lineIndex} className="h-2"></div>
+                            })}
+                          </div>
                           {message.code && (
                             <pre className="mt-2 p-3 bg-black/10 dark:bg-black/30 rounded-lg text-xs overflow-x-auto border border-white/20">
                               <code>{message.code}</code>
