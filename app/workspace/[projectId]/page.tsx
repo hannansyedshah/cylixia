@@ -411,13 +411,30 @@ export default function WorkspacePage() {
     setLoadingStartTime(Date.now())
     
     try {
-      // Add user message
-      await fetch(`/api/projects/${projectId}/messages`, {
+      // Add user message to database
+      const userMessageResponse = await fetch(`/api/projects/${projectId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'user', content: prompt }),
         signal: controller.signal,
       })
+      
+      const userMessageData = await userMessageResponse.json()
+      
+      // Add user message to local state immediately so it appears in the UI
+      if (mountedRef.current && userMessageData.message) {
+        const userMessage = {
+          id: userMessageData.message.id || Math.random().toString(36).substring(7),
+          role: 'user' as const,
+          content: prompt,
+          created_at: userMessageData.message.created_at || new Date().toISOString()
+        }
+        
+        setProject((prev: any) => ({
+          ...prev,
+          messages: [...prev.messages, userMessage]
+        }))
+      }
 
       if (!mountedRef.current) return
 
