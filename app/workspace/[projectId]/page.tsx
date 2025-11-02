@@ -50,7 +50,7 @@ export default function WorkspacePage() {
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
-  const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40)
+  const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40) // Will be updated based on mode
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -171,6 +171,9 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (!mountedRef.current) return
     
+    // Determine estimated time based on mode
+    const baseEstimate = airiaMode === 'quick' ? 40 : 130
+    
     let interval: NodeJS.Timeout | null = null
     let estimateInterval: NodeJS.Timeout | null = null
     if (loading && loadingStartTime && mountedRef.current) {
@@ -196,25 +199,25 @@ export default function WorkspacePage() {
         }
         const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000)
         if (mountedRef.current) {
-          setEstimatedSeconds(elapsed + 40)
+          setEstimatedSeconds(elapsed + baseEstimate)
         }
       }, 5000)
       
       // Set initial estimate
       if (mountedRef.current) {
-        setEstimatedSeconds(40)
+        setEstimatedSeconds(baseEstimate)
       }
     } else {
       if (mountedRef.current) {
         setElapsedSeconds(0)
-        setEstimatedSeconds(40)
+        setEstimatedSeconds(baseEstimate)
       }
     }
     return () => {
       if (interval) clearInterval(interval)
       if (estimateInterval) clearInterval(estimateInterval)
     }
-  }, [loading, loadingStartTime])
+  }, [loading, loadingStartTime, airiaMode])
 
   // Load project when projectId changes (only once per projectId)
   useEffect(() => {
@@ -864,7 +867,7 @@ export default function WorkspacePage() {
               {/* Chat Section */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Loading Indicator */}
-                {loading && (
+                {loading && loadingStartTime && (
                   <div className="border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 px-4 py-3 flex items-center justify-between animate-fade-in">
                     <div className="flex items-center space-x-3">
                       <Loader2 className="h-5 w-5 text-rstudio animate-spin" />
@@ -883,6 +886,26 @@ export default function WorkspacePage() {
                     <div className="flex items-center space-x-2">
                       <div className="w-2 h-2 rounded-full bg-rstudio animate-pulse"></div>
                       <span className="text-xs text-gray-500 dark:text-gray-400">{airiaMode === 'legacy' ? 'Legacy Mode' : 'Quick Mode'}</span>
+                    </div>
+                  </div>
+                )}
+                {/* Run Loading Indicator */}
+                {loading && !loadingStartTime && (
+                  <div className="border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 px-4 py-3 flex items-center justify-between animate-fade-in">
+                    <div className="flex items-center space-x-3">
+                      <Loader2 className="h-5 w-5 text-rstudio animate-spin" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Compiling in Hugging Face...
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Executing your R code...
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 rounded-full bg-rstudio animate-pulse"></div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Running Code</span>
                     </div>
                   </div>
                 )}
