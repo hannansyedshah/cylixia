@@ -36,14 +36,24 @@ Please generate complete, executable R code that applies the user's requested ch
     // Prepare one or many CSVs for AI (randomized if privacy on)
     let csvFilesPayload: Array<{ fileName: string, csvData: string }> | undefined
     if (Array.isArray(csvFilesForChat) && csvFilesForChat.length > 0) {
-      csvFilesPayload = csvFilesForChat.map((f: any) => ({
-        fileName: f.fileName,
-        csvData: privacyMode ? randomizeCSVData(f.csvData) : f.csvData,
-      }))
+      csvFilesPayload = csvFilesForChat
+        .filter((f: any) => f.csvData && f.fileName) // Only include files with valid data
+        .map((f: any) => ({
+          fileName: f.fileName,
+          csvData: privacyMode ? randomizeCSVData(f.csvData) : f.csvData,
+        }))
       console.log(`📦 Preparing ${csvFilesPayload.length} CSV(s) for AI (${privacyMode ? 'randomized' : 'original'})`)
+      csvFilesPayload.forEach((f, i) => {
+        console.log(`  CSV ${i + 1}: ${f.fileName} (${f.csvData.length} chars)`)
+      })
     } else if (csvData && fileName) {
       const single = privacyMode ? randomizeCSVData(csvData) : csvData
       csvFilesPayload = [{ fileName, csvData: single }]
+      console.log(`📦 Preparing single CSV: ${fileName} (${single.length} chars)`)
+    }
+    
+    if (!csvFilesPayload || csvFilesPayload.length === 0) {
+      console.warn('⚠️ No CSV files to send to AI model')
     }
     
     const airiaResponse = await callAiriaAgent(
@@ -54,7 +64,8 @@ Please generate complete, executable R code that applies the user's requested ch
       mode,
       existingCode,
       conversationHistory,
-      preferences
+      preferences,
+      csvFilesPayload // Pass all CSV files
     )
     
     const parsed = parseAiriaResponse(airiaResponse)

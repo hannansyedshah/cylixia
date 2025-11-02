@@ -9,6 +9,7 @@ interface AiriaRequest {
   asyncOutput: boolean
   csvData?: string
   fileName?: string
+  csvFiles?: Array<{ fileName: string, csvData: string }>
 }
 
 interface AiriaResponse {
@@ -31,7 +32,8 @@ export async function callAiriaAgent(
   mode: 'legacy' | 'quick' | 'ask' = 'legacy',
   existingCode?: string,
   conversationHistory?: string,
-  preferences?: { style?: string; libraries?: string[] }
+  preferences?: { style?: string; libraries?: string[] },
+  csvFiles?: Array<{ fileName: string, csvData: string }>
 ): Promise<AiriaResponse> {
   try {
     const apiKey = process.env.AIRIA_API_KEY
@@ -45,8 +47,16 @@ export async function callAiriaAgent(
 
     if (mode === 'quick') {
       targetUrl = AIRIA_API_URL_QUICK
+      // Build dataset info from all CSV files
+      let datasetInfo = 'No dataset provided'
+      if (csvFiles && csvFiles.length > 0) {
+        datasetInfo = csvFiles.map(f => `File: ${f.fileName}`).join(', ')
+      } else if (fileName) {
+        datasetInfo = `File: ${fileName}`
+      }
+      
       const quickInput = {
-        dataset_info: fileName ? `File: ${fileName}` : 'No dataset provided',
+        dataset_info: datasetInfo,
         user_request: userInput,
         existing_code: existingCode || '',
         conversation_history: conversationHistory || '',
@@ -58,18 +68,38 @@ export async function callAiriaAgent(
           ]
         }
       }
+      
+      // Use first CSV file for backward compatibility, or combine all CSV files
+      const primaryCsvData = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].csvData 
+        : csvData
+      const primaryFileName = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].fileName 
+        : fileName
+      
       payload = {
         userId,
         userInput: JSON.stringify(quickInput),
         asyncOutput: false,
-        csvData,
-        fileName
+        csvData: primaryCsvData,
+        fileName: primaryFileName,
+        ...(csvFiles && csvFiles.length > 1 ? { csvFiles } : {})
       }
+      
+      console.log(`📊 Quick mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
     } else if (mode === 'ask') {
       targetUrl = AIRIA_API_URL_ASK
+      // Build dataset info from all CSV files
+      let datasetInfo = 'No dataset provided'
+      if (csvFiles && csvFiles.length > 0) {
+        datasetInfo = csvFiles.map(f => `File: ${f.fileName}`).join(', ')
+      } else if (fileName) {
+        datasetInfo = `File: ${fileName}`
+      }
+      
       // Ask mode: similar structure to quick, optimized for data questions
       const askInput = {
-        dataset_info: fileName ? `File: ${fileName}` : 'No dataset provided',
+        dataset_info: datasetInfo,
         user_request: userInput,
         existing_code: existingCode || '',
         conversation_history: conversationHistory || '',
@@ -80,34 +110,71 @@ export async function callAiriaAgent(
           ]
         }
       }
+      
+      // Use first CSV file for backward compatibility, or combine all CSV files
+      const primaryCsvData = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].csvData 
+        : csvData
+      const primaryFileName = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].fileName 
+        : fileName
+      
       payload = {
         userId,
         userInput: JSON.stringify(askInput),
         asyncOutput: false,
-        csvData,
-        fileName
+        csvData: primaryCsvData,
+        fileName: primaryFileName,
+        ...(csvFiles && csvFiles.length > 1 ? { csvFiles } : {})
       }
+      
+      console.log(`📊 Ask mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
     } else {
       // legacy behavior: embed brief CSV context into userInput
       let enhancedInput = userInput
-      if (csvData && fileName) {
+      
+      // Use first CSV file for legacy mode, or fall back to single csvData
+      const primaryCsvData = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].csvData 
+        : csvData
+      const primaryFileName = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].fileName 
+        : fileName
+      
+      // Include info about all CSV files
+      if (csvFiles && csvFiles.length > 0) {
+        const fileList = csvFiles.map(f => f.fileName).join(', ')
         enhancedInput = `${userInput}
 
 Current R Code:\n\n${existingCode || ''}
 
-Dataset: ${fileName}
+Datasets: ${fileList}
+CSV Data (first file, first 1000 chars):
+${primaryCsvData.substring(0, 1000)}${primaryCsvData.length > 1000 ? '...' : ''}
+
+Please return ONLY full R code with necessary library() calls.`
+      } else if (primaryCsvData && primaryFileName) {
+        enhancedInput = `${userInput}
+
+Current R Code:\n\n${existingCode || ''}
+
+Dataset: ${primaryFileName}
 CSV Data (first 1000 chars):
-${csvData.substring(0, 1000)}${csvData.length > 1000 ? '...' : ''}
+${primaryCsvData.substring(0, 1000)}${primaryCsvData.length > 1000 ? '...' : ''}
 
 Please return ONLY full R code with necessary library() calls.`
       }
+      
       payload = {
         userId,
         userInput: enhancedInput,
         asyncOutput: false,
-        csvData,
-        fileName
+        csvData: primaryCsvData,
+        fileName: primaryFileName,
+        ...(csvFiles && csvFiles.length > 1 ? { csvFiles } : {})
       }
+      
+      console.log(`📊 Legacy mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
     }
 
     const response = await fetch(targetUrl, {
