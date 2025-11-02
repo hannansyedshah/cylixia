@@ -40,7 +40,7 @@ export default function WorkspacePage() {
   type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string }
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
-  const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick'>('legacy')
+  const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick'>('quick')
   const [stdoutText, setStdoutText] = useState<string>('')
   const [stderrText, setStderrText] = useState<string>('')
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
@@ -49,6 +49,7 @@ export default function WorkspacePage() {
   const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null)
+  const [editorKey, setEditorKey] = useState<number>(0)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40) // Will be updated based on mode
   const mountedRef = useRef(true)
@@ -702,11 +703,27 @@ export default function WorkspacePage() {
 
   const handleVersionRestore = (code: string, plotUrl?: string) => {
     if (project && mountedRef.current) {
+      // Update project code and plot URL
       setProject({ 
         ...project, 
         code: code,
         plot_url: plotUrl || project.plot_url
       })
+      
+      // Force CodeEditor to re-render with new code
+      setEditorKey(prev => prev + 1)
+      
+      // Update gallery plots to show the restored image if available
+      if (plotUrl) {
+        setGalleryPlots([plotUrl])
+      } else {
+        // Clear gallery plots if no plot URL is provided
+        setGalleryPlots([])
+      }
+      
+      // Clear terminal output when restoring
+      setStdoutText('')
+      setStderrText('')
       
       // Update the database - don't await to prevent blocking
       fetch(`/api/projects/${projectId}`, {
@@ -1013,7 +1030,7 @@ export default function WorkspacePage() {
               </div>
             </div>
             <div className="flex-1 min-h-0">
-              <CodeEditor value={project.code} onChange={handleCodeChange} />
+              <CodeEditor key={editorKey} value={project.code} onChange={handleCodeChange} />
             </div>
           </div>
         </div>
