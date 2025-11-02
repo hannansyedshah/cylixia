@@ -348,14 +348,21 @@ export default function WorkspacePage() {
     previousPathnameRef.current = currentPathname
   }, [pathname, projectId, loading, loadingProject])
 
-  // Comprehensive cleanup on unmount
+  // Track loading state in ref for cleanup
+  const loadingStateRef = useRef(loading)
+  
+  useEffect(() => {
+    loadingStateRef.current = loading
+  }, [loading])
+
+  // Comprehensive cleanup on unmount only
   useEffect(() => {
     return () => {
       // Set mounted to false first to prevent any new operations
       mountedRef.current = false
       
-      // Check if there are active operations before aborting
-      const hasActiveOperations = loading || 
+      // Use ref to get current loading state without causing effect to re-run
+      const hasActiveOperations = loadingStateRef.current || 
         abortControllerRef.current || 
         chatAbortControllerRef.current || 
         runAbortControllerRef.current
@@ -386,7 +393,7 @@ export default function WorkspacePage() {
         visibilityTimeoutRef.current = null
       }
     }
-  }, [loading])
+  }, []) // Empty deps - only run on unmount
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
