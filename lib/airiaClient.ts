@@ -48,6 +48,15 @@ export async function callAiriaAgent(
 
     if (mode === 'quick') {
       targetUrl = AIRIA_API_URL_QUICK
+      
+      // Use first CSV file for backward compatibility, or combine all CSV files
+      const primaryCsvData = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].csvData 
+        : csvData
+      const primaryFileName = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].fileName 
+        : fileName
+      
       // Build dataset info from all CSV files
       let datasetInfo = 'No dataset provided'
       if (csvFiles && csvFiles.length > 0) {
@@ -90,14 +99,6 @@ export async function callAiriaAgent(
           ]
         }
       }
-      
-      // Use first CSV file for backward compatibility, or combine all CSV files
-      const primaryCsvData = csvFiles && csvFiles.length > 0 
-        ? csvFiles[0].csvData 
-        : csvData
-      const primaryFileName = csvFiles && csvFiles.length > 0 
-        ? csvFiles[0].fileName 
-        : fileName
       
       payload = {
         userId,
