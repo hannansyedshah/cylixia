@@ -50,7 +50,17 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
       includeRun: true,
       csvText: text,
     }
-    notifyChange([...(datasets || []), item])
+    
+    // Check if there's a placeholder with the same file name
+    const existingIndex = datasets.findIndex(d => d.fileName === file.name && d.persisted && !d.csvText)
+    if (existingIndex >= 0) {
+      // Replace the placeholder with the actual file
+      const updated = [...datasets]
+      updated[existingIndex] = item
+      notifyChange(updated)
+    } else {
+      notifyChange([...(datasets || []), item])
+    }
   }
 
   const fileToItem = async (file: File): Promise<DatasetItem | null> => {
@@ -71,15 +81,41 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
   const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const all = Array.from(e.target.files || [])
     if (all.length === 0) return
-    const remaining = Math.max(0, 5 - datasets.length)
-    const files = all.slice(0, remaining)
-    if (all.length > files.length) {
-      alert(`Only ${remaining} more dataset(s) can be added (max 5). Extra file(s) skipped.`)
+    
+    // Check how many placeholders exist
+    const placeholderCount = datasets.filter(d => d.persisted && !d.csvText).length
+    const activeCount = datasets.filter(d => d.csvText).length
+    const remaining = Math.max(0, 5 - activeCount)
+    
+    const items = (await Promise.all(all.map(fileToItem))).filter(Boolean) as DatasetItem[]
+    
+    // Process items: replace placeholders if file name matches, otherwise add new
+    let updatedDatasets = [...datasets]
+    let addedCount = 0
+    
+    for (const item of items) {
+      // Check if there's a placeholder with the same file name
+      const placeholderIndex = updatedDatasets.findIndex(
+        d => d.fileName === item.fileName && d.persisted && !d.csvText
+      )
+      
+      if (placeholderIndex >= 0) {
+        // Replace placeholder with actual file
+        updatedDatasets[placeholderIndex] = item
+      } else if (activeCount + addedCount < 5) {
+        // Add new item if under limit
+        updatedDatasets.push(item)
+        addedCount++
+      }
     }
-    const items = (await Promise.all(files.map(fileToItem))).filter(Boolean) as DatasetItem[]
+    
     if (items.length > 0) {
-      notifyChange([...(datasets || []), ...items])
+      if (addedCount < items.length && placeholderCount === 0) {
+        alert(`Only ${remaining} more dataset(s) can be added (max 5). ${items.length - addedCount} file(s) skipped.`)
+      }
+      notifyChange(updatedDatasets)
     }
+    
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -147,29 +183,57 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
         </div>
       )}
 
+      {/* Info about saved files */}
+      {datasets.some(d => d.persisted && !d.csvText) && (
+        <div className="mt-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+          <p className="text-xs text-yellow-800 dark:text-yellow-300">
+            💡 <strong>Files needed:</strong> These files were previously uploaded to this project. Please re-upload them to use them again.
+          </p>
+        </div>
+      )}
+
       {/* List */}
       {datasets.length > 0 && (
         <div className="mt-3 space-y-2">
-          {datasets.map(item => (
-            <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-white dark:bg-gray-800">
-              <span className="inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
-                📊 <span className="ml-1 truncate">{item.fileName}</span>
-              </span>
-              <span className="text-[10px] text-gray-500">{(item.sizeBytes/1024).toFixed(1)} KB</span>
-              <Button size="sm" variant="outline" onClick={() => setPreviewItem(item)} className="h-7 px-2">
-                <Eye className="h-3.5 w-3.5 mr-1" /> Preview
-              </Button>
-              <label className="ml-auto text-xs flex items-center gap-1">
-                <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} /> Chat
-              </label>
-              <label className="text-xs flex items-center gap-1">
-                <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} /> Run
-              </label>
-              <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
-                <X className="h-4 w-4 text-red-600" />
-              </Button>
-            </div>
-          ))}
+          {datasets.map(item => {
+            const isPlaceholder = item.persisted && !item.csvText
+            return (
+              <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${
+                isPlaceholder 
+                  ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700' 
+                  : 'bg-white dark:bg-gray-800'
+              }`}>
+                <span className={`inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium ${
+                  isPlaceholder
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'
+                    : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                }`}>
+                  {isPlaceholder ? '⚠️' : '📊'} <span className="ml-1 truncate">{item.fileName}</span>
+                </span>
+                {item.sizeBytes > 0 && (
+                  <span className="text-[10px] text-gray-500">{(item.sizeBytes/1024).toFixed(1)} KB</span>
+                )}
+                {isPlaceholder ? (
+                  <span className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
+                    Re-upload needed
+                  </span>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => setPreviewItem(item)} className="h-7 px-2">
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+                  </Button>
+                )}
+                <label className="ml-auto text-xs flex items-center gap-1">
+                  <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} /> Chat
+                </label>
+                <label className="text-xs flex items-center gap-1">
+                  <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={isPlaceholder} /> Run
+                </label>
+                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
+                  <X className="h-4 w-4 text-red-600" />
+                </Button>
+              </div>
+            )
+          })}
         </div>
       )}
 
