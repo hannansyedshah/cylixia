@@ -65,7 +65,8 @@ Please generate complete, executable R code that applies the user's requested ch
       existingCode,
       conversationHistory,
       preferences,
-      csvFilesPayload // Pass all CSV files
+      csvFilesPayload, // Pass all CSV files
+      privacyMode // Pass privacy mode so models know if data is randomized
     )
     
     const parsed = parseAiriaResponse(airiaResponse)

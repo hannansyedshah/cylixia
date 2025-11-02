@@ -33,7 +33,8 @@ export async function callAiriaAgent(
   existingCode?: string,
   conversationHistory?: string,
   preferences?: { style?: string; libraries?: string[] },
-  csvFiles?: Array<{ fileName: string, csvData: string }>
+  csvFiles?: Array<{ fileName: string, csvData: string }>,
+  privacyMode: boolean = true
 ): Promise<AiriaResponse> {
   try {
     const apiKey = process.env.AIRIA_API_KEY
@@ -55,8 +56,29 @@ export async function callAiriaAgent(
         datasetInfo = `File: ${fileName}`
       }
       
+      // Build CSV data section with actual content from all files
+      const dataPrivacyNote = privacyMode 
+        ? '⚠️ NOTE: This CSV data has been RANDOMIZED for privacy protection. Use this for analysis structure only, not for actual values.'
+        : '✓ NOTE: This is ORIGINAL CSV data. Values are real and should be used for actual analysis.'
+      
+      let csvDataInfo = 'No CSV data provided'
+      if (csvFiles && csvFiles.length > 0) {
+        if (csvFiles.length === 1) {
+          // Single file: include full data description
+          csvDataInfo = `${dataPrivacyNote}\n\nFile: ${csvFiles[0].fileName}\nData size: ${csvFiles[0].csvData.length} characters\nFirst 500 chars:\n${csvFiles[0].csvData.substring(0, 500)}${csvFiles[0].csvData.length > 500 ? '...' : ''}`
+        } else {
+          // Multiple files: include info about each
+          csvDataInfo = `${dataPrivacyNote}\n\nCSV Files:\n`
+          csvDataInfo += csvFiles.map((f, i) => 
+            `File ${i + 1}: ${f.fileName} (${f.csvData.length} chars)\nFirst 300 chars:\n${f.csvData.substring(0, 300)}...`
+          ).join('\n\n')
+        }
+      } else if (primaryCsvData) {
+        csvDataInfo = `${dataPrivacyNote}\n\nFile: ${primaryFileName}\nData size: ${primaryCsvData.length} characters\nFirst 500 chars:\n${primaryCsvData.substring(0, 500)}${primaryCsvData.length > 500 ? '...' : ''}`
+      }
+      
       const quickInput = {
-        dataset_info: datasetInfo,
+        dataset_info: `${datasetInfo}\n\nCSV Data Content:\n${csvDataInfo}`,
         user_request: userInput,
         existing_code: existingCode || '',
         conversation_history: conversationHistory || '',
@@ -83,12 +105,25 @@ export async function callAiriaAgent(
         asyncOutput: false,
         csvData: primaryCsvData,
         fileName: primaryFileName,
-        ...(csvFiles && csvFiles.length > 1 ? { csvFiles } : {})
+        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {})
       }
       
       console.log(`📊 Quick mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
+      if (csvFiles && csvFiles.length > 0) {
+        csvFiles.forEach((f, i) => {
+          console.log(`  CSV File ${i + 1}/${csvFiles.length}: ${f.fileName} (${f.csvData.length} chars)`)
+        })
+      }
     } else if (mode === 'ask') {
       targetUrl = AIRIA_API_URL_ASK
+      // Use first CSV file for backward compatibility, or combine all CSV files
+      const primaryCsvData = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].csvData 
+        : csvData
+      const primaryFileName = csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].fileName 
+        : fileName
+      
       // Build dataset info from all CSV files
       let datasetInfo = 'No dataset provided'
       if (csvFiles && csvFiles.length > 0) {
@@ -97,9 +132,30 @@ export async function callAiriaAgent(
         datasetInfo = `File: ${fileName}`
       }
       
+      // Build CSV data section with actual content from all files
+      const dataPrivacyNote = privacyMode 
+        ? '⚠️ NOTE: This CSV data has been RANDOMIZED for privacy protection. Use this for analysis structure only, not for actual values.'
+        : '✓ NOTE: This is ORIGINAL CSV data. Values are real and should be used for actual analysis.'
+      
+      let csvDataInfo = 'No CSV data provided'
+      if (csvFiles && csvFiles.length > 0) {
+        if (csvFiles.length === 1) {
+          // Single file: include full data description
+          csvDataInfo = `${dataPrivacyNote}\n\nFile: ${csvFiles[0].fileName}\nData size: ${csvFiles[0].csvData.length} characters\nFirst 500 chars:\n${csvFiles[0].csvData.substring(0, 500)}${csvFiles[0].csvData.length > 500 ? '...' : ''}`
+        } else {
+          // Multiple files: include info about each
+          csvDataInfo = `${dataPrivacyNote}\n\nCSV Files:\n`
+          csvDataInfo += csvFiles.map((f, i) => 
+            `File ${i + 1}: ${f.fileName} (${f.csvData.length} chars)\nFirst 300 chars:\n${f.csvData.substring(0, 300)}...`
+          ).join('\n\n')
+        }
+      } else if (primaryCsvData) {
+        csvDataInfo = `${dataPrivacyNote}\n\nFile: ${primaryFileName}\nData size: ${primaryCsvData.length} characters\nFirst 500 chars:\n${primaryCsvData.substring(0, 500)}${primaryCsvData.length > 500 ? '...' : ''}`
+      }
+      
       // Ask mode: similar structure to quick, optimized for data questions
       const askInput = {
-        dataset_info: datasetInfo,
+        dataset_info: `${datasetInfo}\n\nCSV Data Content:\n${csvDataInfo}`,
         user_request: userInput,
         existing_code: existingCode || '',
         conversation_history: conversationHistory || '',
@@ -111,24 +167,21 @@ export async function callAiriaAgent(
         }
       }
       
-      // Use first CSV file for backward compatibility, or combine all CSV files
-      const primaryCsvData = csvFiles && csvFiles.length > 0 
-        ? csvFiles[0].csvData 
-        : csvData
-      const primaryFileName = csvFiles && csvFiles.length > 0 
-        ? csvFiles[0].fileName 
-        : fileName
-      
       payload = {
         userId,
         userInput: JSON.stringify(askInput),
         asyncOutput: false,
         csvData: primaryCsvData,
         fileName: primaryFileName,
-        ...(csvFiles && csvFiles.length > 1 ? { csvFiles } : {})
+        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {})
       }
       
       console.log(`📊 Ask mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
+      if (csvFiles && csvFiles.length > 0) {
+        csvFiles.forEach((f, i) => {
+          console.log(`  CSV File ${i + 1}/${csvFiles.length}: ${f.fileName} (${f.csvData.length} chars)`)
+        })
+      }
     } else {
       // legacy behavior: embed brief CSV context into userInput
       let enhancedInput = userInput
@@ -141,22 +194,45 @@ export async function callAiriaAgent(
         ? csvFiles[0].fileName 
         : fileName
       
-      // Include info about all CSV files
+      // Include info about all CSV files with their data
+      const dataPrivacyNote = privacyMode 
+        ? '⚠️ NOTE: This CSV data has been RANDOMIZED for privacy protection. Use this for analysis structure only, not for actual values.'
+        : '✓ NOTE: This is ORIGINAL CSV data. Values are real and should be used for actual analysis.'
+      
       if (csvFiles && csvFiles.length > 0) {
         const fileList = csvFiles.map(f => f.fileName).join(', ')
+        let csvDataSection = ''
+        
+        // Include data from all CSV files
+        if (csvFiles.length === 1) {
+          // Single file: include full data (first 5000 chars to avoid token limits)
+          csvDataSection = `${dataPrivacyNote}\n\nDataset: ${csvFiles[0].fileName}\nCSV Data (first 5000 chars):\n${csvFiles[0].csvData.substring(0, 5000)}${csvFiles[0].csvData.length > 5000 ? '\n... (truncated)' : ''}`
+        } else {
+          // Multiple files: include data from each (first 2000 chars each)
+          csvDataSection = `${dataPrivacyNote}\n\nDatasets: ${fileList}\n\nCSV Data:\n`
+          csvFiles.forEach((f, i) => {
+            csvDataSection += `\n--- File ${i + 1}: ${f.fileName} (${f.csvData.length} chars) ---\n`
+            csvDataSection += `${f.csvData.substring(0, 2000)}${f.csvData.length > 2000 ? '\n... (truncated)' : ''}\n`
+          })
+        }
+        
         enhancedInput = `${userInput}
 
 Current R Code:\n\n${existingCode || ''}
 
-Datasets: ${fileList}
-CSV Data (first file, first 1000 chars):
-${primaryCsvData.substring(0, 1000)}${primaryCsvData.length > 1000 ? '...' : ''}
+${csvDataSection}
 
 Please return ONLY full R code with necessary library() calls.`
       } else if (primaryCsvData && primaryFileName) {
+        const dataPrivacyNote = privacyMode 
+          ? '⚠️ NOTE: This CSV data has been RANDOMIZED for privacy protection. Use this for analysis structure only, not for actual values.'
+          : '✓ NOTE: This is ORIGINAL CSV data. Values are real and should be used for actual analysis.'
+        
         enhancedInput = `${userInput}
 
 Current R Code:\n\n${existingCode || ''}
+
+${dataPrivacyNote}
 
 Dataset: ${primaryFileName}
 CSV Data (first 1000 chars):
@@ -171,10 +247,15 @@ Please return ONLY full R code with necessary library() calls.`
         asyncOutput: false,
         csvData: primaryCsvData,
         fileName: primaryFileName,
-        ...(csvFiles && csvFiles.length > 1 ? { csvFiles } : {})
+        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {})
       }
       
       console.log(`📊 Legacy mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
+      if (csvFiles && csvFiles.length > 0) {
+        csvFiles.forEach((f, i) => {
+          console.log(`  CSV File ${i + 1}/${csvFiles.length}: ${f.fileName} (${f.csvData.length} chars)`)
+        })
+      }
     }
 
     const response = await fetch(targetUrl, {
