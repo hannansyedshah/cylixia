@@ -441,8 +441,11 @@ export default function WorkspacePage() {
       
       if (!mountedRef.current) return
 
-      if (data.code) {
-        // Update code in database
+      // For ask mode, don't update code or show it in terminal
+      const isAskMode = airiaMode === 'ask'
+
+      if (data.code && !isAskMode) {
+        // Update code in database (skip for ask mode)
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -482,11 +485,12 @@ export default function WorkspacePage() {
       if (!mountedRef.current) return
 
       // Add assistant message
+      // For ask mode, don't include code - just show text response
       const newMessage = {
         id: Math.random().toString(36).substring(7),
         role: 'assistant',
-        content: data.message || 'Here\'s the R code for your request:',
-        code: data.code,
+        content: data.message || (isAskMode ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:'),
+        code: isAskMode ? undefined : data.code, // Don't include code for ask mode
         created_at: new Date().toISOString()
       }
       
@@ -496,7 +500,7 @@ export default function WorkspacePage() {
         body: JSON.stringify({
           role: 'assistant',
           content: newMessage.content,
-          code: data.code,
+          code: isAskMode ? undefined : data.code, // Don't save code for ask mode
         }),
         signal: controller.signal,
       })
