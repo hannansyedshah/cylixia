@@ -25,6 +25,13 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
+  const [previewViewMode, setPreviewViewMode] = useState<'original' | 'randomized'>('randomized')
+  
+  // Reset view mode when opening preview
+  const handlePreviewOpen = (item: DatasetItem) => {
+    setPreviewViewMode(privacyMode ? 'randomized' : 'original')
+    setPreviewItem(item)
+  }
 
   const canAddMore = datasets.length < 5
   const selectedCounts = useMemo(() => ({
@@ -218,7 +225,7 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
                     Re-upload needed
                   </span>
                 ) : (
-                  <Button size="sm" variant="outline" onClick={() => setPreviewItem(item)} className="h-7 px-2">
+                  <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
                     <Eye className="h-3.5 w-3.5 mr-1" /> Preview
                   </Button>
                 )}
@@ -241,26 +248,32 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
       {previewItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setPreviewItem(null)}></div>
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[90vw] max-w-6xl h-[80vh] p-4 flex flex-col">
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[95vw] max-w-7xl h-[90vh] p-4 flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
               <div className="text-sm font-semibold text-darktext dark:text-white truncate">{previewItem.fileName}</div>
-              <Button variant="ghost" size="icon" onClick={() => setPreviewItem(null)}>
-                <X className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={previewViewMode === 'randomized' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPreviewViewMode(previewViewMode === 'randomized' ? 'original' : 'randomized')}
+                  className="text-xs"
+                >
+                  {previewViewMode === 'randomized' ? '🔒 Randomized' : '🔓 Original'}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setPreviewItem(null)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="px-3 py-2 text-xs font-medium bg-blue-50 dark:bg-blue-950/30 border-b border-gray-200 dark:border-gray-700 text-darktext dark:text-white">Randomized (privacy ON)</div>
-                <div className="p-2 h-[calc(100%-30px)] overflow-auto">
-                  <DataPreview originalData={previewItem.csvText || ''} fileName={previewItem.fileName} privacyMode={true} />
-                </div>
-              </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="px-3 py-2 text-xs font-medium bg-orange-50 dark:bg-orange-950/20 border-b border-gray-200 dark:border-gray-700 text-darktext dark:text-white">Original (privacy OFF)</div>
-                <div className="p-2 h-[calc(100%-30px)] overflow-auto">
-                  <DataPreview originalData={previewItem.csvText || ''} fileName={previewItem.fileName} privacyMode={false} />
-                </div>
-              </div>
+            <div className="flex-1 min-h-0 mt-3 overflow-auto">
+              <DataPreview 
+                originalData={previewItem.csvText || ''} 
+                fileName={previewItem.fileName} 
+                privacyMode={privacyMode || false}
+                controlledViewMode={previewViewMode}
+                onViewModeChange={setPreviewViewMode}
+                isModal={true}
+              />
             </div>
           </div>
         </div>
