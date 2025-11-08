@@ -75,13 +75,13 @@ export function CollaboratorList({
                 </div>
               </div>
             </div>
-            {canManage && !isCurrentUser && collaborator.role !== 'owner' && (
+            {canManage && !isCurrentUser && (
               <div className="flex items-center space-x-1">
-                {onRoleChange && (
+                {onRoleChange && collaborator.role !== 'owner' && (
                   <select
                     value={collaborator.role}
                     onChange={(e) => onRoleChange(collaborator.user_id, e.target.value as 'owner' | 'edit' | 'view')}
-                    className="text-xs px-2 py-1 border rounded-md bg-white dark:bg-gray-800"
+                    className="text-xs px-2 py-1 border rounded-md bg-white dark:bg-gray-800 text-darktext dark:text-white"
                   >
                     <option value="view">View</option>
                     <option value="edit">Edit</option>
@@ -91,7 +91,8 @@ export function CollaboratorList({
                 {onRemove && (
                   <button
                     onClick={() => onRemove(collaborator.user_id)}
-                    className="text-xs text-destructive hover:underline px-2"
+                    className="text-xs text-destructive hover:underline px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="Remove collaborator"
                   >
                     Remove
                   </button>

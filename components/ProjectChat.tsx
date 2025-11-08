@@ -81,22 +81,27 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
           filter: `project_id=eq.${projectId}`
         },
         async (payload) => {
-          // Fetch the new message with profile data
-          const { data: newMessage } = await supabase
+          // Fetch the new message
+          const { data: newMessageData } = await supabase
             .from('project_chat_messages')
-            .select(`
-              *,
-              profiles:user_id (
-                id,
-                display_name,
-                avatar_url
-              )
-            `)
+            .select('*')
             .eq('id', payload.new.id)
             .single()
 
-          if (newMessage) {
-            setMessages(prev => [...prev, newMessage as ChatMessage])
+          if (newMessageData) {
+            // Get profile for the message sender
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('id, display_name, avatar_url')
+              .eq('id', newMessageData.user_id)
+              .single()
+
+            const newMessage: ChatMessage = {
+              ...newMessageData,
+              profiles: profile || null
+            }
+
+            setMessages(prev => [...prev, newMessage])
           }
         }
       )

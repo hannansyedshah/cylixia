@@ -39,23 +39,41 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Get chat messages with user profiles
+    // Get chat messages
     const { data: messages, error } = await supabase
       .from('project_chat_messages')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('project_id', projectId)
       .order('created_at', { ascending: true })
 
     if (error) throw error
 
-    return NextResponse.json({ messages: messages || [] })
+    // Get user IDs from messages
+    const userIds = [...new Set((messages || []).map((m: any) => m.user_id))]
+
+    // Get profiles for all users
+    let profiles: any[] = []
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', userIds)
+
+      if (!profilesError && profilesData) {
+        profiles = profilesData
+      }
+    }
+
+    // Combine messages with profiles
+    const messagesWithProfiles = (messages || []).map((message: any) => {
+      const profile = profiles.find((p: any) => p.id === message.user_id)
+      return {
+        ...message,
+        profiles: profile || null
+      }
+    })
+
+    return NextResponse.json({ messages: messagesWithProfiles })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -114,19 +132,25 @@ export async function POST(
         user_id: user.id,
         message: message.trim()
       })
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .single()
 
     if (error) throw error
 
-    return NextResponse.json({ message: chatMessage })
+    // Get profile for the message sender
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    // Combine message with profile
+    const messageWithProfile = {
+      ...chatMessage,
+      profiles: profile || null
+    }
+
+    return NextResponse.json({ message: messageWithProfile })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

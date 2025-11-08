@@ -18,7 +18,7 @@ export async function GET(
     // Check if user has access to this project
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, user_id')
+      .select('id, user_id, created_at')
       .eq('id', projectId)
       .single()
 
@@ -54,7 +54,44 @@ export async function GET(
 
     if (error) throw error
 
-    return NextResponse.json({ collaborators: collaborators || [] })
+    // Also include the project owner in the list
+    // Get owner's profile
+    const { data: ownerProfile } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url')
+      .eq('id', project.user_id)
+      .single()
+
+    // Create owner collaborator entry
+    const ownerCollaborator = {
+      id: `owner-${project.user_id}`,
+      project_id: projectId,
+      user_id: project.user_id,
+      role: 'owner' as const,
+      status: 'accepted',
+      created_at: project.created_at || new Date().toISOString(),
+      profiles: ownerProfile || null
+    }
+
+    // Combine owner with other collaborators
+    const allCollaborators = [
+      ownerCollaborator,
+      ...(collaborators || [])
+    ]
+
+    // Remove duplicates (in case owner is also in project_collaborators)
+    const uniqueCollaborators = allCollaborators.filter((collab, index, self) =>
+      index === self.findIndex((c) => c.user_id === collab.user_id)
+    )
+
+    // Sort: owner first, then by created_at
+    uniqueCollaborators.sort((a, b) => {
+      if (a.role === 'owner') return -1
+      if (b.role === 'owner') return 1
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    })
+
+    return NextResponse.json({ collaborators: uniqueCollaborators })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
