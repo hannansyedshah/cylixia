@@ -22,8 +22,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'status must be "accepted" or "declined"' }, { status: 400 })
     }
 
-    // Get the request
-    const { data: request, error: requestError } = await supabase
+    // Get the collaboration request
+    const { data: collaborationRequest, error: requestError } = await supabase
       .from('collaboration_requests')
       .select('*')
       .eq('id', requestId)
@@ -32,12 +32,12 @@ export async function PATCH(
     if (requestError) throw requestError
 
     // Check if user is the recipient
-    if (request.to_user_id !== user.id) {
+    if (collaborationRequest.to_user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check if request is still pending
-    if (request.status !== 'pending') {
+    if (collaborationRequest.status !== 'pending') {
       return NextResponse.json({ error: 'Request is no longer pending' }, { status: 400 })
     }
 
@@ -56,7 +56,7 @@ export async function PATCH(
       const { data: collaborator, error: collaboratorError } = await supabase
         .from('project_collaborators')
         .update({ status: 'accepted' })
-        .eq('project_id', request.project_id)
+        .eq('project_id', collaborationRequest.project_id)
         .eq('user_id', user.id)
         .select()
         .single()
@@ -67,7 +67,7 @@ export async function PATCH(
       await supabase
         .from('projects')
         .update({ is_shared: true })
-        .eq('id', request.project_id)
+        .eq('id', collaborationRequest.project_id)
 
       return NextResponse.json({ request: updatedRequest, collaborator })
     } else {
@@ -75,7 +75,7 @@ export async function PATCH(
       await supabase
         .from('project_collaborators')
         .update({ status: 'declined' })
-        .eq('project_id', request.project_id)
+        .eq('project_id', collaborationRequest.project_id)
         .eq('user_id', user.id)
 
       return NextResponse.json({ request: updatedRequest })
