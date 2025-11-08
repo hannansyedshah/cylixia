@@ -98,18 +98,16 @@ export function ProfilePictureUpload({ currentAvatarUrl, onUpload, onRemove }: P
           id="avatar-upload"
           disabled={uploading}
         />
-        <label htmlFor="avatar-upload">
+        <label htmlFor="avatar-upload" className="cursor-pointer">
           <Button
             type="button"
             variant="outline"
             disabled={uploading}
             className="cursor-pointer"
-            asChild
+            onClick={() => fileInputRef.current?.click()}
           >
-            <span>
-              <Upload className="w-4 h-4 mr-2" />
-              {preview ? 'Change' : 'Upload'} Photo
-            </span>
+            <Upload className="w-4 h-4 mr-2" />
+            {preview ? 'Change' : 'Upload'} Photo
           </Button>
         </label>
         {preview && onRemove && (

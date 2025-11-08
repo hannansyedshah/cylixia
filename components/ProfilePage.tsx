@@ -110,74 +110,82 @@ export function ProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Card className="shadow-2xl border-2 border-rstudio/10">
-        <CardHeader>
-          <CardTitle className="text-3xl">Profile Settings</CardTitle>
-          <CardDescription>
+      <Card className="shadow-2xl border-2 border-rstudio/10 bg-white dark:bg-gray-900">
+        <CardHeader className="bg-gradient-to-r from-rstudio/5 to-purple-500/5 dark:from-rstudio/10 dark:to-purple-500/10 border-b border-rstudio/10">
+          <CardTitle className="text-3xl text-darktext dark:text-white">Profile Settings</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             Manage your profile information and preferences
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex justify-center">
+        <CardContent className="space-y-6 p-6">
+          <div className="flex justify-center pb-4">
             <ProfilePictureUpload
               currentAvatarUrl={profile?.avatar_url}
               onUpload={handleAvatarUpload}
             />
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="display_name">Display Name</Label>
+              <Label htmlFor="display_name" className="text-sm font-semibold text-darktext dark:text-white">
+                Display Name
+              </Label>
               <Input
                 id="display_name"
                 value={formData.display_name}
                 onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                 placeholder="Your name"
-                className="h-11"
+                className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
+              <Label htmlFor="bio" className="text-sm font-semibold text-darktext dark:text-white">
+                Bio
+              </Label>
               <textarea
                 id="bio"
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell us about yourself"
                 rows={4}
-                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md focus:border-rstudio focus:outline-none resize-none bg-white dark:bg-gray-800 text-darktext dark:text-white"
+                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md focus:border-rstudio focus:outline-none focus:ring-2 focus:ring-rstudio/20 resize-none bg-white dark:bg-gray-800 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location" className="text-sm font-semibold text-darktext dark:text-white">
+                Location
+              </Label>
               <Input
                 id="location"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="City, Country"
-                className="h-11"
+                className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website" className="text-sm font-semibold text-darktext dark:text-white">
+                Website
+              </Label>
               <Input
                 id="website"
                 type="url"
                 value={formData.website}
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                 placeholder="https://yourwebsite.com"
-                className="h-11"
+                className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
               />
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="min-w-[120px]"
+              className="min-w-[120px] bg-rstudio hover:bg-rstudio/90 text-white"
             >
               {saving ? (
                 <>
