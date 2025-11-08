@@ -20,22 +20,30 @@ export async function GET(request: NextRequest) {
 
     if (ownedError) throw ownedError
 
-    // Get projects where user is a collaborator
-    const { data: collaboratorProjects, error: collabError } = await supabase
-      .from('project_collaborators')
-      .select(`
-        projects:project_id (*)
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'accepted')
-      .order('created_at', { ascending: false })
+    // Get projects where user is a collaborator (if table exists)
+    let collaboratorProjects: any[] = []
+    try {
+      const { data: collabData, error: collabError } = await supabase
+        .from('project_collaborators')
+        .select(`
+          projects:project_id (*)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false })
 
-    if (collabError) throw collabError
+      if (!collabError && collabData) {
+        collaboratorProjects = collabData.map((cp: any) => cp.projects).filter(Boolean)
+      }
+    } catch (error) {
+      // If table doesn't exist or query fails, just use owned projects
+      console.warn('Could not fetch collaborator projects:', error)
+    }
 
     // Combine and deduplicate projects
     const allProjects = [
       ...(ownedProjects || []),
-      ...(collaboratorProjects?.map((cp: any) => cp.projects).filter(Boolean) || [])
+      ...collaboratorProjects
     ]
 
     // Remove duplicates (in case user is both owner and collaborator)
@@ -50,7 +58,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ projects: uniqueProjects })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error fetching projects:', error)
+    return NextResponse.json({ 
+      error: error.message || 'Failed to load projects',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 })
   }
 }
 
@@ -97,11 +109,18 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error creating project:', error)
+      throw error
+    }
 
     return NextResponse.json({ project })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Project creation error:', error)
+    return NextResponse.json({ 
+      error: error.message || 'Failed to create project',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 })
   }
 }
 

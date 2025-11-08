@@ -330,23 +330,77 @@ CREATE TRIGGER on_auth_user_created
 CREATE OR REPLACE FUNCTION public.handle_new_project()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.project_collaborators (project_id, user_id, role, status)
-  VALUES (NEW.id, NEW.user_id, 'owner', 'accepted');
+  -- Only insert if project_collaborators table exists
+  BEGIN
+    INSERT INTO public.project_collaborators (project_id, user_id, role, status)
+    VALUES (NEW.id, NEW.user_id, 'owner', 'accepted')
+    ON CONFLICT (project_id, user_id) DO NOTHING;
+  EXCEPTION
+    WHEN undefined_table THEN
+      -- Table doesn't exist yet, skip
+      NULL;
+    WHEN OTHERS THEN
+      -- Other errors, log but don't fail
+      RAISE WARNING 'Could not add owner as collaborator: %', SQLERRM;
+  END;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger to add owner as collaborator when project is created
-DROP TRIGGER IF EXISTS on_project_created ON projects;
-CREATE TRIGGER on_project_created
-  AFTER INSERT ON projects
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_project();
+-- Only create trigger if project_collaborators table exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'project_collaborators'
+  ) THEN
+    DROP TRIGGER IF EXISTS on_project_created ON projects;
+    CREATE TRIGGER on_project_created
+      AFTER INSERT ON projects
+      FOR EACH ROW
+      EXECUTE FUNCTION public.handle_new_project();
+  END IF;
+END $$;
 
--- Enable Realtime for tables
-ALTER PUBLICATION supabase_realtime ADD TABLE projects;
-ALTER PUBLICATION supabase_realtime ADD TABLE project_chat_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE project_collaborators;
+-- Enable Realtime for tables (if they exist)
+DO $$
+BEGIN
+  -- Add projects table to Realtime (if not already added)
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE projects;
+  EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN undefined_table THEN NULL;
+  END;
+  
+  -- Add project_chat_messages table to Realtime (if it exists)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'project_chat_messages'
+  ) THEN
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE project_chat_messages;
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END;
+  END IF;
+  
+  -- Add project_collaborators table to Realtime (if it exists)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'project_collaborators'
+  ) THEN
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE project_collaborators;
+    EXCEPTION
+      WHEN duplicate_object THEN NULL;
+    END;
+  END IF;
+END $$;
 
 -- Note: If the above ALTER PUBLICATION commands fail, you may need to enable Realtime manually in Supabase Dashboard:
 -- 1. Go to Database > Replication

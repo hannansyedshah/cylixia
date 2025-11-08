@@ -73,6 +73,8 @@ export function ProfilePage() {
 
       const data = await response.json()
       setProfile(data.profile)
+      // Trigger a page refresh to update the header with new display name
+      window.location.reload()
       alert('Profile updated successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to save profile')
@@ -109,35 +111,59 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Card className="shadow-2xl border-2 border-rstudio/10 bg-white dark:bg-gray-900">
-        <CardHeader className="bg-gradient-to-r from-rstudio/5 to-purple-500/5 dark:from-rstudio/10 dark:to-purple-500/10 border-b border-rstudio/10">
-          <CardTitle className="text-3xl text-darktext dark:text-white">Profile Settings</CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400">
-            Manage your profile information and preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6 p-6">
-          <div className="flex justify-center pb-4">
-            <ProfilePictureUpload
-              currentAvatarUrl={profile?.avatar_url}
-              onUpload={handleAvatarUpload}
-            />
-          </div>
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1000ms' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2000ms' }}></div>
+        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-rstudio/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '500ms' }}></div>
+      </div>
 
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="display_name" className="text-sm font-semibold text-darktext dark:text-white">
-                Display Name
-              </Label>
-              <Input
-                id="display_name"
-                value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                placeholder="Your name"
-                className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
+      <div className="container mx-auto px-4 py-8 max-w-2xl relative z-10">
+        <Card className="shadow-2xl border-2 border-rstudio/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-rstudio/5 to-purple-500/5 dark:from-rstudio/10 dark:to-purple-500/10 border-b border-rstudio/10">
+            <CardTitle className="text-3xl text-darktext dark:text-white">Profile Settings</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-400">
+              Manage your profile information and preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex justify-center pb-4">
+              <ProfilePictureUpload
+                currentAvatarUrl={profile?.avatar_url}
+                onUpload={handleAvatarUpload}
               />
             </div>
+
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-darktext dark:text-white">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={user?.email || ''}
+                  disabled
+                  className="h-11 bg-gray-100 dark:bg-gray-800/50 border-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-500">Email cannot be changed</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="display_name" className="text-sm font-semibold text-darktext dark:text-white">
+                  Display Name
+                </Label>
+                <Input
+                  id="display_name"
+                  value={formData.display_name}
+                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                  placeholder="Your name"
+                  className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-500">This name will appear in the header instead of your email</p>
+              </div>
 
             <div className="space-y-2">
               <Label htmlFor="bio" className="text-sm font-semibold text-darktext dark:text-white">

@@ -12,8 +12,29 @@ export function Header() {
   const pathname = usePathname()
   const { user, setUser } = useSessionStore()
   const [actualUser, setActualUser] = useState<any>(null)
+  const [profile, setProfile] = useState<{ display_name: string | null } | null>(null)
   const [now, setNow] = useState<Date>(new Date())
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null)
+
+  // Load profile when user changes
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (actualUser?.id) {
+        try {
+          const response = await fetch('/api/profile')
+          if (response.ok) {
+            const data = await response.json()
+            setProfile(data.profile)
+          }
+        } catch (error) {
+          console.error('Failed to load profile:', error)
+        }
+      } else {
+        setProfile(null)
+      }
+    }
+    loadProfile()
+  }, [actualUser?.id])
 
   // Check actual Supabase session on mount and set up auth listener once
   useEffect(() => {
@@ -80,7 +101,9 @@ export function Header() {
           <div className="hidden sm:flex items-center space-x-2 text-xs sm:text-sm min-h-[20px]">
             {actualUser ? (
               <>
-                <span className="truncate max-w-[180px] sm:max-w-[240px]" title={actualUser.email}>{actualUser.email}</span>
+                <span className="truncate max-w-[180px] sm:max-w-[240px]" title={actualUser.email}>
+                  {profile?.display_name || actualUser.email}
+                </span>
                 <span className="opacity-50">•</span>
                 <span className="whitespace-nowrap">{formattedNow}</span>
               </>
