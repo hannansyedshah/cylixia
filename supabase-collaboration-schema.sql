@@ -397,6 +397,17 @@ BEGIN
   END IF;
 END $$;
 
+-- Function to get user by email (for invitation system)
+CREATE OR REPLACE FUNCTION public.get_user_by_email(user_email TEXT)
+RETURNS TABLE(id UUID, email TEXT) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT au.id, au.email
+  FROM auth.users au
+  WHERE LOWER(au.email) = LOWER(user_email);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Note: If the above ALTER PUBLICATION commands fail, you may need to enable Realtime manually in Supabase Dashboard:
 -- 1. Go to Database > Replication
 -- 2. Enable Realtime for: projects, project_chat_messages, project_collaborators

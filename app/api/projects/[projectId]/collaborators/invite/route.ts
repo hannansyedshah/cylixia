@@ -56,64 +56,65 @@ export async function POST(
       return NextResponse.json({ error: 'Only project owners can add collaborators' }, { status: 403 })
     }
 
-    // Check if there's already a pending invitation for this email
-    const { data: existingInvitations } = await supabase
-      .from('collaboration_requests')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('from_user_id', user.id)
-      .eq('status', 'pending')
+    // Look up user by email using a database function
+    const { data: userData, error: userLookupError } = await supabase.rpc('get_user_by_email', {
+      user_email: email.toLowerCase()
+    })
+
+    let to_user_id: string | null = null
     
-    // Check if email is already invited
-    if (existingInvitations) {
-      const emailInvitation = existingInvitations.find((inv: any) => {
-        if (inv.message && inv.message.includes('EMAIL:')) {
-          const emailMatch = inv.message.match(/EMAIL:([^|]+)/)
-          return emailMatch && emailMatch[1]?.toLowerCase() === email.toLowerCase()
-        }
-        return false
-      })
-      
-      if (emailInvitation) {
-        return NextResponse.json({ error: 'Invitation already sent to this email' }, { status: 409 })
+    if (!userLookupError && userData && Array.isArray(userData) && userData.length > 0) {
+      to_user_id = userData[0].id
+    } else {
+      // User doesn't exist - they need to sign up first
+      return NextResponse.json({ 
+        error: `User with email "${email}" not found. The user must sign up first before you can invite them.` 
+      }, { status: 404 })
+    }
+
+    if (!to_user_id) {
+      return NextResponse.json({ 
+        error: 'Could not find user with this email address' 
+      }, { status: 404 })
+    }
+
+    // Check if collaboration already exists
+    if (to_user_id) {
+      const { data: existing } = await supabase
+        .from('project_collaborators')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', to_user_id)
+        .single()
+
+      if (existing && existing.status === 'accepted') {
+        return NextResponse.json({ error: 'User is already a collaborator' }, { status: 409 })
+      }
+
+      // Check if there's a pending request
+      const { data: pendingRequest } = await supabase
+        .from('collaboration_requests')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('from_user_id', user.id)
+        .eq('to_user_id', to_user_id)
+        .eq('status', 'pending')
+        .single()
+
+      if (pendingRequest) {
+        return NextResponse.json({ error: 'Collaboration request already pending' }, { status: 409 })
       }
     }
 
-    // Get sender's profile for email
-    const { data: senderProfile } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', user.id)
-      .single()
-
-    const senderName = senderProfile?.display_name || user.email?.split('@')[0] || 'Someone'
-
-    // Create invitation token
-    const invitationToken = crypto.randomUUID()
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000'
-    const invitationLink = `${baseUrl}/accept-invite?token=${invitationToken}&project=${projectId}&email=${encodeURIComponent(email)}`
-
-    // Store invitation - we'll use a placeholder user_id and match by email when user signs up
-    // First, try to find if user exists by querying profiles (which has id matching auth.users)
-    // We can't directly query auth.users, so we'll create the invitation and handle matching later
-    
-    // For now, create invitation with email stored in message field
-    // Format: "EMAIL:user@example.com|TOKEN:token123|ORIGINAL_MESSAGE:..."
-    const emailMessage = `EMAIL:${email}|TOKEN:${invitationToken}|${message ? `ORIGINAL_MESSAGE:${message}` : ''}`
-    
-    // Use a placeholder UUID for non-existent users
-    const placeholderUserId = '00000000-0000-0000-0000-000000000000'
-    
+    // Create collaboration request
     const { data: collaborationRequest, error: requestError } = await supabase
       .from('collaboration_requests')
       .insert({
         project_id: projectId,
         from_user_id: user.id,
-        to_user_id: placeholderUserId, // Placeholder - will be updated when user accepts
+        to_user_id: to_user_id!,
         role: role,
-        message: emailMessage,
+        message: message || null,
         status: 'pending'
       })
       .select()
@@ -124,41 +125,24 @@ export async function POST(
       throw requestError
     }
 
-    // Send email invitation
-    try {
-      const projectName = project.name || 'a project'
-      
-      // Use Supabase's email service
-      // Note: You'll need to configure email templates in Supabase Dashboard
-      // For now, we'll use a simple approach with Supabase's built-in email
-      const emailSubject = `You've been invited to collaborate on "${projectName}"`
-      const emailBody = `
-        <h2>Collaboration Invitation</h2>
-        <p>${senderName} has invited you to collaborate on the project "${projectName}".</p>
-        ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
-        <p><strong>Role:</strong> ${role === 'edit' ? 'Editor' : 'Viewer'}</p>
-        <p>Click the link below to accept the invitation:</p>
-        <p><a href="${invitationLink}" style="background-color: #276DC3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Accept Invitation</a></p>
-        <p>Or copy and paste this link into your browser:</p>
-        <p>${invitationLink}</p>
-        <p>If you don't have an account, you'll be prompted to sign up first.</p>
-      `
-      
-      // Use Supabase's email service (requires configuration in Supabase Dashboard)
-      // For now, we'll log it - in production, configure Supabase email or use a service like Resend
-      console.log('Email invitation details:', {
-        to: email,
-        subject: emailSubject,
-        body: emailBody,
-        invitationLink
-      })
-      
-      // TODO: Configure email service (Supabase, Resend, SendGrid, etc.)
-      // For now, the invitation is stored and can be accessed via the link
-      
-    } catch (emailErr: any) {
-      console.warn('Could not send email, but invitation was created:', emailErr)
-      // Don't fail the request if email fails
+    // Also create a pending collaborator entry
+    if (to_user_id) {
+      const { data: collaborator, error: collaboratorError } = await supabase
+        .from('project_collaborators')
+        .insert({
+          project_id: projectId,
+          user_id: to_user_id,
+          role: role,
+          invited_by: user.id,
+          status: 'pending'
+        })
+        .select()
+        .single()
+
+      if (collaboratorError) {
+        console.error('Error creating collaborator entry:', collaboratorError)
+        // Don't fail the request if this fails
+      }
     }
 
     return NextResponse.json({ 

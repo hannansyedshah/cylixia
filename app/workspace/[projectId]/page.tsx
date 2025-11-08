@@ -996,8 +996,8 @@ export default function WorkspacePage() {
           
           {/* Right: Add Collaborators Button and other actions */}
           <div className="flex items-center gap-2 flex-1 justify-end">
-            {/* Add Collaborators Button - only show if user is owner or has edit role */}
-            {(userRole === 'owner' || userRole === 'edit') && (
+            {/* Add Collaborators Button - show if user is owner or has edit role */}
+            {(userRole === 'owner' || userRole === 'edit' || userRole === null) && (
               <Button
                 variant="default"
                 size="sm"
