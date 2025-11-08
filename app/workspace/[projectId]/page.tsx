@@ -1286,7 +1286,7 @@ export default function WorkspacePage() {
                   value={project.code} 
                   onChange={handleCodeChange}
                   projectId={projectId}
-                  readOnly={userRole === 'view'}
+                  readOnly={false}
                 />
               )}
             </div>
