@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json() as { project_id?: string; to_user_id?: string; role?: string; message?: string }
     const { project_id, to_user_id, role, message } = body
 
     if (!project_id || !to_user_id || !role) {
