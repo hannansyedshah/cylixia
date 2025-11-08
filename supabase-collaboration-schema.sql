@@ -260,6 +260,8 @@ CREATE POLICY "Collaborators can write chat messages"
 -- Drop existing policies first
 DROP POLICY IF EXISTS "Users can view their own projects" ON projects;
 DROP POLICY IF EXISTS "Users can update their own projects" ON projects;
+DROP POLICY IF EXISTS "Users and collaborators can view projects" ON projects;
+DROP POLICY IF EXISTS "Users and collaborators can update projects" ON projects;
 
 -- New policy: Users and collaborators can view projects
 CREATE POLICY "Users and collaborators can view projects"
