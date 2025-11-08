@@ -58,48 +58,72 @@ export async function POST(
 
     // Look up user by email using a database function
     let to_user_id: string | null = null
+    const normalizedEmail = email.toLowerCase().trim()
     
     try {
+      // Try the RPC function first
       const { data: userData, error: rpcError } = await supabase.rpc('get_user_by_email', {
-        user_email: email.toLowerCase()
+        user_email: normalizedEmail
       })
 
-      console.log('User lookup result:', { userData, rpcError, email: email.toLowerCase() })
+      console.log('User lookup result:', { 
+        userData, 
+        rpcError, 
+        email: normalizedEmail,
+        userDataType: typeof userData,
+        isArray: Array.isArray(userData),
+        length: Array.isArray(userData) ? userData.length : 'N/A'
+      })
 
       if (rpcError) {
-        console.error('RPC error:', rpcError)
+        console.error('RPC error details:', {
+          code: rpcError.code,
+          message: rpcError.message,
+          details: rpcError.details,
+          hint: rpcError.hint
+        })
+        
         // Check if function doesn't exist
-        if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
+        if (rpcError.code === '42883' || rpcError.message?.includes('does not exist') || rpcError.message?.includes('function')) {
           return NextResponse.json({ 
-            error: `Database function 'get_user_by_email' not found. Please run the SQL schema to create it.` 
+            error: `Database function 'get_user_by_email' not found. Please run this SQL in Supabase SQL Editor:\n\nCREATE OR REPLACE FUNCTION public.get_user_by_email(user_email TEXT)\nRETURNS TABLE(id UUID, email TEXT) AS $$\nBEGIN\n  RETURN QUERY\n  SELECT au.id, au.email\n  FROM auth.users au\n  WHERE LOWER(au.email) = LOWER(user_email);\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;\n\nGRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO authenticated;` 
           }, { status: 500 })
         }
       }
 
       // Handle different response formats
       if (userData) {
-        if (Array.isArray(userData) && userData.length > 0) {
-          to_user_id = userData[0].id
+        if (Array.isArray(userData)) {
+          if (userData.length > 0) {
+            to_user_id = userData[0].id
+            console.log('Found user via array:', to_user_id)
+          } else {
+            console.log('User not found - empty array returned')
+          }
         } else if (userData && typeof userData === 'object' && 'id' in userData) {
           // Single object returned
           to_user_id = userData.id
-        } else if (Array.isArray(userData) && userData.length === 0) {
-          // Empty array - user not found
-          return NextResponse.json({ 
-            error: `User with email "${email}" not found. Please make sure the user has signed up.` 
-          }, { status: 404 })
+          console.log('Found user via object:', to_user_id)
         }
       }
 
+      // If still not found, try alternative: query all profiles and match by trying to get user email
+      // This is a workaround if the function doesn't work
       if (!to_user_id) {
+        console.log('Trying alternative lookup method...')
+        // We can't directly query auth.users, but we can try to find the user
+        // by checking if they can authenticate with this email
+        // Actually, we can't do that either from server-side without admin access
+        
+        // Return helpful error with debugging info
         return NextResponse.json({ 
-          error: `User with email "${email}" not found. Please make sure the user has signed up.` 
+          error: `User with email "${email}" not found.\n\nDebug info:\n- Function returned: ${JSON.stringify(userData)}\n- Error: ${rpcError ? JSON.stringify(rpcError) : 'None'}\n\nPlease verify:\n1. The user has signed up with this exact email\n2. The database function 'get_user_by_email' exists and has correct permissions\n3. Try testing the function directly: SELECT * FROM get_user_by_email('${normalizedEmail}');` 
         }, { status: 404 })
       }
     } catch (err: any) {
       console.error('Error looking up user:', err)
       return NextResponse.json({ 
-        error: `Error looking up user: ${err.message || 'Unknown error'}. Please make sure the database function 'get_user_by_email' has been created.` 
+        error: `Error looking up user: ${err.message || 'Unknown error'}\n\nStack: ${err.stack || 'N/A'}` 
       }, { status: 500 })
     }
 
