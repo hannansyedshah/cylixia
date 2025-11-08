@@ -42,19 +42,25 @@ export function CollaborationPanel({ projectId, projectOwnerId }: CollaborationP
     try {
       setLoading(true)
       const response = await fetch(`/api/projects/${projectId}/collaborators`)
-      if (!response.ok) throw new Error('Failed to load collaborators')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to load collaborators')
+      }
       
       const data = await response.json()
+      console.log('Collaborators data:', data)
       setCollaborators(data.collaborators || [])
       
       // Check if current user can manage collaborators
-      const currentUserCollab = data.collaborators.find((c: Collaborator) => c.user_id === user?.id)
+      const currentUserCollab = data.collaborators?.find((c: Collaborator) => c.user_id === user?.id)
       setCanManage(
         projectOwnerId === user?.id || 
         currentUserCollab?.role === 'owner'
       )
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load collaborators:', error)
+      // Set empty array on error to prevent UI issues
+      setCollaborators([])
     } finally {
       setLoading(false)
     }

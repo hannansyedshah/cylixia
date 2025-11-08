@@ -18,11 +18,18 @@ export async function GET(
     // Check if user has access to this project
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, user_id, created_at')
+      .select('id, user_id, created_at, updated_at')
       .eq('id', projectId)
       .single()
 
-    if (projectError) throw projectError
+    if (projectError) {
+      console.error('Error fetching project:', projectError)
+      throw projectError
+    }
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
 
     // Check if user is owner or collaborator
     const { data: collaborator } = await supabase
@@ -37,30 +44,43 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Get all collaborators with their profiles
+    // Get all collaborators (without profile join - we'll fetch profiles separately)
     const { data: collaborators, error } = await supabase
       .from('project_collaborators')
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          display_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('project_id', projectId)
       .eq('status', 'accepted')
       .order('created_at', { ascending: true })
 
-    if (error) throw error
+    if (error) {
+      console.error('Error fetching collaborators:', error)
+      throw error
+    }
 
-    // Also include the project owner in the list
+    // Get all user IDs (owner + collaborators)
+    const allUserIds = [
+      project.user_id,
+      ...(collaborators || []).map((c: any) => c.user_id)
+    ]
+    const uniqueUserIds = [...new Set(allUserIds)]
+
+    // Fetch all profiles
+    let profiles: any[] = []
+    if (uniqueUserIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', uniqueUserIds)
+
+      if (!profilesError && profilesData) {
+        profiles = profilesData
+      } else if (profilesError) {
+        console.error('Error fetching profiles:', profilesError)
+      }
+    }
+
     // Get owner's profile
-    const { data: ownerProfile } = await supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url')
-      .eq('id', project.user_id)
-      .single()
+    const ownerProfile = profiles.find((p: any) => p.id === project.user_id)
 
     // Create owner collaborator entry
     const ownerCollaborator = {
@@ -73,10 +93,19 @@ export async function GET(
       profiles: ownerProfile || null
     }
 
+    // Add profiles to collaborators
+    const collaboratorsWithProfiles = (collaborators || []).map((collab: any) => {
+      const profile = profiles.find((p: any) => p.id === collab.user_id)
+      return {
+        ...collab,
+        profiles: profile || null
+      }
+    })
+
     // Combine owner with other collaborators
     const allCollaborators = [
       ownerCollaborator,
-      ...(collaborators || [])
+      ...collaboratorsWithProfiles
     ]
 
     // Remove duplicates (in case owner is also in project_collaborators)

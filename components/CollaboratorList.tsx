@@ -44,6 +44,14 @@ export function CollaboratorList({
     }
   }
 
+  if (collaborators.length === 0) {
+    return (
+      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
+        <p className="text-sm">No collaborators yet</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       {collaborators.map((collaborator) => {
