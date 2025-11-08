@@ -13,6 +13,12 @@ interface CodeVersion {
   plot_url?: string
   description: string
   created_at: string
+  user_id?: string
+  profiles?: {
+    id: string
+    display_name: string | null
+    avatar_url: string | null
+  }
 }
 
 interface VersionHistoryProps {
@@ -397,6 +403,11 @@ export function VersionHistory({
                                   )}
                                   <span className="font-semibold text-sm">
                                     Version {version.version_number}
+                                    {version.profiles?.display_name && (
+                                      <span className="text-gray-500 dark:text-gray-400 font-normal ml-2">
+                                        by {version.profiles.display_name}
+                                      </span>
+                                    )}
                                   </span>
                                   <span className="text-xs text-gray-500">
                                     {formatDate(version.created_at)}

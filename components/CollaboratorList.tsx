@@ -53,7 +53,7 @@ export function CollaboratorList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {collaborators.map((collaborator) => {
         const profile = collaborator.profiles
         const displayName = profile?.display_name || 'User'
@@ -62,51 +62,54 @@ export function CollaboratorList({
         return (
           <div
             key={collaborator.id}
-            className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
           >
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className="flex-shrink-0">
               <UserAvatar
                 userId={collaborator.user_id}
                 displayName={displayName}
                 avatarUrl={profile?.avatar_url}
                 size="sm"
               />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium truncate">
-                    {displayName}
-                    {isCurrentUser && ' (You)'}
-                  </span>
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${getRoleBadgeColor(collaborator.role)}`}>
-                    {collaborator.role}
-                  </span>
-                </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium truncate">
+                  {displayName}
+                  {isCurrentUser && <span className="text-gray-500 dark:text-gray-400"> (You)</span>}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${getRoleBadgeColor(collaborator.role)}`}>
+                  {collaborator.role}
+                </span>
+                {canManage && !isCurrentUser && (
+                  <>
+                    {onRoleChange && collaborator.role !== 'owner' && (
+                      <select
+                        value={collaborator.role}
+                        onChange={(e) => onRoleChange(collaborator.user_id, e.target.value as 'owner' | 'edit' | 'view')}
+                        className="text-xs px-2 py-1 border rounded-md bg-white dark:bg-gray-800 text-darktext dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        title="Change role"
+                      >
+                        <option value="view">View</option>
+                        <option value="edit">Edit</option>
+                        <option value="owner">Owner</option>
+                      </select>
+                    )}
+                    {onRemove && (
+                      <button
+                        onClick={() => onRemove(collaborator.user_id)}
+                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Remove collaborator"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
-            {canManage && !isCurrentUser && (
-              <div className="flex items-center space-x-1">
-                {onRoleChange && collaborator.role !== 'owner' && (
-                  <select
-                    value={collaborator.role}
-                    onChange={(e) => onRoleChange(collaborator.user_id, e.target.value as 'owner' | 'edit' | 'view')}
-                    className="text-xs px-2 py-1 border rounded-md bg-white dark:bg-gray-800 text-darktext dark:text-white"
-                  >
-                    <option value="view">View</option>
-                    <option value="edit">Edit</option>
-                    <option value="owner">Owner</option>
-                  </select>
-                )}
-                {onRemove && (
-                  <button
-                    onClick={() => onRemove(collaborator.user_id)}
-                    className="text-xs text-destructive hover:underline px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                    title="Remove collaborator"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         )
       })}

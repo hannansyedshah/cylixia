@@ -32,10 +32,12 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [userProfile, setUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const subscriptionRef = useRef<any>(null)
 
   useEffect(() => {
+    loadUserProfile()
     loadMessages()
     subscribeToMessages()
 
@@ -44,7 +46,23 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
         subscriptionRef.current.unsubscribe()
       }
     }
-  }, [projectId])
+  }, [projectId, user?.id])
+
+  const loadUserProfile = async () => {
+    if (!user?.id) return
+    try {
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setUserProfile({
+          display_name: data.profile?.display_name || null,
+          avatar_url: data.profile?.avatar_url || null
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error)
+    }
+  }
 
   useEffect(() => {
     scrollToBottom()
@@ -114,20 +132,46 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
     e.preventDefault()
     if (!newMessage.trim() || sending) return
 
+    const messageText = newMessage.trim()
     setSending(true)
+    
+    // Optimistically add the message to local state immediately
+    const tempMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      project_id: projectId,
+      user_id: user?.id || '',
+      message: messageText,
+      created_at: new Date().toISOString(),
+      profiles: {
+        id: user?.id || '',
+        display_name: userProfile?.display_name || user?.email || 'You',
+        avatar_url: userProfile?.avatar_url || null
+      }
+    }
+    setMessages(prev => [...prev, tempMessage])
+    setNewMessage('')
+
     try {
       const response = await fetch(`/api/projects/${projectId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: newMessage.trim() })
+        body: JSON.stringify({ message: messageText })
       })
 
       if (!response.ok) {
         const error = await response.json()
+        // Remove the temp message on error
+        setMessages(prev => prev.filter(m => m.id !== tempMessage.id))
         throw new Error(error.error || 'Failed to send message')
       }
 
-      setNewMessage('')
+      const data = await response.json()
+      // Replace temp message with real message
+      if (data.message) {
+        setMessages(prev => prev.map(m => 
+          m.id === tempMessage.id ? data.message : m
+        ))
+      }
     } catch (error: any) {
       alert(error.message || 'Failed to send message')
     } finally {
@@ -156,8 +200,8 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
         <CardTitle>Chat</CardTitle>
         <CardDescription>Collaborate with your team</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4">
+        <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 min-h-0">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 dark:text-gray-400 py-8">
               No messages yet. Start the conversation!
@@ -171,18 +215,20 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
               return (
                 <div
                   key={message.id}
-                  className={`flex items-start space-x-3 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}
+                  className={`flex items-start gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
                 >
-                  <UserAvatar
-                    userId={message.user_id}
-                    displayName={displayName}
-                    avatarUrl={avatarUrl}
-                    size="sm"
-                  />
-                  <div className={`flex-1 ${isCurrentUser ? 'text-right' : ''}`}>
-                    <div className="flex items-center space-x-2 mb-1">
+                  <div className="flex-shrink-0">
+                    <UserAvatar
+                      userId={message.user_id}
+                      displayName={displayName}
+                      avatarUrl={avatarUrl}
+                      size="sm"
+                    />
+                  </div>
+                  <div className={`flex-1 min-w-0 ${isCurrentUser ? 'flex items-end flex-col' : ''}`}>
+                    <div className={`flex items-baseline gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
                       <span className="text-sm font-medium">{displayName}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         {new Date(message.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -190,13 +236,13 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
                       </span>
                     </div>
                     <div
-                      className={`inline-block px-4 py-2 rounded-lg ${
+                      className={`inline-block max-w-[80%] px-4 py-2 rounded-lg break-words ${
                         isCurrentUser
                           ? 'bg-rstudio text-white'
                           : 'bg-gray-100 dark:bg-gray-800 text-darktext dark:text-white'
                       }`}
                     >
-                      {message.message}
+                      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
                     </div>
                   </div>
                 </div>
@@ -205,7 +251,7 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
           )}
           <div ref={messagesEndRef} />
         </div>
-        <form onSubmit={handleSend} className="flex items-center space-x-2">
+        <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
           <Input
             type="text"
             placeholder="Type a message..."
@@ -214,7 +260,7 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
             disabled={sending}
             className="flex-1"
           />
-          <Button type="submit" disabled={sending || !newMessage.trim()}>
+          <Button type="submit" disabled={sending || !newMessage.trim()} size="icon">
             {sending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (

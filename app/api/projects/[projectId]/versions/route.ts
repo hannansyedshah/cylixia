@@ -15,6 +15,7 @@ export async function GET(
 
     const { projectId } = await params
 
+    // Fetch versions without profile join (we'll fetch profiles separately)
     const { data: versions, error } = await supabase
       .from('code_versions')
       .select('*')
@@ -26,7 +27,32 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch versions' }, { status: 500 })
     }
 
-    return NextResponse.json({ versions })
+    // Get user IDs from versions
+    const userIds = [...new Set((versions || []).map((v: any) => v.user_id).filter(Boolean))]
+
+    // Fetch profiles separately
+    let profiles: any[] = []
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .in('id', userIds)
+
+      if (!profilesError && profilesData) {
+        profiles = profilesData
+      }
+    }
+
+    // Combine versions with profiles
+    const versionsWithProfiles = (versions || []).map((version: any) => {
+      const profile = profiles.find((p: any) => p.id === version.user_id)
+      return {
+        ...version,
+        profiles: profile || null
+      }
+    })
+
+    return NextResponse.json({ versions: versionsWithProfiles })
   } catch (error) {
     console.error('Versions API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -63,6 +89,11 @@ export async function POST(
 
     const nextVersionNumber = lastVersion ? lastVersion.version_number + 1 : 1
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { data: version, error } = await supabase
       .from('code_versions')
       .insert({
@@ -70,9 +101,10 @@ export async function POST(
         version_number: nextVersionNumber,
         code,
         plot_url,
-        description: description || `Version ${nextVersionNumber}`
+        description: description || `Version ${nextVersionNumber}`,
+        user_id: user.id
       })
-      .select()
+      .select('*')
       .single()
 
     if (error) {
@@ -80,7 +112,20 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create version' }, { status: 500 })
     }
 
-    return NextResponse.json({ version })
+    // Get profile for the version creator
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    // Combine version with profile
+    const versionWithProfile = {
+      ...version,
+      profiles: profile || null
+    }
+
+    return NextResponse.json({ version: versionWithProfile })
   } catch (error) {
     console.error('Create version API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
