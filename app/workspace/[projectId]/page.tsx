@@ -779,9 +779,11 @@ export default function WorkspacePage() {
     }
   }
 
-  const handleCodeChange = async (newCode: string) => {
+  const handleCodeChange = useCallback(async (newCode: string) => {
     if (project && mountedRef.current) {
-      setProject({ ...project, code: newCode })
+      const now = new Date().toISOString()
+      lastUpdateTimestampRef.current = now
+      setProject({ ...project, code: newCode, updated_at: now })
       // Debounce the API call - don't await to prevent blocking
       fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
@@ -793,7 +795,56 @@ export default function WorkspacePage() {
         }
       })
     }
-  }
+  }, [project, projectId])
+
+  // Track last update timestamp to avoid loops
+  const lastUpdateTimestampRef = useRef<string | null>(null)
+
+  // Subscribe to real-time code changes from other collaborators
+  useEffect(() => {
+    if (!projectId || !mountedRef.current) return
+
+    const channel = supabase
+      .channel(`project-code-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'projects',
+          filter: `id=eq.${projectId}`
+        },
+        (payload) => {
+          const newData = payload.new as any
+          // Ignore updates from current user (check timestamp)
+          if (newData.updated_at === lastUpdateTimestampRef.current) {
+            return
+          }
+          
+          if (newData.code && mountedRef.current) {
+            setProject((prevProject: any) => {
+              // Only update if the code is different (to avoid unnecessary updates)
+              if (prevProject && newData.code !== prevProject.code) {
+                return { ...prevProject, code: newData.code, updated_at: newData.updated_at }
+              }
+              return prevProject
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [projectId])
+
+  // Update last update timestamp when we save code
+  useEffect(() => {
+    if (project?.updated_at) {
+      lastUpdateTimestampRef.current = project.updated_at
+    }
+  }, [project?.updated_at])
 
   // Save dataset metadata when datasets change (debounced to avoid excessive saves)
   useEffect(() => {

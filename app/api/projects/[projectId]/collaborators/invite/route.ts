@@ -150,18 +150,65 @@ export async function POST(
         return NextResponse.json({ error: 'User is already a collaborator' }, { status: 409 })
       }
 
-      // Check if there's a pending request
-      const { data: pendingRequest } = await supabase
+      // Check if there's any existing request (any status)
+      const { data: existingRequest } = await supabase
         .from('collaboration_requests')
         .select('*')
         .eq('project_id', projectId)
         .eq('from_user_id', user.id)
         .eq('to_user_id', to_user_id)
-        .eq('status', 'pending')
         .single()
 
-      if (pendingRequest) {
-        return NextResponse.json({ error: 'Collaboration request already pending' }, { status: 409 })
+      if (existingRequest) {
+        if (existingRequest.status === 'pending') {
+          return NextResponse.json({ error: 'Collaboration request already pending' }, { status: 409 })
+        } else if (existingRequest.status === 'accepted') {
+          return NextResponse.json({ error: 'User is already a collaborator' }, { status: 409 })
+        } else {
+          // If declined or cancelled, update it to pending
+          const { data: updatedRequest, error: updateError } = await supabase
+            .from('collaboration_requests')
+            .update({
+              role: role,
+              message: message || null,
+              status: 'pending'
+            })
+            .eq('id', existingRequest.id)
+            .select()
+            .single()
+
+          if (updateError) {
+            console.error('Error updating collaboration request:', updateError)
+            throw updateError
+          }
+
+          // Update the collaborator entry too
+          if (to_user_id) {
+            const { data: collaborator, error: collaboratorError } = await supabase
+              .from('project_collaborators')
+              .upsert({
+                project_id: projectId,
+                user_id: to_user_id,
+                role: role,
+                invited_by: user.id,
+                status: 'pending'
+              }, {
+                onConflict: 'project_id,user_id'
+              })
+              .select()
+              .single()
+
+            if (collaboratorError) {
+              console.error('Error updating collaborator entry:', collaboratorError)
+            }
+          }
+
+          return NextResponse.json({ 
+            success: true,
+            message: 'Invitation sent successfully',
+            request: updatedRequest
+          })
+        }
       }
     }
 
@@ -181,6 +228,45 @@ export async function POST(
 
     if (requestError) {
       console.error('Error creating collaboration request:', requestError)
+      // Check if it's a duplicate key error
+      if (requestError.code === '23505' || requestError.message?.includes('duplicate key') || requestError.message?.includes('unique constraint')) {
+        // Try to get the existing request
+        const { data: existingRequest } = await supabase
+          .from('collaboration_requests')
+          .select('*')
+          .eq('project_id', projectId)
+          .eq('from_user_id', user.id)
+          .eq('to_user_id', to_user_id!)
+          .single()
+
+        if (existingRequest) {
+          if (existingRequest.status === 'pending') {
+            return NextResponse.json({ error: 'Collaboration request already pending' }, { status: 409 })
+          } else {
+            // Update existing request
+            const { data: updatedRequest, error: updateError } = await supabase
+              .from('collaboration_requests')
+              .update({
+                role: role,
+                message: message || null,
+                status: 'pending'
+              })
+              .eq('id', existingRequest.id)
+              .select()
+              .single()
+
+            if (updateError) {
+              throw updateError
+            }
+
+            return NextResponse.json({ 
+              success: true,
+              message: 'Invitation sent successfully',
+              request: updatedRequest
+            })
+          }
+        }
+      }
       throw requestError
     }
 

@@ -119,7 +119,12 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
               profiles: profile || null
             }
 
-            setMessages(prev => [...prev, newMessage])
+            // Prevent duplicate messages
+            setMessages(prev => {
+              const exists = prev.some(m => m.id === newMessage.id)
+              if (exists) return prev
+              return [...prev, newMessage]
+            })
           }
         }
       )
