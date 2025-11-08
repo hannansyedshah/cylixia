@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create collaboration request
-    const { data: request, error: requestError } = await supabase
+    const { data: collaborationRequest, error: requestError } = await supabase
       .from('collaboration_requests')
       .insert({
         project_id,
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     if (collaboratorError) throw collaboratorError
 
-    return NextResponse.json({ request, collaborator })
+    return NextResponse.json({ request: collaborationRequest, collaborator })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
