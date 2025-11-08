@@ -57,25 +57,50 @@ export async function POST(
     }
 
     // Look up user by email using a database function
-    const { data: userData, error: userLookupError } = await supabase.rpc('get_user_by_email', {
-      user_email: email.toLowerCase()
-    })
-
     let to_user_id: string | null = null
     
-    if (!userLookupError && userData && Array.isArray(userData) && userData.length > 0) {
-      to_user_id = userData[0].id
-    } else {
-      // User doesn't exist - they need to sign up first
-      return NextResponse.json({ 
-        error: `User with email "${email}" not found. The user must sign up first before you can invite them.` 
-      }, { status: 404 })
-    }
+    try {
+      const { data: userData, error: rpcError } = await supabase.rpc('get_user_by_email', {
+        user_email: email.toLowerCase()
+      })
 
-    if (!to_user_id) {
+      console.log('User lookup result:', { userData, rpcError, email: email.toLowerCase() })
+
+      if (rpcError) {
+        console.error('RPC error:', rpcError)
+        // Check if function doesn't exist
+        if (rpcError.code === '42883' || rpcError.message?.includes('does not exist')) {
+          return NextResponse.json({ 
+            error: `Database function 'get_user_by_email' not found. Please run the SQL schema to create it.` 
+          }, { status: 500 })
+        }
+      }
+
+      // Handle different response formats
+      if (userData) {
+        if (Array.isArray(userData) && userData.length > 0) {
+          to_user_id = userData[0].id
+        } else if (userData && typeof userData === 'object' && 'id' in userData) {
+          // Single object returned
+          to_user_id = userData.id
+        } else if (Array.isArray(userData) && userData.length === 0) {
+          // Empty array - user not found
+          return NextResponse.json({ 
+            error: `User with email "${email}" not found. Please make sure the user has signed up.` 
+          }, { status: 404 })
+        }
+      }
+
+      if (!to_user_id) {
+        return NextResponse.json({ 
+          error: `User with email "${email}" not found. Please make sure the user has signed up.` 
+        }, { status: 404 })
+      }
+    } catch (err: any) {
+      console.error('Error looking up user:', err)
       return NextResponse.json({ 
-        error: 'Could not find user with this email address' 
-      }, { status: 404 })
+        error: `Error looking up user: ${err.message || 'Unknown error'}. Please make sure the database function 'get_user_by_email' has been created.` 
+      }, { status: 500 })
     }
 
     // Check if collaboration already exists

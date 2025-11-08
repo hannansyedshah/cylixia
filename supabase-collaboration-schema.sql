@@ -398,6 +398,7 @@ BEGIN
 END $$;
 
 -- Function to get user by email (for invitation system)
+-- This function allows looking up users by email address
 CREATE OR REPLACE FUNCTION public.get_user_by_email(user_email TEXT)
 RETURNS TABLE(id UUID, email TEXT) AS $$
 BEGIN
@@ -405,8 +406,16 @@ BEGIN
   SELECT au.id, au.email
   FROM auth.users au
   WHERE LOWER(au.email) = LOWER(user_email);
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Return empty result on error
+    RETURN;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO anon;
 
 -- Note: If the above ALTER PUBLICATION commands fail, you may need to enable Realtime manually in Supabase Dashboard:
 -- 1. Go to Database > Replication
