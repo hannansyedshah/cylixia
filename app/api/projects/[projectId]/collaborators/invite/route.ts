@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabaseServer'
 
+// GET - just to verify the route exists
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  return NextResponse.json({ message: 'Invite endpoint is working' })
+}
+
 // POST send invitation by email
 export async function POST(
   request: NextRequest,
@@ -107,17 +115,19 @@ export async function POST(
         }
       }
 
-      // If still not found, try alternative: query all profiles and match by trying to get user email
-      // This is a workaround if the function doesn't work
+      // If still not found, provide helpful debugging info
       if (!to_user_id) {
-        console.log('Trying alternative lookup method...')
-        // We can't directly query auth.users, but we can try to find the user
-        // by checking if they can authenticate with this email
-        // Actually, we can't do that either from server-side without admin access
+        console.log('User not found. Debugging info:', {
+          email: normalizedEmail,
+          functionResult: userData,
+          functionError: rpcError,
+          isArray: Array.isArray(userData),
+          arrayLength: Array.isArray(userData) ? userData.length : 'N/A'
+        })
         
-        // Return helpful error with debugging info
+        // Return helpful error with instructions
         return NextResponse.json({ 
-          error: `User with email "${email}" not found.\n\nDebug info:\n- Function returned: ${JSON.stringify(userData)}\n- Error: ${rpcError ? JSON.stringify(rpcError) : 'None'}\n\nPlease verify:\n1. The user has signed up with this exact email\n2. The database function 'get_user_by_email' exists and has correct permissions\n3. Try testing the function directly: SELECT * FROM get_user_by_email('${normalizedEmail}');` 
+          error: `User with email "${email}" not found in the system.\n\nPossible reasons:\n1. The user hasn't signed up yet\n2. The email is different (check for typos, spaces, or case differences)\n3. The user signed up with a different email address\n\nTo verify:\n1. Ask the user to check their account email\n2. Try searching for them by display name instead\n3. Test the function in Supabase SQL Editor:\n   SELECT * FROM get_user_by_email('${normalizedEmail}');\n\nIf the function returns empty, the user doesn't exist in auth.users.` 
         }, { status: 404 })
       }
     } catch (err: any) {

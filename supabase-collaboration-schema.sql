@@ -399,23 +399,40 @@ END $$;
 
 -- Function to get user by email (for invitation system)
 -- This function allows looking up users by email address
+-- Note: This function requires SECURITY DEFINER to access auth.users
 CREATE OR REPLACE FUNCTION public.get_user_by_email(user_email TEXT)
 RETURNS TABLE(id UUID, email TEXT) AS $$
+DECLARE
+  normalized_email TEXT;
 BEGIN
+  -- Normalize the email
+  normalized_email := LOWER(TRIM(user_email));
+  
+  -- Query auth.users table
   RETURN QUERY
-  SELECT au.id, au.email
+  SELECT 
+    au.id::UUID, 
+    au.email::TEXT
   FROM auth.users au
-  WHERE LOWER(au.email) = LOWER(user_email);
+  WHERE LOWER(TRIM(au.email)) = normalized_email
+  LIMIT 1;
+  
+  -- If no results, return empty
+  RETURN;
 EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE EXCEPTION 'Function does not have permission to access auth.users';
   WHEN OTHERS THEN
-    -- Return empty result on error
+    -- Log the error but return empty result
+    RAISE WARNING 'Error in get_user_by_email: %', SQLERRM;
     RETURN;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
--- Grant execute permission to authenticated users
+-- Grant execute permission
 GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO service_role;
 
 -- Note: If the above ALTER PUBLICATION commands fail, you may need to enable Realtime manually in Supabase Dashboard:
 -- 1. Go to Database > Replication
