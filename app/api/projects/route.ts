@@ -18,22 +18,37 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
 
-    if (ownedError) throw ownedError
+    if (ownedError) {
+      console.error('Error fetching owned projects:', ownedError)
+      throw ownedError
+    }
 
     // Get projects where user is a collaborator (if table exists)
     let collaboratorProjects: any[] = []
     try {
+      // First, get the project IDs where user is a collaborator
       const { data: collabData, error: collabError } = await supabase
         .from('project_collaborators')
-        .select(`
-          projects:project_id (*)
-        `)
+        .select('project_id')
         .eq('user_id', user.id)
         .eq('status', 'accepted')
-        .order('created_at', { ascending: false })
 
-      if (!collabError && collabData) {
-        collaboratorProjects = collabData.map((cp: any) => cp.projects).filter(Boolean)
+      if (!collabError && collabData && collabData.length > 0) {
+        // Extract project IDs
+        const projectIds = collabData.map((cp: any) => cp.project_id).filter(Boolean)
+        
+        // Then fetch the actual projects
+        if (projectIds.length > 0) {
+          const { data: projects, error: projectsError } = await supabase
+            .from('projects')
+            .select('*')
+            .in('id', projectIds)
+            .order('updated_at', { ascending: false })
+
+          if (!projectsError && projects) {
+            collaboratorProjects = projects
+          }
+        }
       }
     } catch (error) {
       // If table doesn't exist or query fails, just use owned projects
