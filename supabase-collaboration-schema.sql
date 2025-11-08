@@ -92,16 +92,13 @@ CREATE POLICY "Users can insert their own profile"
 
 -- RLS Policies for project_collaborators table
 -- Collaborators can view collaborators for projects they're part of
+-- Fixed: Avoid infinite recursion by checking projects table first and allowing users to see their own rows
 DROP POLICY IF EXISTS "Collaborators can view project collaborators" ON project_collaborators;
 CREATE POLICY "Collaborators can view project collaborators"
   ON project_collaborators FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = project_collaborators.project_id
-      AND pc.user_id = auth.uid()
-      AND pc.status = 'accepted'
-    )
+    -- Users can always see their own collaboration rows
+    user_id = auth.uid()
     OR EXISTS (
       SELECT 1 FROM projects
       WHERE projects.id = project_collaborators.project_id
@@ -110,6 +107,7 @@ CREATE POLICY "Collaborators can view project collaborators"
   );
 
 -- Project owners can insert collaborators
+-- Fixed: Only check projects table to avoid recursion
 DROP POLICY IF EXISTS "Project owners can add collaborators" ON project_collaborators;
 CREATE POLICY "Project owners can add collaborators"
   ON project_collaborators FOR INSERT
@@ -119,16 +117,10 @@ CREATE POLICY "Project owners can add collaborators"
       WHERE projects.id = project_collaborators.project_id
       AND projects.user_id = auth.uid()
     )
-    OR EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = project_collaborators.project_id
-      AND pc.user_id = auth.uid()
-      AND pc.role = 'owner'
-      AND pc.status = 'accepted'
-    )
   );
 
 -- Project owners can update collaborators
+-- Fixed: Only check projects table to avoid recursion
 DROP POLICY IF EXISTS "Project owners can update collaborators" ON project_collaborators;
 CREATE POLICY "Project owners can update collaborators"
   ON project_collaborators FOR UPDATE
@@ -137,13 +129,6 @@ CREATE POLICY "Project owners can update collaborators"
       SELECT 1 FROM projects
       WHERE projects.id = project_collaborators.project_id
       AND projects.user_id = auth.uid()
-    )
-    OR EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = project_collaborators.project_id
-      AND pc.user_id = auth.uid()
-      AND pc.role = 'owner'
-      AND pc.status = 'accepted'
     )
   );
 
@@ -155,6 +140,7 @@ CREATE POLICY "Users can update their own collaboration status"
   WITH CHECK (auth.uid() = user_id);
 
 -- Project owners can delete collaborators
+-- Fixed: Only check projects table to avoid recursion
 DROP POLICY IF EXISTS "Project owners can delete collaborators" ON project_collaborators;
 CREATE POLICY "Project owners can delete collaborators"
   ON project_collaborators FOR DELETE
@@ -163,13 +149,6 @@ CREATE POLICY "Project owners can delete collaborators"
       SELECT 1 FROM projects
       WHERE projects.id = project_collaborators.project_id
       AND projects.user_id = auth.uid()
-    )
-    OR EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = project_collaborators.project_id
-      AND pc.user_id = auth.uid()
-      AND pc.role = 'owner'
-      AND pc.status = 'accepted'
     )
   );
 
@@ -181,24 +160,16 @@ CREATE POLICY "Users can view their collaboration requests"
   USING (auth.uid() = from_user_id OR auth.uid() = to_user_id);
 
 -- Users can create collaboration requests
+-- Fixed: Only check projects table to avoid recursion
 DROP POLICY IF EXISTS "Users can create collaboration requests" ON collaboration_requests;
 CREATE POLICY "Users can create collaboration requests"
   ON collaboration_requests FOR INSERT
   WITH CHECK (
     auth.uid() = from_user_id
-    AND (
-      EXISTS (
-        SELECT 1 FROM projects
-        WHERE projects.id = collaboration_requests.project_id
-        AND projects.user_id = auth.uid()
-      )
-      OR EXISTS (
-        SELECT 1 FROM project_collaborators pc
-        WHERE pc.project_id = collaboration_requests.project_id
-        AND pc.user_id = auth.uid()
-        AND pc.role = 'owner'
-        AND pc.status = 'accepted'
-      )
+    AND EXISTS (
+      SELECT 1 FROM projects
+      WHERE projects.id = collaboration_requests.project_id
+      AND projects.user_id = auth.uid()
     )
   );
 
@@ -218,42 +189,46 @@ CREATE POLICY "Users can cancel their sent requests"
 
 -- RLS Policies for project_chat_messages table
 -- Collaborators can read messages for projects they're part of
+-- Fixed: Use a SECURITY DEFINER function to avoid recursion
+CREATE OR REPLACE FUNCTION public.can_view_project_messages(project_uuid UUID, user_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  -- Check if user is project owner
+  IF EXISTS (
+    SELECT 1 FROM public.projects
+    WHERE id = project_uuid
+    AND user_id = user_uuid
+  ) THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- Check if user is a collaborator
+  RETURN EXISTS (
+    SELECT 1 FROM public.project_collaborators
+    WHERE project_id = project_uuid
+    AND user_id = user_uuid
+    AND status = 'accepted'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
 DROP POLICY IF EXISTS "Collaborators can read chat messages" ON project_chat_messages;
 CREATE POLICY "Collaborators can read chat messages"
   ON project_chat_messages FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = project_chat_messages.project_id
-      AND pc.user_id = auth.uid()
-      AND pc.status = 'accepted'
-    )
-    OR EXISTS (
-      SELECT 1 FROM projects
-      WHERE projects.id = project_chat_messages.project_id
-      AND projects.user_id = auth.uid()
-    )
+    -- Users can see messages they sent
+    user_id = auth.uid()
+    OR public.can_view_project_messages(project_chat_messages.project_id, auth.uid())
   );
 
 -- Collaborators can write messages for projects they're part of
+-- Fixed: Use a SECURITY DEFINER function to avoid recursion
 DROP POLICY IF EXISTS "Collaborators can write chat messages" ON project_chat_messages;
 CREATE POLICY "Collaborators can write chat messages"
   ON project_chat_messages FOR INSERT
   WITH CHECK (
     auth.uid() = user_id
-    AND (
-      EXISTS (
-        SELECT 1 FROM project_collaborators pc
-        WHERE pc.project_id = project_chat_messages.project_id
-        AND pc.user_id = auth.uid()
-        AND pc.status = 'accepted'
-      )
-      OR EXISTS (
-        SELECT 1 FROM projects
-        WHERE projects.id = project_chat_messages.project_id
-        AND projects.user_id = auth.uid()
-      )
-    )
+    AND public.can_view_project_messages(project_chat_messages.project_id, auth.uid())
   );
 
 -- Update projects RLS policies to allow collaborators to view/edit
@@ -264,30 +239,48 @@ DROP POLICY IF EXISTS "Users and collaborators can view projects" ON projects;
 DROP POLICY IF EXISTS "Users and collaborators can update projects" ON projects;
 
 -- New policy: Users and collaborators can view projects
+-- Fixed: Use a SECURITY DEFINER function to avoid recursion
+CREATE OR REPLACE FUNCTION public.is_project_collaborator(project_uuid UUID, user_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.project_collaborators
+    WHERE project_id = project_uuid
+    AND user_id = user_uuid
+    AND status = 'accepted'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+DROP POLICY IF EXISTS "Users and collaborators can view projects" ON projects;
 CREATE POLICY "Users and collaborators can view projects"
   ON projects FOR SELECT
   USING (
     auth.uid() = user_id
-    OR EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = projects.id
-      AND pc.user_id = auth.uid()
-      AND pc.status = 'accepted'
-    )
+    OR public.is_project_collaborator(projects.id, auth.uid())
   );
 
 -- New policy: Users and collaborators with edit/owner role can update projects
+-- Fixed: Use a SECURITY DEFINER function to avoid recursion
+CREATE OR REPLACE FUNCTION public.can_edit_project(project_uuid UUID, user_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.project_collaborators
+    WHERE project_id = project_uuid
+    AND user_id = user_uuid
+    AND role IN ('owner', 'edit')
+    AND status = 'accepted'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+DROP POLICY IF EXISTS "Users and collaborators can update projects" ON projects;
 CREATE POLICY "Users and collaborators can update projects"
   ON projects FOR UPDATE
   USING (
     auth.uid() = user_id
-    OR EXISTS (
-      SELECT 1 FROM project_collaborators pc
-      WHERE pc.project_id = projects.id
-      AND pc.user_id = auth.uid()
-      AND pc.role IN ('owner', 'edit')
-      AND pc.status = 'accepted'
-    )
+    OR public.can_edit_project(projects.id, auth.uid())
   );
 
 -- Create trigger to update updated_at for profiles

@@ -5,17 +5,21 @@ import { Moon, Sun } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 
 export function ThemeToggle() {
-  // Initialize with proper value immediately to prevent layout shift
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark'
-    }
-    return false
-  })
+  // Always start with false to match server render (prevents hydration mismatch)
+  const [isDark, setIsDark] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Mark as mounted to indicate client-side hydration is complete
+    setMounted(true)
+    
+    // Read theme from localStorage after mount
+    const storedTheme = localStorage.getItem('theme')
+    const shouldBeDark = storedTheme === 'dark'
+    setIsDark(shouldBeDark)
+    
     // Sync theme class on mount
-    if (isDark) {
+    if (shouldBeDark) {
       document.documentElement.classList.add('dark')
     } else {
       document.documentElement.classList.remove('dark')
@@ -32,6 +36,17 @@ export function ThemeToggle() {
       document.documentElement.classList.remove('dark')
       localStorage.setItem('theme', 'light')
     }
+  }
+
+  // Don't render the switch until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="flex items-center space-x-2">
+        <Sun className="h-4 w-4" />
+        <Switch checked={false} onCheckedChange={() => {}} disabled />
+        <Moon className="h-4 w-4" />
+      </div>
+    )
   }
 
   return (
