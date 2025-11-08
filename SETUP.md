@@ -39,15 +39,30 @@ BACKEND_API_URL=http://localhost:8000
 
 # Set to 'false' to use real Supabase auth
 NEXT_PUBLIC_USE_MOCK_AUTH=false
+
+# Signup Invite Code (Server-side only - DO NOT use NEXT_PUBLIC_ prefix)
+# Generate the hash using: node scripts/generate-signup-hash.js "your-secret-phrase"
+SIGNUP_CODE_HASH=your-generated-hash-here
 ```
 
-### 4. Enable Email Auth
+### 4. Set Up Secure Signup Invite Code
+
+1. Choose a strong secret phrase for signup (e.g., "my-secure-invite-code-2024")
+2. Generate the hash for your secret phrase:
+   ```bash
+   node scripts/generate-signup-hash.js "your-secret-phrase"
+   ```
+3. Copy the generated hash and add it to your `.env.local` file as `SIGNUP_CODE_HASH`
+4. **Important**: Never commit your secret phrase or the hash to version control
+5. Users will need to enter your secret phrase to sign up
+
+### 5. Enable Email Auth
 
 1. In Supabase dashboard, go to **Authentication** → **Providers**
 2. Make sure **Email** is enabled
 3. (Optional) Configure email templates under **Authentication** → **Email Templates**
 
-### 5. Run the Applicationf
+### 6. Run the Application
 
 ```bash
 npm install
@@ -71,6 +86,11 @@ Open [http://localhost:3001](http://localhost:3001)
 - **Row Level Security (RLS)**: Users can only see/edit their own projects
 - **Server-side validation**: All API routes verify user authentication
 - **Secure by default**: Supabase handles password hashing, tokens, etc.
+- **Brute-force protection**: Signup invite code validation includes:
+  - Rate limiting (max 5 attempts per hour per IP)
+  - 15-minute block after max attempts
+  - Timing-safe comparison to prevent timing attacks
+  - Server-side hashing (secret phrase never exposed to client)
 
 ## 📊 Database Schema
 
