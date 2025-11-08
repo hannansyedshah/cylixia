@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { CodeEditorCollaborative } from '@/components/CodeEditorCollaborative'
 import { CollaborationPanel } from '@/components/CollaborationPanel'
 import { ProjectChat } from '@/components/ProjectChat'
+import { InviteCollaboratorModal } from '@/components/InviteCollaboratorModal'
 import { PlotViewer } from '@/components/PlotViewer'
 import { TerminalView } from '@/components/TerminalView'
 import { UploadPanel } from '@/components/UploadPanel'
@@ -16,7 +17,7 @@ import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
-import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X } from 'lucide-react'
+import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -59,6 +60,7 @@ export default function WorkspacePage() {
   const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40) // Will be updated based on mode
   const [userRole, setUserRole] = useState<'owner' | 'edit' | 'view' | null>(null)
   const [showCollaborationSidebar, setShowCollaborationSidebar] = useState<boolean>(false)
+  const [showInviteModal, setShowInviteModal] = useState<boolean>(false)
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -949,18 +951,8 @@ export default function WorkspacePage() {
       <div className="h-[calc(100vh-80px)] flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-purple-950/30">
         {/* Project Header */}
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCollaborationSidebar(!showCollaborationSidebar)}
-              className="flex items-center space-x-2"
-            >
-              <Users className="w-4 h-4" />
-              <span>Collaborate</span>
-            </Button>
-          </div>
-          <div className="flex items-center space-x-3">
+          {/* Left: Project Title and Leave Button */}
+          <div className="flex items-center space-x-3 flex-1">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="h-5 w-5" />
@@ -988,7 +980,34 @@ export default function WorkspacePage() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          
+          {/* Middle: Collaborators Button */}
+          <div className="flex items-center justify-center flex-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCollaborationSidebar(!showCollaborationSidebar)}
+              className="flex items-center space-x-2"
+            >
+              <Users className="w-4 h-4" />
+              <span>Collaborate</span>
+            </Button>
+          </div>
+          
+          {/* Right: Add Collaborators Button and other actions */}
+          <div className="flex items-center gap-2 flex-1 justify-end">
+            {/* Add Collaborators Button - only show if user is owner or has edit role */}
+            {(userRole === 'owner' || userRole === 'edit') && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center space-x-2 bg-rstudio hover:bg-rstudio/90 text-white"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Add Collaborators</span>
+              </Button>
+            )}
             {/* Datasets dropdown trigger */}
             <Button 
               size="sm" 
@@ -1369,6 +1388,21 @@ export default function WorkspacePage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Invite Collaborator Modal */}
+        {showInviteModal && (
+          <InviteCollaboratorModal
+            projectId={projectId}
+            onClose={() => setShowInviteModal(false)}
+            onSuccess={() => {
+              // Refresh collaboration panel if sidebar is open
+              if (showCollaborationSidebar) {
+                // The CollaborationPanel will refresh on its own
+                setShowInviteModal(false)
+              }
+            }}
+          />
         )}
         </div>
       </div>
