@@ -74,7 +74,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json() as { to_user_id?: string; role?: string; message?: string }
     const { to_user_id, role, message } = body
 
     if (!to_user_id || !role) {
@@ -136,7 +136,7 @@ export async function POST(
     }
 
     // Create collaboration request
-    const { data: request, error: requestError } = await supabase
+    const { data: collaborationRequest, error: requestError } = await supabase
       .from('collaboration_requests')
       .insert({
         project_id: projectId,
@@ -166,7 +166,7 @@ export async function POST(
 
     if (collaboratorError) throw collaboratorError
 
-    return NextResponse.json({ request, collaborator })
+    return NextResponse.json({ request: collaborationRequest, collaborator })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
