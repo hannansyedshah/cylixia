@@ -5,6 +5,9 @@ import { useRouter, useParams, usePathname } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ChatBox } from '@/components/ChatBox'
 import { CodeEditor } from '@/components/CodeEditor'
+import { CodeEditorCollaborative } from '@/components/CodeEditorCollaborative'
+import { CollaborationPanel } from '@/components/CollaborationPanel'
+import { ProjectChat } from '@/components/ProjectChat'
 import { PlotViewer } from '@/components/PlotViewer'
 import { TerminalView } from '@/components/TerminalView'
 import { UploadPanel } from '@/components/UploadPanel'
@@ -13,7 +16,7 @@ import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
-import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2 } from 'lucide-react'
+import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -54,6 +57,8 @@ export default function WorkspacePage() {
   const [editorKey, setEditorKey] = useState<number>(0)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [estimatedSeconds, setEstimatedSeconds] = useState<number>(40) // Will be updated based on mode
+  const [userRole, setUserRole] = useState<'owner' | 'edit' | 'view' | null>(null)
+  const [showCollaborationSidebar, setShowCollaborationSidebar] = useState<boolean>(false)
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -106,6 +111,24 @@ export default function WorkspacePage() {
           messages: data.project.messages || []
         }
         setProject(projectWithMessages)
+        
+        // Check user role (owner or collaborator)
+        const isOwner = data.project.user_id === user?.id
+        if (isOwner) {
+          setUserRole('owner')
+        } else {
+          // Check if user is a collaborator
+          const collabResponse = await fetch(`/api/projects/${projectId}/collaborators`)
+          if (collabResponse.ok) {
+            const collabData = await collabResponse.json()
+            const currentUserCollab = collabData.collaborators?.find((c: any) => c.user_id === user?.id)
+            if (currentUserCollab) {
+              setUserRole(currentUserCollab.role as 'owner' | 'edit' | 'view')
+            } else {
+              setUserRole('view') // Default to view if no role found
+            }
+          }
+        }
         
         // Load saved dataset metadata from project.dataset field
         isInitialLoadRef.current = true // Mark as initial load to prevent saving
@@ -926,6 +949,17 @@ export default function WorkspacePage() {
       <div className="h-[calc(100vh-80px)] flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-purple-950/30">
         {/* Project Header */}
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCollaborationSidebar(!showCollaborationSidebar)}
+              className="flex items-center space-x-2"
+            >
+              <Users className="w-4 h-4" />
+              <span>Collaborate</span>
+            </Button>
+          </div>
           <div className="flex items-center space-x-3">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon">
@@ -1244,13 +1278,23 @@ export default function WorkspacePage() {
               </div>
             </div>
             <div className="flex-1 min-h-0">
-              <CodeEditor key={editorKey} value={project.code} onChange={handleCodeChange} />
+              {userRole === 'view' ? (
+                <CodeEditor key={editorKey} value={project.code} onChange={handleCodeChange} />
+              ) : (
+                <CodeEditorCollaborative 
+                  key={editorKey} 
+                  value={project.code} 
+                  onChange={handleCodeChange}
+                  projectId={projectId}
+                  readOnly={userRole === 'view'}
+                />
+              )}
             </div>
           </div>
         </div>
 
           {/* Right Pane - Plot / Terminal - Scrollable */}
-          <div className="w-1/2 bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-y-auto min-w-0">
+          <div className={`${showCollaborationSidebar ? 'w-[calc(50%-320px)]' : 'w-1/2'} bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-y-auto min-w-0`}>
             {/* Plot Display Section - Scrollable content */}
             <div className="flex-1 flex flex-col min-h-0">
               <div className="p-2 bg-gradient-to-r from-gray-100 to-blue-50 dark:from-gray-800 dark:to-blue-950 border-b flex items-center justify-between flex-shrink-0">
@@ -1301,6 +1345,31 @@ export default function WorkspacePage() {
               </div>
             </div>
           </div>
+
+        {/* Collaboration Sidebar */}
+        {showCollaborationSidebar && (
+          <div className="fixed right-0 top-[80px] h-[calc(100vh-80px)] w-80 bg-white dark:bg-gray-800 border-l shadow-2xl z-40 flex flex-col overflow-hidden">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold">Collaboration</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCollaborationSidebar(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <CollaborationPanel 
+                projectId={projectId}
+                projectOwnerId={project?.user_id}
+              />
+              <div className="h-[400px]">
+                <ProjectChat projectId={projectId} />
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </Layout>

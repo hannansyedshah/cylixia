@@ -98,13 +98,27 @@ export function Header() {
           {/* Reserve space for buttons to prevent layout shift - always reserve max width */}
           <div className="flex items-center space-x-2 min-w-[180px]">
             {pathname.startsWith('/workspace') || pathname === '/dashboard' ? (
-              <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto">
-                Logout
-              </Button>
+              <>
+                <Link href="/profile" className="flex-shrink-0">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    Profile
+                  </Button>
+                </Link>
+                <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto">
+                  Logout
+                </Button>
+              </>
             ) : actualUser ? (
-              <Link href="/dashboard" className="w-full sm:w-auto">
-                <Button className="w-full sm:w-auto">Dashboard</Button>
-              </Link>
+              <>
+                <Link href="/profile" className="flex-shrink-0">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    Profile
+                  </Button>
+                </Link>
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto">Dashboard</Button>
+                </Link>
+              </>
             ) : (
               <>
                 <Link href="/login" className="flex-shrink-0">

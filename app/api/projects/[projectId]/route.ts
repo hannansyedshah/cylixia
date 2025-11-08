@@ -20,17 +20,36 @@ export async function GET(
     }
 
     console.log('📡 API: Fetching project from database...')
-    // Get project
+    // Get project - check if user is owner or collaborator
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
-      .eq('user_id', user.id)
       .single()
 
     if (projectError) {
       console.error('💥 API: Project error:', projectError)
       throw projectError
+    }
+
+    // Check if user has access (owner or collaborator)
+    const isOwner = project.user_id === user.id
+    let hasAccess = isOwner
+
+    if (!isOwner) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .eq('status', 'accepted')
+        .single()
+
+      hasAccess = !!collaborator
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     console.log('📡 API: Fetching messages...')
@@ -94,11 +113,41 @@ export async function PATCH(
     delete updates.user_id
     delete updates.created_at
 
+    // Check if user has edit access
+    const { data: projectCheck } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', projectId)
+      .single()
+
+    if (!projectCheck) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    const isOwner = projectCheck.user_id === user.id
+    let canEdit = isOwner
+
+    if (!isOwner) {
+      const { data: collaborator } = await supabase
+        .from('project_collaborators')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .eq('status', 'accepted')
+        .in('role', ['owner', 'edit'])
+        .single()
+
+      canEdit = !!collaborator
+    }
+
+    if (!canEdit) {
+      return NextResponse.json({ error: 'You do not have permission to edit this project' }, { status: 403 })
+    }
+
     const { data: project, error } = await supabase
       .from('projects')
       .update(updates)
       .eq('id', projectId)
-      .eq('user_id', user.id)
       .select()
       .single()
 
@@ -122,6 +171,21 @@ export async function DELETE(
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Only owners can delete projects
+    const { data: project } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', projectId)
+      .single()
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    if (project.user_id !== user.id) {
+      return NextResponse.json({ error: 'Only project owners can delete projects' }, { status: 403 })
     }
 
     const { error } = await supabase

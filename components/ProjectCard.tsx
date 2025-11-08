@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, FolderOpen, Calendar, Edit2 } from 'lucide-react'
+import { Trash2, FolderOpen, Edit2, Calendar, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface ProjectCardProps {
@@ -12,11 +12,12 @@ interface ProjectCardProps {
   description: string
   createdAt: number
   updatedAt: number
+  isShared?: boolean
   onDelete: (id: string) => void
   onEdit: (id: string) => void
 }
 
-export function ProjectCard({ id, name, description, createdAt, updatedAt, onDelete, onEdit }: ProjectCardProps) {
+export function ProjectCard({ id, name, description, createdAt, updatedAt, isShared, onDelete, onEdit }: ProjectCardProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -76,8 +77,14 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, onDel
             </Button>
           </div>
         </div>
-        <CardTitle className="text-xl group-hover:text-rstudio transition-colors">
-          {name}
+        <CardTitle className="text-xl group-hover:text-rstudio transition-colors flex items-center space-x-2">
+          <span>{name}</span>
+          {isShared && (
+            <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 rounded-full flex items-center space-x-1">
+              <Users className="w-3 h-3" />
+              <span>Shared</span>
+            </span>
+          )}
         </CardTitle>
         <CardDescription className="line-clamp-2">
           {description || 'No description'}
