@@ -31,9 +31,22 @@ function getClientIdentifier(request: NextRequest): string {
   // Use IP address for rate limiting
   // In production behind a proxy, use X-Forwarded-For header
   const forwarded = request.headers.get('x-forwarded-for')
-  const ip = forwarded ? forwarded.split(',')[0].trim() : 
-             request.headers.get('x-real-ip') || 
-             'unknown'
+  const realIp = request.headers.get('x-real-ip')
+  
+  // Try to get IP from various headers (for different proxy configurations)
+  let ip = forwarded ? forwarded.split(',')[0].trim() : 
+           realIp || 
+           request.ip ||
+           'unknown'
+  
+  // For localhost/development, use a combination of IP and User-Agent to differentiate users
+  // This helps with testing but still provides protection
+  if (ip === '::1' || ip === '127.0.0.1' || ip === 'unknown' || !ip) {
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    // Create a simple hash-like identifier for localhost users
+    ip = `localhost-${userAgent.substring(0, 20)}`
+  }
+  
   return ip
 }
 
@@ -61,16 +74,12 @@ function verifySecret(input: string, expectedHash: string): boolean {
   }
 }
 
-function checkRateLimit(identifier: string): { allowed: boolean; retryAfter?: number } {
+function checkRateLimit(identifier: string): { allowed: boolean; retryAfter?: number; remainingAttempts?: number } {
   const now = Date.now()
   const entry = rateLimitStore.get(identifier)
 
   if (!entry) {
-    rateLimitStore.set(identifier, {
-      attempts: 0,
-      lastAttempt: now
-    })
-    return { allowed: true }
+    return { allowed: true, remainingAttempts: MAX_ATTEMPTS }
   }
 
   // Check if currently blocked
@@ -83,11 +92,8 @@ function checkRateLimit(identifier: string): { allowed: boolean; retryAfter?: nu
 
   // Reset if window expired
   if (entry.lastAttempt < now - WINDOW_DURATION) {
-    rateLimitStore.set(identifier, {
-      attempts: 0,
-      lastAttempt: now
-    })
-    return { allowed: true }
+    rateLimitStore.delete(identifier)
+    return { allowed: true, remainingAttempts: MAX_ATTEMPTS }
   }
 
   // Check if max attempts reached
@@ -104,21 +110,38 @@ function checkRateLimit(identifier: string): { allowed: boolean; retryAfter?: nu
     }
   }
 
-  return { allowed: true }
+  const remainingAttempts = MAX_ATTEMPTS - entry.attempts
+  return { allowed: true, remainingAttempts }
 }
 
-function recordFailedAttempt(identifier: string) {
+function recordFailedAttempt(identifier: string): { attempts: number; remainingAttempts: number; blocked: boolean } {
   const now = Date.now()
   const entry = rateLimitStore.get(identifier) || {
     attempts: 0,
     lastAttempt: now
   }
 
-  rateLimitStore.set(identifier, {
-    ...entry,
-    attempts: entry.attempts + 1,
-    lastAttempt: now
-  })
+  const newAttempts = entry.attempts + 1
+  const remainingAttempts = MAX_ATTEMPTS - newAttempts
+  let blocked = false
+
+  // If max attempts reached, block the user
+  if (newAttempts >= MAX_ATTEMPTS) {
+    const blockedUntil = now + BLOCK_DURATION
+    rateLimitStore.set(identifier, {
+      attempts: newAttempts,
+      lastAttempt: now,
+      blockedUntil
+    })
+    blocked = true
+  } else {
+    rateLimitStore.set(identifier, {
+      attempts: newAttempts,
+      lastAttempt: now
+    })
+  }
+
+  return { attempts: newAttempts, remainingAttempts, blocked }
 }
 
 function recordSuccess(identifier: string) {
@@ -140,14 +163,15 @@ export async function POST(request: NextRequest) {
     // Get client identifier for rate limiting
     const identifier = getClientIdentifier(request)
 
-    // Check rate limit
+    // Check if already blocked
     const rateLimit = checkRateLimit(identifier)
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: `Too many failed attempts. Please try again in ${Math.ceil((rateLimit.retryAfter || 0) / 60)} minutes.`,
           valid: false,
-          retryAfter: rateLimit.retryAfter
+          retryAfter: rateLimit.retryAfter,
+          remainingAttempts: 0
         },
         { status: 429 } // Too Many Requests
       )
@@ -169,12 +193,34 @@ export async function POST(request: NextRequest) {
 
     if (isValid) {
       recordSuccess(identifier)
-      return NextResponse.json({ valid: true })
+      return NextResponse.json({ valid: true, remainingAttempts: MAX_ATTEMPTS })
     } else {
-      recordFailedAttempt(identifier)
-      // Don't reveal whether the code was close or not
+      // Record failed attempt and get remaining attempts
+      const attemptResult = recordFailedAttempt(identifier)
+      
+      if (attemptResult.blocked) {
+        return NextResponse.json(
+          {
+            error: `Too many failed attempts. Please try again in ${Math.ceil(BLOCK_DURATION / 60000)} minutes.`,
+            valid: false,
+            remainingAttempts: 0,
+            retryAfter: Math.ceil(BLOCK_DURATION / 1000)
+          },
+          { status: 429 }
+        )
+      }
+
+      // Return error with remaining attempts
+      const attemptsText = attemptResult.remainingAttempts === 1 
+        ? '1 attempt remaining' 
+        : `${attemptResult.remainingAttempts} attempts remaining`
+      
       return NextResponse.json(
-        { error: 'Invalid invite code', valid: false },
+        {
+          error: `Invalid invite code. You have ${attemptsText}.`,
+          valid: false,
+          remainingAttempts: attemptResult.remainingAttempts
+        },
         { status: 401 }
       )
     }

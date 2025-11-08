@@ -17,6 +17,7 @@ export function SignupForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null)
   const router = useRouter()
   const setUser = useSessionStore((state) => state.setUser)
 
@@ -24,24 +25,55 @@ export function SignupForm() {
     e.preventDefault()
     setError('')
     setSuccess('')
-
-    // Enforce invite code if configured
-    const expectedCode = process.env.NEXT_PUBLIC_SIGNUP_CODE
-    if (!expectedCode) {
-      setError('⚠️ Signup invite code not configured. Set NEXT_PUBLIC_SIGNUP_CODE in .env.local')
-      return
-    }
-    if (inviteCode.trim() !== expectedCode) {
-      setError('Invalid invite code')
-      return
-    }
+    setRemainingAttempts(null)
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
     }
 
+    // Validate invite code server-side
+    if (!inviteCode.trim()) {
+      setError('Invite code is required')
+      return
+    }
+
     setLoading(true)
+
+    try {
+      // Validate invite code via secure API route
+      const validateResponse = await fetch('/api/signup/validate-invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inviteCode: inviteCode.trim() }),
+      })
+
+      const validateData = await validateResponse.json()
+
+      if (!validateData.valid) {
+        // Update remaining attempts
+        if (validateData.remainingAttempts !== undefined) {
+          setRemainingAttempts(validateData.remainingAttempts)
+        }
+        
+        if (validateResponse.status === 429) {
+          setError(validateData.error || 'Too many failed attempts. Please try again later.')
+        } else {
+          setError(validateData.error || 'Invalid invite code')
+        }
+        setLoading(false)
+        return
+      } else {
+        // Reset remaining attempts on success
+        setRemainingAttempts(null)
+      }
+    } catch (err: any) {
+      setError('Failed to validate invite code. Please try again.')
+      setLoading(false)
+      return
+    }
 
     try {
       // Check if Supabase is configured
@@ -95,10 +127,21 @@ export function SignupForm() {
               type="text"
               placeholder="Enter invite code"
               value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
+              onChange={(e) => {
+                setInviteCode(e.target.value)
+                // Reset remaining attempts when user starts typing a new code
+                if (e.target.value.trim() === '') {
+                  setRemainingAttempts(null)
+                }
+              }}
               required
               className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
             />
+            {remainingAttempts !== null && remainingAttempts > 0 && (
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
@@ -137,7 +180,19 @@ export function SignupForm() {
             />
           </div>
           {error && (
-            <p className="text-sm text-destructive bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">{error}</p>
+            <div className="space-y-2">
+              <p className="text-sm text-destructive bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">{error}</p>
+              {remainingAttempts !== null && remainingAttempts > 0 && (
+                <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg font-semibold">
+                  ⚠️ {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining
+                </p>
+              )}
+              {remainingAttempts === 0 && (
+                <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg font-semibold">
+                  🔒 Account locked. Please wait before trying again.
+                </p>
+              )}
+            </div>
           )}
           {success && (
             <p className="text-sm text-green-700 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">{success}</p>
