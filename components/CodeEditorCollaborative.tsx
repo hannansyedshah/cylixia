@@ -52,6 +52,12 @@ export function CodeEditorCollaborative({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const presenceChannelRef = useRef<any>(null)
   const typingStateRef = useRef<{ [userId: string]: TypingUser }>({})
+  const editLockEnabledRef = useRef(enableEditLock)
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    editLockEnabledRef.current = editLockEnabled
+  }, [editLockEnabled])
 
   const { isConnected, broadcastCodeChange } = useRealtimeProject({
     projectId,
@@ -90,7 +96,7 @@ export function CodeEditorCollaborative({
               if (presence.lockEnabled) {
                 foundLockEnabled = true
               }
-              // Check if someone is typing
+              // Check if someone is typing (always show typing, not just when lock is on)
               if (presence.typing) {
                 typingStateRef.current[presence.userId] = {
                   userId: presence.userId,
@@ -103,40 +109,45 @@ export function CodeEditorCollaborative({
           })
         })
         
-        // If someone else has lock enabled, sync our state
-        // But only if we're not the one who just turned it off
-        if (foundLockEnabled && !editLockEnabled) {
-          // Check if the lock is enabled by another user (not ourselves)
+        // Update typing user (show even when lock is off)
+        if (foundTyping) {
+          const firstTyping = Object.values(typingStateRef.current)[0]
+          setTypingUser(firstTyping as TypingUser)
+        } else {
+          setTypingUser(null)
+        }
+        
+        // Sync lock state from other users
+        const currentLockState = editLockEnabledRef.current
+        if (foundLockEnabled && !currentLockState) {
+          // Another user has lock enabled, sync our state
+          setEditLockEnabled(true)
+          if (onEditLockChange) {
+            onEditLockChange(true)
+          }
+        } else if (!foundLockEnabled && currentLockState) {
+          // No one has lock enabled, but we think it's on - only turn off if we didn't just enable it
+          // This prevents race conditions
           const otherUserHasLock = Object.values(state).some((presences: any) => {
             return presences.some((p: any) => 
               p.userId !== user?.id && p.lockEnabled
             )
           })
-          
-          if (otherUserHasLock) {
-            setEditLockEnabled(true)
+          if (!otherUserHasLock) {
+            // No one else has lock, but check if we should keep it on
+            // Only turn off if we're sure no one has it
+            setEditLockEnabled(false)
             if (onEditLockChange) {
-              onEditLockChange(true)
+              onEditLockChange(false)
             }
-          }
-        } else if (!foundLockEnabled && editLockEnabled) {
-          // If no one has lock enabled, turn it off
-          setEditLockEnabled(false)
-          if (onEditLockChange) {
-            onEditLockChange(false)
           }
         }
         
-        if (foundTyping) {
-          const firstTyping = Object.values(typingStateRef.current)[0]
-          setTypingUser(firstTyping as TypingUser)
+        // Update locked state based on lock enabled and typing
+        if (editLockEnabledRef.current && foundTyping) {
           setIsLocked(true)
-        } else {
-          setTypingUser(null)
-          // Only unlock if no one else has lock enabled
-          if (!foundLockEnabled) {
-            setIsLocked(false)
-          }
+        } else if (!foundLockEnabled) {
+          setIsLocked(false)
         }
       })
 
@@ -145,13 +156,13 @@ export function CodeEditorCollaborative({
         newPresences.forEach((presence: any) => {
           if (presence.userId !== user?.id) {
             // Check if lock is enabled by another user (not ourselves)
-            if (presence.lockEnabled && !editLockEnabled) {
+            if (presence.lockEnabled && !editLockEnabledRef.current) {
               setEditLockEnabled(true)
               if (onEditLockChange) {
                 onEditLockChange(true)
               }
             }
-            // Check if typing
+            // Check if typing (always show, not just when lock is on)
             if (presence.typing) {
               typingStateRef.current[presence.userId] = {
                 userId: presence.userId,
@@ -159,7 +170,9 @@ export function CodeEditorCollaborative({
                 avatarUrl: presence.avatarUrl
               }
               setTypingUser(typingStateRef.current[presence.userId])
-              setIsLocked(true)
+              if (editLockEnabledRef.current) {
+                setIsLocked(true)
+              }
             }
           }
         })
@@ -205,7 +218,7 @@ export function CodeEditorCollaborative({
           displayName: profile?.display_name || user.email || 'User',
           avatarUrl: profile?.avatar_url,
           typing: false,
-          lockEnabled: editLockEnabled
+          lockEnabled: editLockEnabledRef.current
         })
       }
     })
@@ -217,64 +230,95 @@ export function CodeEditorCollaborative({
         presenceChannelRef.current.unsubscribe()
       }
     }
-  }, [projectId, user, editLockEnabled])
+  }, [projectId, user])
+  
+  // Update presence when lock state changes
+  useEffect(() => {
+    if (presenceChannelRef.current && user) {
+      // Update presence with new lock state
+      presenceChannelRef.current.track({
+        userId: user.id,
+        displayName: user.email || 'User',
+        typing: false,
+        lockEnabled: editLockEnabled
+      }).catch((err: any) => {
+        console.error('Failed to update presence:', err)
+      })
+    }
+  }, [editLockEnabled, user])
 
   // Broadcast typing status and lock state
   const broadcastTyping = async (isTyping: boolean) => {
     if (!presenceChannelRef.current || !user) return
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, avatar_url')
-      .eq('id', user.id)
-      .single()
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('id', user.id)
+        .single()
 
-    await presenceChannelRef.current.track({
-      userId: user.id,
-      displayName: profile?.display_name || user.email || 'User',
-      avatarUrl: profile?.avatar_url,
-      typing: isTyping,
-      lockEnabled: editLockEnabled
-    })
+      await presenceChannelRef.current.track({
+        userId: user.id,
+        displayName: profile?.display_name || user.email || 'User',
+        avatarUrl: profile?.avatar_url,
+        typing: isTyping,
+        lockEnabled: editLockEnabledRef.current
+      })
+    } catch (error) {
+      console.error('Failed to broadcast typing:', error)
+    }
   }
 
   // Broadcast lock state change
   const broadcastLockState = async (enabled: boolean) => {
     if (!presenceChannelRef.current || !user) return
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, avatar_url')
-      .eq('id', user.id)
-      .single()
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('id', user.id)
+        .single()
 
-    await presenceChannelRef.current.track({
-      userId: user.id,
-      displayName: profile?.display_name || user.email || 'User',
-      avatarUrl: profile?.avatar_url,
-      typing: false,
-      lockEnabled: enabled
-    })
+      await presenceChannelRef.current.track({
+        userId: user.id,
+        displayName: profile?.display_name || user.email || 'User',
+        avatarUrl: profile?.avatar_url,
+        typing: false,
+        lockEnabled: enabled
+      })
+      
+      // Update ref immediately
+      editLockEnabledRef.current = enabled
+    } catch (error) {
+      console.error('Failed to broadcast lock state:', error)
+    }
   }
 
-  // Clear typing status after inactivity
+  // Clear typing status after inactivity (always broadcast typing, not just when lock is on)
   useEffect(() => {
-    if (!editLockEnabled || !user) return
+    if (!user) return
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current)
     }
 
-    typingTimeoutRef.current = setTimeout(() => {
-      broadcastTyping(false)
-    }, 2000) // Stop typing after 2 seconds of inactivity
+    // Always broadcast typing status, not just when lock is enabled
+    if (localValue && !readOnly) {
+      broadcastTyping(true)
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        broadcastTyping(false)
+      }, 2000) // Stop typing after 2 seconds of inactivity
+    }
 
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
       }
     }
-  }, [localValue, editLockEnabled, user])
+  }, [localValue, user, readOnly])
 
   useEffect(() => {
     setLocalValue(value)
@@ -299,7 +343,7 @@ export function CodeEditorCollaborative({
 
   const handleChange = (newValue: string | undefined) => {
     // Check if locked
-    if (isLocked && editLockEnabled) {
+    if (isLocked && editLockEnabledRef.current) {
       return // Don't allow editing when locked
     }
 
@@ -308,8 +352,8 @@ export function CodeEditorCollaborative({
     isLocalChangeRef.current = true
     onChange(code)
     
-    // Broadcast typing status
-    if (editLockEnabled && !readOnly) {
+    // Always broadcast typing status (not just when lock is enabled)
+    if (!readOnly) {
       broadcastTyping(true)
     }
     
@@ -543,10 +587,9 @@ export function CodeEditorCollaborative({
           </button>
         )}
 
-        {/* Typing Indicator */}
-        {editLockEnabled && typingUser && (
-          <div className="flex items-center gap-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded text-xs text-yellow-700 dark:text-yellow-300">
-            <Lock className="w-3 h-3" />
+        {/* Typing Indicator - Show always, not just when lock is enabled */}
+        {typingUser && (
+          <div className="flex items-center gap-2 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded text-xs text-blue-700 dark:text-blue-300">
             <UserAvatar
               userId={typingUser.userId}
               displayName={typingUser.displayName}
