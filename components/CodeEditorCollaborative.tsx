@@ -433,6 +433,9 @@ export function CodeEditorCollaborative({
     }
   }
 
+  // Calculate effective read-only state
+  const effectiveReadOnly = readOnly || (isLocked && editLockEnabled)
+
   // Update editor readOnly when prop changes
   useEffect(() => {
     if (editorRef.current) {
@@ -614,8 +617,6 @@ export function CodeEditorCollaborative({
       setSendingSelection(false)
     }
   }
-
-  const effectiveReadOnly = readOnly || (isLocked && editLockEnabled)
 
   return (
     <div className="relative h-full">
