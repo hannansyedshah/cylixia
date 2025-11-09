@@ -597,7 +597,7 @@ export function UploadPanel({
                   onChange={(e) => setDontShowShareConfirm(e.target.checked)}
                   className="rounded"
                 />
-                <span>Don't show this again</span>
+                <span>Don&apos;t show this again</span>
               </label>
             </div>
             <div className="flex items-center justify-end gap-3">
