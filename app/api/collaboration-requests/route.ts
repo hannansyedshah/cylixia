@@ -39,9 +39,11 @@ export async function GET(request: NextRequest) {
     // Get project IDs
     const projectIds = [...new Set(requests.map((r: any) => r.project_id).filter(Boolean))]
     
-    // Get projects
+    // Get projects - use service role to bypass RLS for pending invites
+    // Users should be able to see project names for invites they've received
     let projects: any[] = []
     if (projectIds.length > 0) {
+      // First try with regular client (works if user is owner or accepted collaborator)
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('id, name, description')
@@ -51,6 +53,30 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching projects:', projectsError)
       } else if (projectsData) {
         projects = projectsData
+      }
+
+      // If we didn't get all projects (due to RLS), fetch missing ones using service role
+      const fetchedProjectIds = new Set(projects.map((p: any) => p.id))
+      const missingProjectIds = projectIds.filter((id: string) => !fetchedProjectIds.has(id))
+      
+      if (missingProjectIds.length > 0 && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        // Use service role client to bypass RLS for pending invites
+        const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+        const serviceClient = createServiceClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        
+        const { data: missingProjects, error: missingError } = await serviceClient
+          .from('projects')
+          .select('id, name, description')
+          .in('id', missingProjectIds)
+
+        if (!missingError && missingProjects) {
+          projects = [...projects, ...missingProjects]
+        } else if (missingError) {
+          console.error('Error fetching missing projects with service role:', missingError)
+        }
       }
     }
 

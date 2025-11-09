@@ -139,16 +139,39 @@ export async function POST(
 
     // Check if collaboration already exists
     if (to_user_id) {
-      const { data: existing } = await supabase
+      // Check if user is already an accepted collaborator
+      const { data: existingAccepted } = await supabase
         .from('project_collaborators')
         .select('*')
         .eq('project_id', projectId)
         .eq('user_id', to_user_id)
+        .eq('status', 'accepted')
         .single()
 
-      if (existing && existing.status === 'accepted') {
+      if (existingAccepted) {
         return NextResponse.json({ error: 'User is already a collaborator' }, { status: 409 })
       }
+
+      // Check if there's a pending collaborator entry
+      const { data: existingPending } = await supabase
+        .from('project_collaborators')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', to_user_id)
+        .eq('status', 'pending')
+        .single()
+
+      if (existingPending) {
+        return NextResponse.json({ error: 'Collaboration request already pending' }, { status: 409 })
+      }
+
+      // Clean up any declined records for this user
+      await supabase
+        .from('project_collaborators')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('user_id', to_user_id)
+        .in('status', ['declined'])
 
       // Check if there's any existing request (any status)
       const { data: existingRequest } = await supabase

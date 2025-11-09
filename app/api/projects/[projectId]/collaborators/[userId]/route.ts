@@ -106,7 +106,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot remove project owner' }, { status: 400 })
     }
 
-    // Delete collaborator
+    // Delete collaborator (all statuses - accepted, pending, declined)
     const { error } = await supabase
       .from('project_collaborators')
       .delete()
@@ -115,13 +115,13 @@ export async function DELETE(
 
     if (error) throw error
 
-    // Also cancel any pending requests
+    // Also cancel any pending or accepted requests
     await supabase
       .from('collaboration_requests')
       .update({ status: 'cancelled' })
       .eq('project_id', projectId)
       .eq('to_user_id', userId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'accepted'])
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
