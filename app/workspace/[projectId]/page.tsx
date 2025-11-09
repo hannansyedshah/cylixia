@@ -563,6 +563,12 @@ export default function WorkspacePage() {
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
 
+    // Prevent view-only users from sending messages
+    if (userRole === 'view') {
+      alert('View-only access: You cannot send messages in the AI chat.')
+      return
+    }
+
     if (!mountedRef.current) return
     
     const controller = new AbortController()
@@ -1372,22 +1378,30 @@ export default function WorkspacePage() {
                   </div>
                 )}
                 {/* AI Mode now in header; removed here to save space */}
-                {/* Prompt Input */}
-                <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Ask me anything about your data... (e.g., 'make a regression plot')"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      disabled={loading}
-                      className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
-                    />
-                    <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
-                      <Send className="h-4 w-4" />
-                    </Button>
+                {/* Prompt Input - Disabled for view-only users */}
+                {userRole !== 'view' ? (
+                  <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="Ask me anything about your data... (e.g., 'make a regression plot')"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        disabled={loading}
+                        className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
+                      />
+                      <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 border-t bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm">
+                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span>View-only access: Chat is disabled</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
