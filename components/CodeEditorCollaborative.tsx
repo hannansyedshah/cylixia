@@ -119,27 +119,27 @@ export function CodeEditorCollaborative({
         }
         
         // Sync lock state from other users - if ANYONE has it on, everyone should see it on
-        // Check if ANY user (including ourselves) has lock enabled
-        let anyoneHasLock = false
+        // Check if ANY OTHER user (excluding ourselves) has lock enabled
+        let anyoneElseHasLock = false
         Object.values(state).forEach((presences: any) => {
           presences.forEach((presence: any) => {
-            if (presence.lockEnabled) {
-              anyoneHasLock = true
+            if (presence.userId !== user?.id && presence.lockEnabled) {
+              anyoneElseHasLock = true
             }
           })
         })
         
-        // Sync our lock state to match if anyone has it enabled
+        // Sync our lock state to match if anyone ELSE has it enabled
         // But don't override if user explicitly toggled it recently
-        if (anyoneHasLock && !editLockEnabledRef.current && !userToggledLockRef.current) {
-          // Someone has lock enabled, sync our state to ON (only if user didn't just toggle it off)
+        if (anyoneElseHasLock && !editLockEnabledRef.current && !userToggledLockRef.current) {
+          // Someone else has lock enabled, sync our state to ON (only if user didn't just toggle it off)
           setEditLockEnabled(true)
           editLockEnabledRef.current = true
           if (onEditLockChange) {
             onEditLockChange(true)
           }
-        } else if (!anyoneHasLock && editLockEnabledRef.current && !userToggledLockRef.current) {
-          // No one has lock enabled, sync our state to OFF (only if user didn't just toggle it on)
+        } else if (!anyoneElseHasLock && editLockEnabledRef.current && !userToggledLockRef.current) {
+          // No one else has lock enabled, sync our state to OFF (only if user didn't just toggle it on)
           setEditLockEnabled(false)
           editLockEnabledRef.current = false
           if (onEditLockChange) {
@@ -250,6 +250,13 @@ export function CodeEditorCollaborative({
   // Update presence when lock state changes - this broadcasts to all users
   useEffect(() => {
     if (presenceChannelRef.current && user) {
+      // Only update if user didn't just toggle (to avoid double broadcast)
+      // The toggleEditLock function already broadcasts, so we skip here if user just toggled
+      if (userToggledLockRef.current) {
+        // User just toggled, skip this update (toggleEditLock already broadcasted)
+        return
+      }
+      
       const updatePresence = async () => {
         try {
           // Get current profile for display name
@@ -327,7 +334,7 @@ export function CodeEditorCollaborative({
         .eq('id', user.id)
         .single()
 
-      await presenceChannelRef.current.track({
+      const trackPromise = presenceChannelRef.current.track({
         userId: user.id,
         displayName: profile?.display_name || user.email || 'User',
         avatarUrl: profile?.avatar_url,
@@ -337,6 +344,11 @@ export function CodeEditorCollaborative({
       
       // Update ref immediately
       editLockEnabledRef.current = enabled
+      
+      // Wait for the track to complete to ensure it's broadcasted
+      await Promise.resolve(trackPromise)
+      
+      console.log(`🔒 Lock state broadcasted: ${enabled ? 'ON' : 'OFF'}`)
     } catch (error) {
       console.error('Failed to broadcast lock state:', error)
     }
@@ -417,7 +429,7 @@ export function CodeEditorCollaborative({
   const toggleEditLock = async () => {
     const newValue = !editLockEnabled
     
-    // Mark that user explicitly toggled the lock
+    // Mark that user explicitly toggled the lock - prevent sync from overriding
     userToggledLockRef.current = true
     
     // Update local state immediately
@@ -430,7 +442,8 @@ export function CodeEditorCollaborative({
       onEditLockChange(newValue)
     }
     
-    // Broadcast lock state change to all users
+    // Broadcast lock state change to all users FIRST
+    // This ensures other users see the change immediately
     await broadcastLockState(newValue)
     
     if (!newValue) {
@@ -438,10 +451,11 @@ export function CodeEditorCollaborative({
       await broadcastTyping(false)
     }
     
-    // Reset the flag after a short delay to allow sync again
+    // Reset the flag after a longer delay to prevent sync from overriding
+    // This gives time for the broadcast to propagate
     setTimeout(() => {
       userToggledLockRef.current = false
-    }, 1000)
+    }, 2000)
   }
 
   // Calculate effective read-only state
