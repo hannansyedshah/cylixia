@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import { Upload, X, Eye, Share2, Users } from 'lucide-react'
+import { Upload, X, Eye, Share2, Users, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataPreview } from '@/components/DataPreview'
 import { UserAvatar } from './UserAvatar'
@@ -210,6 +210,50 @@ export function UploadPanel({
     }
   }
   
+  const handleRestoreSharedDataset = (sharedItem: SharedDataset) => {
+    // Check if already in local datasets
+    const alreadyExists = datasets.some(d => 
+      d.fileName === sharedItem.file_name && d.csvText
+    )
+    
+    if (alreadyExists) {
+      return // Already in local datasets
+    }
+    
+    // Check if we're at the limit
+    const activeCount = datasets.filter(d => d.csvText).length
+    if (activeCount >= 5) {
+      alert('Maximum 5 datasets allowed. Please remove one first.')
+      return
+    }
+    
+    // Convert shared dataset to local dataset item
+    const localItem: DatasetItem = {
+      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fileName: sharedItem.file_name,
+      sizeBytes: sharedItem.size_bytes,
+      persisted: false,
+      includeChat: sharedItem.include_chat,
+      includeRun: sharedItem.include_run,
+      csvText: sharedItem.csv_text,
+    }
+    
+    // Check if there's a placeholder with the same file name
+    const placeholderIndex = datasets.findIndex(
+      d => d.fileName === sharedItem.file_name && d.persisted && !d.csvText
+    )
+    
+    if (placeholderIndex >= 0) {
+      // Replace placeholder with the shared dataset
+      const updated = [...datasets]
+      updated[placeholderIndex] = localItem
+      notifyChange(updated)
+    } else {
+      // Add new item
+      notifyChange([...datasets, localItem])
+    }
+  }
+  
   const handlePreviewOpen = (item: DatasetItem | SharedDataset) => {
     const csvText = 'csvText' in item 
       ? item.csvText 
@@ -315,6 +359,10 @@ export function UploadPanel({
             {sharedDatasets.map(item => {
               const isOwner = item.user_id === currentUserId
               const sharerName = item.profiles?.display_name || 'User'
+              // Check if this shared dataset is already in local datasets
+              const isInLocalDatasets = datasets.some(d => 
+                d.fileName === item.file_name && d.csvText
+              )
               return (
                 <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
                   <span className="inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-300 dark:border-green-700">
@@ -336,6 +384,22 @@ export function UploadPanel({
                   <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
                     <Eye className="h-3.5 w-3.5 mr-1" /> Preview
                   </Button>
+                  {!isInLocalDatasets && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleRestoreSharedDataset(item)} 
+                      className="h-7 px-2 text-green-600 border-green-300 hover:bg-green-100 dark:hover:bg-green-900/20"
+                      title="Add to My Datasets"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                    </Button>
+                  )}
+                  {isInLocalDatasets && (
+                    <span className="text-xs text-green-600 dark:text-green-400 font-medium px-2">
+                      ✓ Added
+                    </span>
+                  )}
                   <label className="ml-auto text-xs flex items-center gap-1">
                     <input type="checkbox" checked={item.include_chat} disabled /> Chat
                   </label>
