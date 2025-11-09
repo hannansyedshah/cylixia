@@ -256,13 +256,15 @@ export function CodeEditorCollaborative({
         .single()
         .then(({ data: profile }) => {
           if (presenceChannelRef.current) {
-            presenceChannelRef.current.track({
+            const trackPromise = presenceChannelRef.current.track({
               userId: user.id,
               displayName: profile?.display_name || user.email || 'User',
               avatarUrl: profile?.avatar_url,
               typing: false,
               lockEnabled: editLockEnabled
-            }).catch((err: any) => {
+            })
+            // Handle PromiseLike by wrapping in Promise.resolve
+            Promise.resolve(trackPromise).catch((err: any) => {
               console.error('Failed to update presence:', err)
             })
           }
@@ -271,12 +273,14 @@ export function CodeEditorCollaborative({
           console.error('Failed to load profile:', err)
           // Fallback without profile
           if (presenceChannelRef.current) {
-            presenceChannelRef.current.track({
+            const trackPromise = presenceChannelRef.current.track({
               userId: user.id,
               displayName: user.email || 'User',
               typing: false,
               lockEnabled: editLockEnabled
-            }).catch((err: any) => {
+            })
+            // Handle PromiseLike by wrapping in Promise.resolve
+            Promise.resolve(trackPromise).catch((err: any) => {
               console.error('Failed to update presence:', err)
             })
           }
