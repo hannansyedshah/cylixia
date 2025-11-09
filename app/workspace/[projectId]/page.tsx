@@ -1540,9 +1540,13 @@ export default function WorkspacePage() {
                 </Button>
               </div>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 relative">
               {userRole === 'view' ? (
-                <CodeEditor key={`editor-${editorKey}-view`} value={project.code} onChange={() => {}} readOnly={true} />
+                <>
+                  <CodeEditor key={`editor-${editorKey}-view`} value={project.code} onChange={() => {}} readOnly={true} />
+                  {/* Beautiful gradient overlay for view-only mode */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-cyan-50/30 to-sky-50/40 dark:from-blue-950/40 dark:via-cyan-950/30 dark:to-sky-950/40 pointer-events-none z-10"></div>
+                </>
               ) : (
                 <CodeEditorCollaborative 
                   key={`editor-${editorKey}-${userRole}`} 
