@@ -1369,12 +1369,25 @@ export default function WorkspacePage() {
                 size="sm" 
                 variant="outline" 
                 onClick={() => setShowDatasetsPanel(v => !v)} 
-                className={`h-8 px-3 ${datasets.some(d => d.persisted && !d.csvText) ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
+                className={`h-8 px-3 ${datasets.some(d => {
+                  if (!d.persisted || d.csvText) return false
+                  // Don't show if file is shared (available as shared dataset)
+                  const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                  return !isShared
+                }) ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
               >
                 Datasets ({datasets.length})
-                {datasets.some(d => d.persisted && !d.csvText) && (
+                {datasets.some(d => {
+                  if (!d.persisted || d.csvText) return false
+                  const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                  return !isShared
+                }) && (
                   <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-yellow-900">
-                    {datasets.filter(d => d.persisted && !d.csvText).length} need re-upload
+                    {datasets.filter(d => {
+                      if (!d.persisted || d.csvText) return false
+                      const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                      return !isShared
+                    }).length} need re-upload
                   </span>
                 )}
               </Button>
@@ -1408,7 +1421,12 @@ export default function WorkspacePage() {
         {/* Datasets dropdown panel - hide for view-only users */}
         {showDatasetsPanel && userRole !== 'view' && (
           <div className="px-4 pt-2">
-            {datasets.some(d => d.persisted && !d.csvText) && (
+            {datasets.some(d => {
+              if (!d.persisted || d.csvText) return false
+              // Don't show if file is shared (available as shared dataset)
+              const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+              return !isShared
+            }) && (
               <div className="mb-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-400 dark:border-yellow-600">
                 <div className="flex items-start gap-2">
                   <span className="text-xl">⚠️</span>
@@ -1417,11 +1435,31 @@ export default function WorkspacePage() {
                       Files Need to be Re-uploaded
                     </p>
                     <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-1">
-                      This project previously had {datasets.filter(d => d.persisted && !d.csvText).length} file{datasets.filter(d => d.persisted && !d.csvText).length > 1 ? 's' : ''} uploaded. 
-                      Please re-upload {datasets.filter(d => d.persisted && !d.csvText).length > 1 ? 'them' : 'it'} below to use {datasets.filter(d => d.persisted && !d.csvText).length > 1 ? 'them' : 'it'} again:
+                      This project previously had {datasets.filter(d => {
+                        if (!d.persisted || d.csvText) return false
+                        const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                        return !isShared
+                      }).length} file{datasets.filter(d => {
+                        if (!d.persisted || d.csvText) return false
+                        const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                        return !isShared
+                      }).length > 1 ? 's' : ''} uploaded. 
+                      Please re-upload {datasets.filter(d => {
+                        if (!d.persisted || d.csvText) return false
+                        const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                        return !isShared
+                      }).length > 1 ? 'them' : 'it'} below to use {datasets.filter(d => {
+                        if (!d.persisted || d.csvText) return false
+                        const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                        return !isShared
+                      }).length > 1 ? 'them' : 'it'} again:
                     </p>
                     <ul className="mt-2 text-xs text-yellow-800 dark:text-yellow-200 list-disc list-inside">
-                      {datasets.filter(d => d.persisted && !d.csvText).map(d => (
+                      {datasets.filter(d => {
+                        if (!d.persisted || d.csvText) return false
+                        const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+                        return !isShared
+                      }).map(d => (
                         <li key={d.id}>{d.fileName}</li>
                       ))}
                     </ul>

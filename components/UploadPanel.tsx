@@ -290,8 +290,13 @@ export function UploadPanel({
         </div>
       )}
 
-      {/* Info about saved files */}
-      {datasets.some(d => d.persisted && !d.csvText) && (
+      {/* Info about saved files - only show if there are placeholders that aren't shared */}
+      {datasets.some(d => {
+        if (!d.persisted || d.csvText) return false
+        // Don't show if file is shared (available as shared dataset, regardless of who uploaded it)
+        const isShared = sharedDatasets.some(sd => sd.file_name === d.fileName)
+        return !isShared
+      }) && (
         <div className="mt-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
           <p className="text-xs text-yellow-800 dark:text-yellow-300">
             💡 <strong>Files needed:</strong> These files were previously uploaded to this project. Please re-upload them to use them again.
@@ -370,18 +375,20 @@ export function UploadPanel({
             {datasets.map(item => {
               const isPlaceholder = item.persisted && !item.csvText
               const isShared = sharedDatasets.some(sd => sd.file_name === item.fileName)
+              // Don't show placeholder styling if file is shared (available as shared dataset)
+              const shouldShowPlaceholder = isPlaceholder && !isShared
               return (
                 <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${
-                  isPlaceholder 
+                  shouldShowPlaceholder 
                     ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700' 
                     : 'bg-white dark:bg-gray-800'
                 }`}>
                   <span className={`inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium ${
-                    isPlaceholder
+                    shouldShowPlaceholder
                       ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'
                       : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
                   }`}>
-                    {isPlaceholder ? '⚠️' : '📊'} <span className="ml-1 truncate">{item.fileName}</span>
+                    {shouldShowPlaceholder ? '⚠️' : '📊'} <span className="ml-1 truncate">{item.fileName}</span>
                     {isShared && (
                       <span className="ml-1 px-1 py-0.5 rounded text-[10px] bg-green-500 text-white">Shared</span>
                     )}
@@ -389,7 +396,7 @@ export function UploadPanel({
                   {item.sizeBytes > 0 && (
                     <span className="text-[10px] text-gray-500">{(item.sizeBytes/1024).toFixed(1)} KB</span>
                   )}
-                  {isPlaceholder ? (
+                  {shouldShowPlaceholder ? (
                     <span className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
                       Re-upload needed
                     </span>
@@ -418,10 +425,10 @@ export function UploadPanel({
                     </>
                   )}
                   <label className="ml-auto text-xs flex items-center gap-1">
-                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} /> Chat
+                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={shouldShowPlaceholder} /> Chat
                   </label>
                   <label className="text-xs flex items-center gap-1">
-                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={isPlaceholder} /> Run
+                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={shouldShowPlaceholder} /> Run
                   </label>
                   <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
                     <X className="h-4 w-4 text-red-600" />
