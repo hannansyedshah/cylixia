@@ -1544,8 +1544,11 @@ export default function WorkspacePage() {
               {userRole === 'view' ? (
                 <>
                   <CodeEditor key={`editor-${editorKey}-view`} value={project.code} onChange={() => {}} readOnly={true} />
-                  {/* Beautiful gradient overlay for view-only mode */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/40 via-cyan-50/30 to-sky-50/40 dark:from-blue-950/40 dark:via-cyan-950/30 dark:to-sky-950/40 pointer-events-none z-10"></div>
+                  {/* Beautiful animated gradient overlay for view-only mode */}
+                  <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-200/2 via-cyan-200/1 to-sky-200/2 dark:from-blue-800/2 dark:via-cyan-800/1 dark:to-sky-800/2 animate-gradient-float"></div>
+                    <div className="absolute inset-0 bg-gradient-to-tl from-sky-200/2 via-cyan-200/1 to-blue-200/2 dark:from-sky-800/2 dark:via-cyan-800/1 dark:to-blue-800/2 animate-gradient-float-reverse" style={{ animationDelay: '1s' }}></div>
+                  </div>
                 </>
               ) : (
                 <CodeEditorCollaborative 
