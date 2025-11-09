@@ -19,7 +19,7 @@ interface CodeEditorCollaborativeProps {
   readOnly?: boolean
   enableEditLock?: boolean
   onEditLockChange?: (enabled: boolean) => void
-  onCodeSelection?: (selection: { code: string; startLine: number; endLine: number }) => void
+  onCodeSelection?: { code: string; startLine: number; endLine: number } | null
 }
 
 interface TypingUser {
@@ -286,7 +286,7 @@ export function CodeEditorCollaborative({
     if (!onCodeSelection || !editorRef.current) return
     
     const selection = onCodeSelection
-    if (selection && selection.startLine && selection.endLine) {
+    if (selection && typeof selection === 'object' && selection.startLine && selection.endLine) {
       // Clear previous highlight
       if (decorationIdsRef.current.length > 0) {
         editorRef.current.deltaDecorations(decorationIdsRef.current, [])
