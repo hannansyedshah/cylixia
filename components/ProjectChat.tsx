@@ -27,10 +27,11 @@ interface ChatMessage {
 
 interface ProjectChatProps {
   projectId: string
+  userRole?: 'owner' | 'edit' | 'view' | null
   onCodeSelectionClick?: (selection: { code: string; startLine: number; endLine: number }) => void
 }
 
-export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProps) {
+export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: ProjectChatProps) {
   const { user } = useSessionStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -140,6 +141,12 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || sending) return
+    
+    // Prevent view-only users from sending messages
+    if (userRole === 'view') {
+      alert('View-only access: You cannot send messages in the collaboration chat.')
+      return
+    }
 
     const messageText = newMessage.trim()
     setSending(true)
@@ -307,23 +314,29 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
           )}
           <div ref={messagesEndRef} />
         </div>
-        <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <Input
-            type="text"
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            disabled={sending}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={sending || !newMessage.trim()} size="icon">
-            {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
-        </form>
+        {userRole === 'view' ? (
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400 py-2">
+            View-only access: Chat is disabled
+          </div>
+        ) : (
+          <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <Input
+              type="text"
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              disabled={sending || userRole === 'view'}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={sending || !newMessage.trim() || userRole === 'view'} size="icon">
+              {sending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </form>
+        )}
       </CardContent>
     </Card>
   )

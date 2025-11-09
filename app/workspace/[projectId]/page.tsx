@@ -425,6 +425,8 @@ export default function WorkspacePage() {
           const newRole = (payload.new as any).role
           if (newRole && ['owner', 'edit', 'view'].includes(newRole)) {
             setUserRole(newRole as 'owner' | 'edit' | 'view')
+            // Force editor re-render by updating editor key
+            setEditorKey(prev => prev + 1)
           } else {
             // If role update is unclear, re-check role
             await updateUserRole(project.user_id)
@@ -443,6 +445,7 @@ export default function WorkspacePage() {
           // When user is added as collaborator, update role
           console.log('🔄 User added as collaborator, updating role...')
           await updateUserRole(project.user_id)
+          setEditorKey(prev => prev + 1)
         }
       )
       .on(
@@ -457,6 +460,7 @@ export default function WorkspacePage() {
           // When user is removed as collaborator, check if they're still owner
           console.log('🔄 User removed as collaborator, checking role...')
           await updateUserRole(project.user_id)
+          setEditorKey(prev => prev + 1)
         }
       )
       .subscribe()
@@ -465,6 +469,14 @@ export default function WorkspacePage() {
       channel.unsubscribe()
     }
   }, [projectId, user?.id, project, updateUserRole])
+
+  // Force component updates when role changes
+  useEffect(() => {
+    // When role changes, force editor to re-render with correct permissions
+    if (userRole !== null) {
+      setEditorKey(prev => prev + 1)
+    }
+  }, [userRole])
 
   // Handle visibility changes to reset stuck states
   // Use ref to access current loading value to avoid recreating listener
@@ -1530,14 +1542,14 @@ export default function WorkspacePage() {
             </div>
             <div className="flex-1 min-h-0">
               {userRole === 'view' ? (
-                <CodeEditor key={editorKey} value={project.code} onChange={() => {}} readOnly={true} />
+                <CodeEditor key={`editor-${editorKey}-view`} value={project.code} onChange={() => {}} readOnly={true} />
               ) : (
                 <CodeEditorCollaborative 
-                  key={editorKey} 
+                  key={`editor-${editorKey}-${userRole}`} 
                   value={project.code} 
                   onChange={handleCodeChange}
                   projectId={projectId}
-                  readOnly={false}
+                  readOnly={userRole === 'view'}
                   enableEditLock={enableEditLock}
                   onEditLockChange={setEnableEditLock}
                   onCodeSelection={codeSelection}
@@ -1621,6 +1633,7 @@ export default function WorkspacePage() {
               <div className="h-[400px]">
                 <ProjectChat 
                   projectId={projectId}
+                  userRole={userRole}
                   onCodeSelectionClick={(selection) => {
                     setCodeSelection(selection)
                     // Don't auto-clear - let user click off to clear

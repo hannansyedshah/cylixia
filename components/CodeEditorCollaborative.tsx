@@ -342,6 +342,11 @@ export function CodeEditorCollaborative({
   }, [])
 
   const handleChange = (newValue: string | undefined) => {
+    // Don't allow editing if read-only
+    if (readOnly) {
+      return
+    }
+    
     // Check if locked
     if (isLocked && editLockEnabledRef.current) {
       return // Don't allow editing when locked
@@ -383,6 +388,15 @@ export function CodeEditorCollaborative({
       await broadcastTyping(false)
     }
   }
+
+  // Update editor readOnly when prop changes
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.updateOptions({
+        readOnly: effectiveReadOnly
+      })
+    }
+  }, [effectiveReadOnly])
 
   // Handle editor mount to get editor instance
   const handleEditorDidMount = (editor: any) => {
