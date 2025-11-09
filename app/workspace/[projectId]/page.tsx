@@ -28,6 +28,12 @@ interface Message {
   code?: string
   plot_url?: string
   created_at: string
+  user_id?: string
+  profiles?: {
+    id: string
+    display_name: string | null
+    avatar_url: string | null
+  } | null
 }
 
 export default function WorkspacePage() {
@@ -116,6 +122,9 @@ export default function WorkspacePage() {
         }
         setProject(projectWithMessages)
         
+        // Load messages from API
+        loadMessages()
+        
         // Check user role (owner or collaborator)
         const isOwner = data.project.user_id === user?.id
         if (isOwner) {
@@ -191,6 +200,91 @@ export default function WorkspacePage() {
       abortControllerRef.current = null
     }
   }, [projectId, router])
+
+  // Load messages from API
+  const loadMessages = useCallback(async () => {
+    if (!projectId || !mountedRef.current) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/messages`)
+      if (!response.ok) {
+        console.error('Failed to load messages')
+        return
+      }
+      
+      const data = await response.json()
+      if (mountedRef.current && data.messages) {
+        setProject((prev: any) => ({
+          ...prev,
+          messages: data.messages || []
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    }
+  }, [projectId])
+
+  // Subscribe to real-time message updates
+  useEffect(() => {
+    if (!projectId || !mountedRef.current) return
+
+    const channel = supabase
+      .channel(`project-messages-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `project_id=eq.${projectId}`
+        },
+        async (payload) => {
+          // Fetch the new message with profile
+          const { data: newMessageData } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('id', payload.new.id)
+            .single()
+
+          if (newMessageData && mountedRef.current) {
+            // Get profile for user messages
+            let profile = null
+            if (newMessageData.user_id) {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('id, display_name, avatar_url')
+                .eq('id', newMessageData.user_id)
+                .single()
+              
+              if (profileData) {
+                profile = profileData
+              }
+            }
+
+            const newMessage: Message = {
+              ...newMessageData,
+              profiles: profile
+            }
+
+            // Prevent duplicate messages
+            setProject((prev: any) => {
+              if (!prev) return prev
+              const exists = prev.messages?.some((m: Message) => m.id === newMessage.id)
+              if (exists) return prev
+              return {
+                ...prev,
+                messages: [...(prev.messages || []), newMessage]
+              }
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [projectId])
 
   // Handle authentication state changes
   useEffect(() => {
@@ -490,16 +584,18 @@ export default function WorkspacePage() {
       
       // Add user message to local state immediately so it appears in the UI
       if (mountedRef.current && userMessageData.message) {
-        const userMessage = {
+        const userMessage: Message = {
           id: userMessageData.message.id || Math.random().toString(36).substring(7),
           role: 'user' as const,
           content: prompt,
-          created_at: userMessageData.message.created_at || new Date().toISOString()
+          created_at: userMessageData.message.created_at || new Date().toISOString(),
+          user_id: user?.id,
+          profiles: userMessageData.message.profiles || null
         }
         
         setProject((prev: any) => ({
           ...prev,
-          messages: [...prev.messages, userMessage]
+          messages: [...(prev.messages || []), userMessage]
         }))
       }
 
@@ -1149,22 +1245,32 @@ export default function WorkspacePage() {
                       </div>
                     </div>
                   ) : (
-                    project.messages.map((message: Message, index: number) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${
-                          message.role === 'user' ? 'justify-end' : 'justify-start'
-                        } animate-fade-in-up`}
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
+                    project.messages.map((message: Message, index: number) => {
+                      const isCurrentUser = message.user_id === user?.id
+                      const senderName = message.profiles?.display_name || (message.user_id ? 'User' : null)
+                      
+                      return (
                         <div
-                          className={`max-w-[70%] rounded-xl px-4 py-3 shadow ${
-                            message.role === 'user'
-                              ? 'bg-gradient-to-r from-rstudio to-blue-600 text-white'
-                              : 'bg-white dark:bg-gray-700 text-darktext dark:text-white border border-gray-200 dark:border-gray-600'
-                          }`}
+                          key={message.id}
+                          className={`flex ${
+                            message.role === 'user' ? 'justify-end' : 'justify-start'
+                          } animate-fade-in-up`}
+                          style={{ animationDelay: `${index * 0.1}s` }}
                         >
-                          <div className="text-sm leading-relaxed break-words">
+                          <div
+                            className={`max-w-[70%] rounded-xl px-4 py-3 shadow ${
+                              message.role === 'user'
+                                ? 'bg-gradient-to-r from-rstudio to-blue-600 text-white'
+                                : 'bg-white dark:bg-gray-700 text-darktext dark:text-white border border-gray-200 dark:border-gray-600'
+                            }`}
+                          >
+                            {/* Show sender name for user messages from other collaborators */}
+                            {message.role === 'user' && senderName && !isCurrentUser && (
+                              <div className="text-xs font-medium mb-1 opacity-90">
+                                {senderName}
+                              </div>
+                            )}
+                            <div className="text-sm leading-relaxed break-words">
                             {message.content.split('\n').map((line: string, lineIndex: number) => {
                               const trimmedLine = line.trim()
                               
@@ -1218,7 +1324,8 @@ export default function WorkspacePage() {
                           )}
                         </div>
                       </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
                 {/* Privacy Toggle - Compact */}

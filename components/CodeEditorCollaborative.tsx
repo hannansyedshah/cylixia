@@ -102,10 +102,26 @@ export function CodeEditorCollaborative({
         })
         
         // If someone else has lock enabled, sync our state
+        // But only if we're not the one who just turned it off
         if (foundLockEnabled && !editLockEnabled) {
-          setEditLockEnabled(true)
+          // Check if the lock is enabled by another user (not ourselves)
+          const otherUserHasLock = Object.values(state).some((presences: any) => {
+            return presences.some((p: any) => 
+              p.userId !== user?.id && p.lockEnabled
+            )
+          })
+          
+          if (otherUserHasLock) {
+            setEditLockEnabled(true)
+            if (onEditLockChange) {
+              onEditLockChange(true)
+            }
+          }
+        } else if (!foundLockEnabled && editLockEnabled) {
+          // If no one has lock enabled, turn it off
+          setEditLockEnabled(false)
           if (onEditLockChange) {
-            onEditLockChange(true)
+            onEditLockChange(false)
           }
         }
         
@@ -126,8 +142,8 @@ export function CodeEditorCollaborative({
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         newPresences.forEach((presence: any) => {
           if (presence.userId !== user?.id) {
-            // Check if lock is enabled
-            if (presence.lockEnabled) {
+            // Check if lock is enabled by another user (not ourselves)
+            if (presence.lockEnabled && !editLockEnabled) {
               setEditLockEnabled(true)
               if (onEditLockChange) {
                 onEditLockChange(true)
@@ -303,7 +319,12 @@ export function CodeEditorCollaborative({
 
   const toggleEditLock = async () => {
     const newValue = !editLockEnabled
+    
+    // Update local state immediately
     setEditLockEnabled(newValue)
+    setIsLocked(false) // Always unlock when toggling
+    setTypingUser(null) // Clear typing user
+    
     if (onEditLockChange) {
       onEditLockChange(newValue)
     }
@@ -314,8 +335,6 @@ export function CodeEditorCollaborative({
     if (!newValue) {
       // Clear typing status when disabling
       await broadcastTyping(false)
-      setTypingUser(null)
-      setIsLocked(false)
     }
   }
 
@@ -447,18 +466,6 @@ export function CodeEditorCollaborative({
   return (
     <div className="relative h-full">
       <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded-md shadow-sm flex-wrap">
-        {isConnected ? (
-          <>
-            <Wifi className="w-4 h-4 text-green-500" />
-            <span className="text-xs text-gray-600 dark:text-gray-400">Live</span>
-          </>
-        ) : (
-          <>
-            <WifiOff className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-600 dark:text-gray-400">Offline</span>
-          </>
-        )}
-        
         {/* Edit Lock Toggle */}
         {!readOnly && (
           <button
