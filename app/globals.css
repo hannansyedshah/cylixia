@@ -158,6 +158,34 @@
   .animate-gradient-float-reverse {
     animation: gradient-float-reverse 18s ease-in-out infinite;
   }
+
+  /* Code selection highlight with animated gradient */
+  .code-selection-highlight {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(6, 182, 212, 0.02) 50%, rgba(14, 165, 233, 0.03) 100%);
+    background-size: 300% 300%;
+    animation: code-selection-gradient 4s ease-in-out infinite;
+    position: relative;
+  }
+
+  .dark .code-selection-highlight {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(6, 182, 212, 0.03) 50%, rgba(14, 165, 233, 0.05) 100%);
+    background-size: 300% 300%;
+  }
+
+  @keyframes code-selection-gradient {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 100% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    75% {
+      background-position: 0% 100%;
+    }
+  }
 }
 
 /*random text2*/
