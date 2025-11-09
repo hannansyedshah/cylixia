@@ -53,6 +53,7 @@ export function CodeEditorCollaborative({
   const presenceChannelRef = useRef<any>(null)
   const typingStateRef = useRef<{ [userId: string]: TypingUser }>({})
   const editLockEnabledRef = useRef(enableEditLock)
+  const userToggledLockRef = useRef(false) // Track if user explicitly toggled the lock
   
   // Keep ref in sync with state
   useEffect(() => {
@@ -129,15 +130,16 @@ export function CodeEditorCollaborative({
         })
         
         // Sync our lock state to match if anyone has it enabled
-        if (anyoneHasLock && !editLockEnabledRef.current) {
-          // Someone has lock enabled, sync our state to ON
+        // But don't override if user explicitly toggled it recently
+        if (anyoneHasLock && !editLockEnabledRef.current && !userToggledLockRef.current) {
+          // Someone has lock enabled, sync our state to ON (only if user didn't just toggle it off)
           setEditLockEnabled(true)
           editLockEnabledRef.current = true
           if (onEditLockChange) {
             onEditLockChange(true)
           }
-        } else if (!anyoneHasLock && editLockEnabledRef.current) {
-          // No one has lock enabled, sync our state to OFF
+        } else if (!anyoneHasLock && editLockEnabledRef.current && !userToggledLockRef.current) {
+          // No one has lock enabled, sync our state to OFF (only if user didn't just toggle it on)
           setEditLockEnabled(false)
           editLockEnabledRef.current = false
           if (onEditLockChange) {
@@ -157,8 +159,8 @@ export function CodeEditorCollaborative({
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         newPresences.forEach((presence: any) => {
           if (presence.userId !== user?.id) {
-            // Check if lock is enabled by another user - sync immediately
-            if (presence.lockEnabled && !editLockEnabledRef.current) {
+            // Check if lock is enabled by another user - sync immediately (unless user just toggled it)
+            if (presence.lockEnabled && !editLockEnabledRef.current && !userToggledLockRef.current) {
               setEditLockEnabled(true)
               editLockEnabledRef.current = true
               if (onEditLockChange) {
@@ -415,8 +417,12 @@ export function CodeEditorCollaborative({
   const toggleEditLock = async () => {
     const newValue = !editLockEnabled
     
+    // Mark that user explicitly toggled the lock
+    userToggledLockRef.current = true
+    
     // Update local state immediately
     setEditLockEnabled(newValue)
+    editLockEnabledRef.current = newValue
     setIsLocked(false) // Always unlock when toggling
     setTypingUser(null) // Clear typing user
     
@@ -431,6 +437,11 @@ export function CodeEditorCollaborative({
       // Clear typing status when disabling
       await broadcastTyping(false)
     }
+    
+    // Reset the flag after a short delay to allow sync again
+    setTimeout(() => {
+      userToggledLockRef.current = false
+    }, 1000)
   }
 
   // Calculate effective read-only state
