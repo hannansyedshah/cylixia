@@ -148,7 +148,7 @@ export function Header() {
                   <Button variant="outline">Login</Button>
                 </Link>
                 <Link href="/signup" className="flex-shrink-0">
-                  <Button>Sign Up</Button>
+                  <Button>Get Started</Button>
                 </Link>
               </>
             )}
