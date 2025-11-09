@@ -49,6 +49,7 @@ export default function WorkspacePage() {
   const [stderrText, setStderrText] = useState<string>('')
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
   const [editorFocusMode, setEditorFocusMode] = useState<boolean>(false)
+  const [enableEditLock, setEnableEditLock] = useState<boolean>(false)
   const hasLoadedRef = useRef(false)
   const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
@@ -1357,6 +1358,8 @@ export default function WorkspacePage() {
                   onChange={handleCodeChange}
                   projectId={projectId}
                   readOnly={false}
+                  enableEditLock={enableEditLock}
+                  onEditLockChange={setEnableEditLock}
                 />
               )}
             </div>

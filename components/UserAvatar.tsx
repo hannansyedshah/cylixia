@@ -7,7 +7,7 @@ interface UserAvatarProps {
   userId: string
   displayName?: string | null
   avatarUrl?: string | null
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   className?: string
 }
 
@@ -42,6 +42,7 @@ export function UserAvatar({ userId, displayName, avatarUrl, size = 'md', classN
     .slice(0, 2)
 
   const sizeClasses = {
+    xs: 'w-4 h-4 text-[10px]',
     sm: 'w-8 h-8 text-xs',
     md: 'w-10 h-10 text-sm',
     lg: 'w-16 h-16 text-lg'
