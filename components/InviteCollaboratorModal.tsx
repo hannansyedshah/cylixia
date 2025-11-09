@@ -59,6 +59,8 @@ export function InviteCollaboratorModal({ projectId, onClose, onSuccess }: Invit
         throw new Error(data.error || 'Failed to send invitation')
       }
 
+      // Show success message
+      alert('Invitation has been sent!')
       setSuccess(true)
       setTimeout(() => {
         if (onSuccess) onSuccess()
