@@ -211,14 +211,24 @@ export function UploadPanel({
   }
   
   const handlePreviewOpen = (item: DatasetItem | SharedDataset) => {
-    const csvText = 'csvText' in item ? item.csvText : item.csv_text
+    const csvText = 'csvText' in item 
+      ? item.csvText 
+      : (item as unknown as SharedDataset).csv_text
     const previewItem: DatasetItem = {
       id: item.id,
-      fileName: 'file_name' in item ? item.file_name : item.fileName,
-      sizeBytes: 'size_bytes' in item ? item.size_bytes : item.sizeBytes,
+      fileName: 'file_name' in item 
+        ? (item as unknown as SharedDataset).file_name 
+        : item.fileName,
+      sizeBytes: 'size_bytes' in item 
+        ? (item as unknown as SharedDataset).size_bytes 
+        : item.sizeBytes,
       persisted: true,
-      includeChat: 'include_chat' in item ? item.include_chat : item.includeChat,
-      includeRun: 'include_run' in item ? item.include_run : item.includeRun,
+      includeChat: 'include_chat' in item 
+        ? (item as unknown as SharedDataset).include_chat 
+        : item.includeChat,
+      includeRun: 'include_run' in item 
+        ? (item as unknown as SharedDataset).include_run 
+        : item.includeRun,
       csvText: csvText || undefined
     }
     setPreviewViewMode(privacyMode ? 'randomized' : 'original')
