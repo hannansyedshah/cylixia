@@ -59,7 +59,7 @@ export function UploadPanel({
   onRemoveSharedDataset
 }: UploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [previewItem, setPreviewItem] = useState<DatasetItem | SharedDataset | null>(null)
+  const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
   const [previewViewMode, setPreviewViewMode] = useState<'original' | 'randomized'>('randomized')
   const [shareWithCollaborators, setShareWithCollaborators] = useState(false)
