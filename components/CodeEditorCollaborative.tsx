@@ -56,13 +56,15 @@ export function CodeEditorCollaborative({
   const { isConnected, broadcastCodeChange } = useRealtimeProject({
     projectId,
     onCodeChange: (code) => {
-      // Only update if change came from another user
+      // Update if change came from another user or from AI (not local typing)
+      // AI updates will have isLocalChangeRef.current = false
       if (!isLocalChangeRef.current && editorRef.current) {
         setLocalValue(code)
         onChange(code)
         // Update editor value directly
         editorRef.current.setValue(code)
       }
+      // Reset the flag after handling the change
       isLocalChangeRef.current = false
     }
   })

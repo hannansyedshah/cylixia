@@ -626,7 +626,8 @@ export default function WorkspacePage() {
 
       if (data.code && !isAskMode) {
         // Update code in database (skip for ask mode)
-        await fetch(`/api/projects/${projectId}`, {
+        // This will trigger real-time updates for all collaborators
+        const updateResponse = await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: data.code }),
@@ -635,12 +636,25 @@ export default function WorkspacePage() {
         
         if (!mountedRef.current) return
 
-        // Update local state immediately for better UX
-        if (mountedRef.current) {
-          setProject((prev: any) => ({
-            ...prev,
-            code: data.code
-          }))
+        // Get the updated project to ensure we have the latest timestamp
+        if (updateResponse.ok) {
+          const updatedProject = await updateResponse.json()
+          if (updatedProject.project && mountedRef.current) {
+            // Update local state with the full project data including updated_at
+            setProject((prev: any) => ({
+              ...prev,
+              code: data.code,
+              updated_at: updatedProject.project.updated_at
+            }))
+          }
+        } else {
+          // Fallback: update local state even if API call fails
+          if (mountedRef.current) {
+            setProject((prev: any) => ({
+              ...prev,
+              code: data.code
+            }))
+          }
         }
 
         // Auto-save version when new code is generated

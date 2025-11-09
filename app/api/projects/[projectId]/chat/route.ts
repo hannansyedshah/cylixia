@@ -125,16 +125,28 @@ export async function POST(
     }
 
     // Create chat message
+    // Build insert object conditionally to handle missing columns
+    const insertData: any = {
+      project_id: projectId,
+      user_id: user.id,
+      message: message.trim()
+    }
+    
+    // Only include code selection fields if they're provided
+    // This handles the case where columns don't exist yet
+    if (code_selection !== undefined) {
+      insertData.code_selection = code_selection || null
+    }
+    if (code_selection_start_line !== undefined) {
+      insertData.code_selection_start_line = code_selection_start_line || null
+    }
+    if (code_selection_end_line !== undefined) {
+      insertData.code_selection_end_line = code_selection_end_line || null
+    }
+    
     const { data: chatMessage, error } = await supabase
       .from('project_chat_messages')
-      .insert({
-        project_id: projectId,
-        user_id: user.id,
-        message: message.trim(),
-        code_selection: code_selection || null,
-        code_selection_start_line: code_selection_start_line || null,
-        code_selection_end_line: code_selection_end_line || null
-      })
+      .insert(insertData)
       .select('*')
       .single()
 
