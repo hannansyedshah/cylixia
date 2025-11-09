@@ -370,9 +370,19 @@ export function CodeEditorCollaborative({
   // Handle highlighting code when selection is received
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const decorationIdsRef = useRef<string[]>([])
+  const activeHighlightRef = useRef<{ startLine: number; endLine: number } | null>(null)
+  const clickDisposablesRef = useRef<any[]>([])
 
   useEffect(() => {
-    if (!onCodeSelection || !editorRef.current) return
+    if (!onCodeSelection || !editorRef.current) {
+      // Clear highlight if selection is cleared
+      if (editorRef.current && decorationIdsRef.current.length > 0) {
+        editorRef.current.deltaDecorations(decorationIdsRef.current, [])
+        decorationIdsRef.current = []
+        activeHighlightRef.current = null
+      }
+      return
+    }
     
     const selection = onCodeSelection
     if (selection && typeof selection === 'object' && selection.startLine && selection.endLine) {
@@ -384,12 +394,19 @@ export function CodeEditorCollaborative({
       
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current)
+        highlightTimeoutRef.current = null
       }
 
-      // Scroll to the selection
+      // Store active highlight
+      activeHighlightRef.current = {
+        startLine: selection.startLine,
+        endLine: selection.endLine
+      }
+
+      // Scroll to the selection (center it in view)
       editorRef.current.revealLineInCenter(selection.startLine)
       
-      // Set selection
+      // Set selection to show the range
       editorRef.current.setSelection({
         startLineNumber: selection.startLine,
         startColumn: 1,
@@ -409,26 +426,59 @@ export function CodeEditorCollaborative({
           options: {
             className: 'bg-yellow-200 dark:bg-yellow-900/30',
             isWholeLine: true,
-            stickiness: 1
+            stickiness: 1,
+            hoverMessage: { value: 'Shared code selection - Click anywhere to clear' }
           }
         }
       ])
-      
       decorationIdsRef.current = decorations
       
-      // Clear highlight after 5 seconds
-      highlightTimeoutRef.current = setTimeout(() => {
-        if (editorRef.current && decorationIdsRef.current.length > 0) {
+      // Clear previous click handlers
+      clickDisposablesRef.current.forEach(disposable => disposable.dispose())
+      clickDisposablesRef.current = []
+      
+      // Add click handler to clear highlight when user clicks
+      const clearHighlight = () => {
+        if (decorationIdsRef.current.length > 0 && activeHighlightRef.current) {
           editorRef.current.deltaDecorations(decorationIdsRef.current, [])
           decorationIdsRef.current = []
+          activeHighlightRef.current = null
         }
-      }, 5000)
+      }
+      
+      // Listen for cursor changes (user clicking)
+      const disposable1 = editorRef.current.onDidChangeCursorSelection(() => {
+        if (activeHighlightRef.current) {
+          const currentSelection = editorRef.current.getSelection()
+          if (currentSelection) {
+            const currentLine = currentSelection.startLineNumber
+            const highlightStart = activeHighlightRef.current.startLine
+            const highlightEnd = activeHighlightRef.current.endLine
+            
+            // If user clicked outside the highlighted range, clear it
+            if (currentLine < highlightStart || currentLine > highlightEnd) {
+              clearHighlight()
+            }
+          }
+        }
+      })
+      
+      // Listen for mouse clicks
+      const disposable2 = editorRef.current.onMouseDown(() => {
+        if (activeHighlightRef.current) {
+          clearHighlight()
+        }
+      })
+      
+      clickDisposablesRef.current = [disposable1, disposable2]
     }
 
     return () => {
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current)
       }
+      clickDisposablesRef.current.forEach(disposable => disposable.dispose())
+      clickDisposablesRef.current = []
     }
   }, [onCodeSelection])
 

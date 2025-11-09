@@ -1518,8 +1518,7 @@ export default function WorkspacePage() {
                   projectId={projectId}
                   onCodeSelectionClick={(selection) => {
                     setCodeSelection(selection)
-                    // Clear selection after 5 seconds
-                    setTimeout(() => setCodeSelection(null), 5000)
+                    // Don't auto-clear - let user click off to clear
                   }}
                 />
               </div>
