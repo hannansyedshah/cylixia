@@ -1795,7 +1795,7 @@ export default function WorkspacePage() {
                 {showTerminalNextToPlot ? (
                   <div className="h-full w-full flex gap-2 p-2">
                     <div className="w-1/2 min-w-0">
-                      <TerminalView stdout={stdoutText} stderr={stderrText} />
+                      <TerminalView stdout={stdoutText} stderr={stderrText} projectId={projectId} />
                     </div>
                     <div className="w-1/2 min-w-0">
                       <PlotViewer 
