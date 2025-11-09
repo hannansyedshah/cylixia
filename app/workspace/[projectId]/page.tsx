@@ -935,8 +935,16 @@ export default function WorkspacePage() {
       const csv_files = allRunFiles
       // Backward compatibility: also send the first CSV as single fields expected by backend
       const primary = runFiles[0] || sharedRunFiles[0]
-      const csv_base64 = primary ? (primary.csvText ? btoa(primary.csvText) : btoa(primary.csv_text)) : undefined
-      const file_name = primary ? (primary.fileName || primary.file_name) : undefined
+      const csv_base64 = primary 
+        ? ('csvText' in primary && primary.csvText 
+            ? btoa(primary.csvText) 
+            : 'csv_text' in primary 
+              ? btoa(primary.csv_text) 
+              : undefined)
+        : undefined
+      const file_name = primary 
+        ? ('fileName' in primary ? primary.fileName : 'file_name' in primary ? primary.file_name : undefined)
+        : undefined
       
       const response = await fetch("/api/execute", {
         method: "POST",
