@@ -382,6 +382,34 @@ export default function WorkspacePage() {
     }
   }, [projectId, loadProject])
 
+  // Subscribe to real-time collaborator role changes to update userRole
+  useEffect(() => {
+    if (!projectId || !user?.id) return
+
+    const channel = supabase
+      .channel(`project-user-role-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'project_collaborators',
+          filter: `project_id=eq.${projectId} AND user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          // When the current user's role is updated, reload the project to get the new role
+          console.log('User role updated, reloading project...')
+          hasLoadedRef.current = false
+          await loadProject()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [projectId, user?.id, loadProject])
+
   // Handle visibility changes to reset stuck states
   // Use ref to access current loading value to avoid recreating listener
   const loadingRef = useRef(loading)

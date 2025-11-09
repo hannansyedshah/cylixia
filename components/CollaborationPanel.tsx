@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CollaboratorList } from './CollaboratorList'
@@ -8,6 +8,7 @@ import { InviteCollaboratorModal } from './InviteCollaboratorModal'
 import { UserProfileModal } from './UserProfileModal'
 import { UserPlus, Loader2 } from 'lucide-react'
 import { useSessionStore } from '@/store/useSessionStore'
+import { supabase } from '@/lib/supabaseClient'
 
 interface Collaborator {
   id: string
@@ -36,9 +37,36 @@ export function CollaborationPanel({ projectId, projectOwnerId }: CollaborationP
   const [canManage, setCanManage] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const subscriptionRef = useRef<any>(null)
 
   useEffect(() => {
     loadCollaborators()
+
+    // Subscribe to real-time collaborator changes
+    const channel = supabase
+      .channel(`project-collaborators-${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'project_collaborators',
+          filter: `project_id=eq.${projectId}`
+        },
+        () => {
+          // Reload collaborators when changes occur
+          loadCollaborators()
+        }
+      )
+      .subscribe()
+
+    subscriptionRef.current = channel
+
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
+      }
+    }
   }, [projectId])
 
   const loadCollaborators = async () => {

@@ -97,7 +97,11 @@ export function CollaboratorList({
                     {onRoleChange && collaborator.role !== 'owner' && (
                       <select
                         value={collaborator.role}
-                        onChange={(e) => onRoleChange(collaborator.user_id, e.target.value as 'owner' | 'edit' | 'view')}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          onRoleChange(collaborator.user_id, e.target.value as 'owner' | 'edit' | 'view')
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                         className="text-xs px-2 py-1 border rounded-md bg-white dark:bg-gray-800 text-darktext dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         title="Change role"
                       >
@@ -108,7 +112,10 @@ export function CollaboratorList({
                     )}
                     {onRemove && (
                       <button
-                        onClick={() => onRemove(collaborator.user_id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRemove(collaborator.user_id)
+                        }}
                         className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         title="Remove collaborator"
                       >
