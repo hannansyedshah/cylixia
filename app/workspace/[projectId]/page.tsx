@@ -784,7 +784,6 @@ export default function WorkspacePage() {
   const handleCodeChange = useCallback(async (newCode: string) => {
     if (project && mountedRef.current) {
       const now = new Date().toISOString()
-      lastUpdateTimestampRef.current = now
       setProject({ ...project, code: newCode, updated_at: now })
       // Debounce the API call - don't await to prevent blocking
       fetch(`/api/projects/${projectId}`, {

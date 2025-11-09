@@ -210,7 +210,7 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
         <CardDescription>Collaborate with your team</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 p-4">
-        <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 min-h-0">
+        <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-2 min-h-0">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 dark:text-gray-400 py-8">
               No messages yet. Start the conversation!
@@ -221,10 +221,15 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
               const displayName = message.profiles?.display_name || 'User'
               const avatarUrl = message.profiles?.avatar_url
 
+              // Truncate long names
+              const truncatedName = displayName.length > 15 
+                ? `${displayName.substring(0, 15)}...` 
+                : displayName
+
               return (
                 <div
                   key={message.id}
-                  className={`flex items-start gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
                 >
                   <div className="flex-shrink-0">
                     <UserAvatar
@@ -236,8 +241,10 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
                   </div>
                   <div className={`flex-1 min-w-0 ${isCurrentUser ? 'flex items-end flex-col' : ''}`}>
                     <div className={`flex items-baseline gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                      <span className="text-sm font-medium">{displayName}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <span className="text-xs font-medium truncate max-w-[120px]" title={displayName}>
+                        {truncatedName}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
                         {new Date(message.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
@@ -245,13 +252,13 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
                       </span>
                     </div>
                     <div
-                      className={`inline-block max-w-[80%] px-4 py-2 rounded-lg break-words ${
+                      className={`inline-block max-w-[85%] px-3 py-2 rounded-lg break-words ${
                         isCurrentUser
                           ? 'bg-rstudio text-white'
                           : 'bg-gray-100 dark:bg-gray-800 text-darktext dark:text-white'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                      <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.message}</p>
                       {message.code_selection && message.code_selection_start_line && message.code_selection_end_line && (
                         <button
                           onClick={() => {
