@@ -255,11 +255,11 @@ export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProp
                       {message.code_selection && message.code_selection_start_line && message.code_selection_end_line && (
                         <button
                           onClick={() => {
-                            if (onCodeSelectionClick) {
+                            if (onCodeSelectionClick && message.code_selection && message.code_selection_start_line && message.code_selection_end_line) {
                               onCodeSelectionClick({
                                 code: message.code_selection,
-                                startLine: message.code_selection_start_line!,
-                                endLine: message.code_selection_end_line!
+                                startLine: message.code_selection_start_line,
+                                endLine: message.code_selection_end_line
                               })
                             }
                           }}
