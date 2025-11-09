@@ -248,13 +248,15 @@ export function CodeEditorCollaborative({
   // Update presence when lock state changes - this broadcasts to all users
   useEffect(() => {
     if (presenceChannelRef.current && user) {
-      // Get current profile for display name
-      supabase
-        .from('profiles')
-        .select('display_name, avatar_url')
-        .eq('id', user.id)
-        .single()
-        .then(({ data: profile }) => {
+      const updatePresence = async () => {
+        try {
+          // Get current profile for display name
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, avatar_url')
+            .eq('id', user.id)
+            .single()
+
           if (presenceChannelRef.current) {
             const trackPromise = presenceChannelRef.current.track({
               userId: user.id,
@@ -268,8 +270,7 @@ export function CodeEditorCollaborative({
               console.error('Failed to update presence:', err)
             })
           }
-        })
-        .catch((err: any) => {
+        } catch (err: any) {
           console.error('Failed to load profile:', err)
           // Fallback without profile
           if (presenceChannelRef.current) {
@@ -284,7 +285,9 @@ export function CodeEditorCollaborative({
               console.error('Failed to update presence:', err)
             })
           }
-        })
+        }
+      }
+      updatePresence()
     }
   }, [editLockEnabled, user])
 
