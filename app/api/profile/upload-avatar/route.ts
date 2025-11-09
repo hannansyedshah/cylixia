@@ -27,11 +27,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File size must be less than 5MB' }, { status: 400 })
     }
 
-    // Create storage bucket if it doesn't exist (this should be done manually in Supabase dashboard)
-    // For now, we'll use 'avatars' bucket
+    // Use 'avatars' bucket (should be created via supabase-setup-storage.sql)
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}-${Date.now()}.${fileExt}`
-    const filePath = `avatars/${fileName}`
+    const filePath = `${user.id}/${fileName}` // Store in user-specific folder
 
     // Upload file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage

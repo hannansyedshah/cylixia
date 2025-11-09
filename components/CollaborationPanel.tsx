@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { CollaboratorList } from './CollaboratorList'
 import { InviteCollaboratorModal } from './InviteCollaboratorModal'
+import { UserProfileModal } from './UserProfileModal'
 import { UserPlus, Loader2 } from 'lucide-react'
 import { useSessionStore } from '@/store/useSessionStore'
 
@@ -33,6 +34,8 @@ export function CollaborationPanel({ projectId, projectOwnerId }: CollaborationP
   const [loading, setLoading] = useState(true)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [canManage, setCanManage] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [showProfileModal, setShowProfileModal] = useState(false)
 
   useEffect(() => {
     loadCollaborators()
@@ -149,9 +152,24 @@ export function CollaborationPanel({ projectId, projectOwnerId }: CollaborationP
             onRoleChange={canManage ? handleRoleChange : undefined}
             onRemove={canManage ? handleRemove : undefined}
             canManage={canManage}
+            onProfileClick={(userId) => {
+              setSelectedUserId(userId)
+              setShowProfileModal(true)
+            }}
           />
         </CardContent>
       </Card>
+
+      {showProfileModal && selectedUserId && (
+        <UserProfileModal
+          userId={selectedUserId}
+          isOpen={showProfileModal}
+          onClose={() => {
+            setShowProfileModal(false)
+            setSelectedUserId(null)
+          }}
+        />
+      )}
 
       {showInviteModal && (
         <InviteCollaboratorModal

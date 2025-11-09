@@ -111,24 +111,25 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1000ms' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2000ms' }}></div>
-        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-rstudio/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '500ms' }}></div>
+        <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1000ms' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2000ms' }}></div>
+        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-rstudio/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '500ms' }}></div>
+        <div className="absolute bottom-1/4 left-1/4 w-72 h-72 bg-indigo-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1500ms' }}></div>
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-2xl relative z-10">
-        <Card className="shadow-2xl border-2 border-rstudio/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-rstudio/5 to-purple-500/5 dark:from-rstudio/10 dark:to-purple-500/10 border-b border-rstudio/10">
+        <Card className="shadow-2xl border-2 border-rstudio/20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
+          <CardHeader className="bg-gradient-to-r from-rstudio/10 via-purple-500/10 to-blue-500/10 dark:from-rstudio/20 dark:via-purple-500/20 dark:to-blue-500/20 border-b border-rstudio/20 dark:border-rstudio/30">
             <CardTitle className="text-3xl text-darktext dark:text-white">Profile Settings</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+            <CardDescription className="text-gray-700 dark:text-gray-300">
               Manage your profile information and preferences
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 p-6">
+          <CardContent className="space-y-6 p-6 bg-gradient-to-b from-white/50 to-white/30 dark:from-gray-900/50 dark:to-gray-900/30">
             <div className="flex justify-center pb-4">
               <ProfilePictureUpload
                 currentAvatarUrl={profile?.avatar_url}

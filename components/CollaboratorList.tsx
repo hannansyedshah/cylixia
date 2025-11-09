@@ -22,6 +22,7 @@ interface CollaboratorListProps {
   onRoleChange?: (userId: string, role: 'owner' | 'edit' | 'view') => void
   onRemove?: (userId: string) => void
   canManage?: boolean
+  onProfileClick?: (userId: string) => void
 }
 
 export function CollaboratorList({ 
@@ -29,7 +30,8 @@ export function CollaboratorList({
   currentUserId,
   onRoleChange,
   onRemove,
-  canManage = false
+  canManage = false,
+  onProfileClick
 }: CollaboratorListProps) {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -64,7 +66,11 @@ export function CollaboratorList({
             key={collaborator.id}
             className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
           >
-            <div className="flex-shrink-0">
+            <div 
+              className={`flex-shrink-0 ${onProfileClick ? 'cursor-pointer' : ''}`}
+              onClick={() => onProfileClick && onProfileClick(collaborator.user_id)}
+              title={onProfileClick ? 'Click to view profile' : ''}
+            >
               <UserAvatar
                 userId={collaborator.user_id}
                 displayName={displayName}
@@ -72,7 +78,10 @@ export function CollaboratorList({
                 size="sm"
               />
             </div>
-            <div className="flex-1 min-w-0">
+            <div 
+              className={`flex-1 min-w-0 ${onProfileClick ? 'cursor-pointer' : ''}`}
+              onClick={() => onProfileClick && onProfileClick(collaborator.user_id)}
+            >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm font-medium truncate">
                   {displayName}
