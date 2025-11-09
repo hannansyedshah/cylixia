@@ -57,39 +57,57 @@ export function CodeEditorCollaborative({
     projectId,
     onCodeChange: (code) => {
       // Only update if change came from another user
-      if (!isLocalChangeRef.current) {
+      if (!isLocalChangeRef.current && editorRef.current) {
         setLocalValue(code)
         onChange(code)
+        // Update editor value directly
+        editorRef.current.setValue(code)
       }
       isLocalChangeRef.current = false
     }
   })
 
-  // Subscribe to typing indicators via presence
+  // Subscribe to shared edit lock state and typing indicators via presence
   useEffect(() => {
-    if (!projectId || !user || !editLockEnabled) return
+    if (!projectId || !user) return
 
     const channel = supabase.channel(`typing-${projectId}`)
     
-    // Track presence (who is typing)
+    // Track presence (who is typing and lock state)
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
         typingStateRef.current = {}
         let foundTyping = false
+        let foundLockEnabled = false
         
         Object.values(state).forEach((presences: any) => {
           presences.forEach((presence: any) => {
-            if (presence.userId !== user?.id && presence.typing) {
-              typingStateRef.current[presence.userId] = {
-                userId: presence.userId,
-                displayName: presence.displayName || 'User',
-                avatarUrl: presence.avatarUrl
+            if (presence.userId !== user?.id) {
+              // Check if lock is enabled by another user
+              if (presence.lockEnabled) {
+                foundLockEnabled = true
               }
-              foundTyping = true
+              // Check if someone is typing
+              if (presence.typing) {
+                typingStateRef.current[presence.userId] = {
+                  userId: presence.userId,
+                  displayName: presence.displayName || 'User',
+                  avatarUrl: presence.avatarUrl
+                }
+                foundTyping = true
+              }
             }
           })
         })
+        
+        // If someone else has lock enabled, sync our state
+        if (foundLockEnabled && !editLockEnabled) {
+          setEditLockEnabled(true)
+          if (onEditLockChange) {
+            onEditLockChange(true)
+          }
+        }
         
         if (foundTyping) {
           const firstTyping = Object.values(typingStateRef.current)[0]
@@ -97,21 +115,34 @@ export function CodeEditorCollaborative({
           setIsLocked(true)
         } else {
           setTypingUser(null)
-          setIsLocked(false)
+          // Only unlock if no one else has lock enabled
+          if (!foundLockEnabled) {
+            setIsLocked(false)
+          }
         }
       })
 
     channel
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         newPresences.forEach((presence: any) => {
-          if (presence.userId !== user?.id && presence.typing) {
-            typingStateRef.current[presence.userId] = {
-              userId: presence.userId,
-              displayName: presence.displayName || 'User',
-              avatarUrl: presence.avatarUrl
+          if (presence.userId !== user?.id) {
+            // Check if lock is enabled
+            if (presence.lockEnabled) {
+              setEditLockEnabled(true)
+              if (onEditLockChange) {
+                onEditLockChange(true)
+              }
             }
-            setTypingUser(typingStateRef.current[presence.userId])
-            setIsLocked(true)
+            // Check if typing
+            if (presence.typing) {
+              typingStateRef.current[presence.userId] = {
+                userId: presence.userId,
+                displayName: presence.displayName || 'User',
+                avatarUrl: presence.avatarUrl
+              }
+              setTypingUser(typingStateRef.current[presence.userId])
+              setIsLocked(true)
+            }
           }
         })
       })
@@ -124,7 +155,19 @@ export function CodeEditorCollaborative({
             setIsLocked(true)
           } else {
             setTypingUser(null)
-            setIsLocked(false)
+            // Check if anyone else has lock enabled
+            const state = channel.presenceState()
+            let hasLockEnabled = false
+            Object.values(state).forEach((presences: any) => {
+              presences.forEach((p: any) => {
+                if (p.userId !== user?.id && p.lockEnabled) {
+                  hasLockEnabled = true
+                }
+              })
+            })
+            if (!hasLockEnabled) {
+              setIsLocked(false)
+            }
           }
         })
       })
@@ -143,7 +186,8 @@ export function CodeEditorCollaborative({
           userId: user.id,
           displayName: profile?.display_name || user.email || 'User',
           avatarUrl: profile?.avatar_url,
-          typing: false
+          typing: false,
+          lockEnabled: editLockEnabled
         })
       }
     })
@@ -157,9 +201,9 @@ export function CodeEditorCollaborative({
     }
   }, [projectId, user, editLockEnabled])
 
-  // Broadcast typing status
+  // Broadcast typing status and lock state
   const broadcastTyping = async (isTyping: boolean) => {
-    if (!presenceChannelRef.current || !user || !editLockEnabled) return
+    if (!presenceChannelRef.current || !user) return
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -171,7 +215,27 @@ export function CodeEditorCollaborative({
       userId: user.id,
       displayName: profile?.display_name || user.email || 'User',
       avatarUrl: profile?.avatar_url,
-      typing: isTyping
+      typing: isTyping,
+      lockEnabled: editLockEnabled
+    })
+  }
+
+  // Broadcast lock state change
+  const broadcastLockState = async (enabled: boolean) => {
+    if (!presenceChannelRef.current || !user) return
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_url')
+      .eq('id', user.id)
+      .single()
+
+    await presenceChannelRef.current.track({
+      userId: user.id,
+      displayName: profile?.display_name || user.email || 'User',
+      avatarUrl: profile?.avatar_url,
+      typing: false,
+      lockEnabled: enabled
     })
   }
 
@@ -237,15 +301,19 @@ export function CodeEditorCollaborative({
     }
   }
 
-  const toggleEditLock = () => {
+  const toggleEditLock = async () => {
     const newValue = !editLockEnabled
     setEditLockEnabled(newValue)
     if (onEditLockChange) {
       onEditLockChange(newValue)
     }
+    
+    // Broadcast lock state change to all users
+    await broadcastLockState(newValue)
+    
     if (!newValue) {
       // Clear typing status when disabling
-      broadcastTyping(false)
+      await broadcastTyping(false)
       setTypingUser(null)
       setIsLocked(false)
     }
