@@ -1,9 +1,10 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import { Upload, X, Eye } from 'lucide-react'
+import { Upload, X, Eye, Share2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataPreview } from '@/components/DataPreview'
+import { UserAvatar } from './UserAvatar'
 
 interface DatasetItem {
   id: string
@@ -15,10 +16,34 @@ interface DatasetItem {
   csvText?: string // present for ephemeral items
 }
 
+interface SharedDataset {
+  id: string
+  project_id: string
+  user_id: string
+  file_name: string
+  csv_text: string
+  size_bytes: number
+  include_chat: boolean
+  include_run: boolean
+  created_at: string
+  profiles?: {
+    id: string
+    display_name: string | null
+    avatar_url: string | null
+  } | null
+}
+
 interface UploadPanelProps {
   datasets: DatasetItem[]
+  sharedDatasets?: SharedDataset[]
   onDatasetsChange?: (datasets: DatasetItem[]) => void
+  onSharedDatasetsChange?: (datasets: SharedDataset[]) => void
   privacyMode?: boolean
+  projectId?: string
+  userRole?: 'owner' | 'edit' | 'view'
+  currentUserId?: string
+  onShareDataset?: (dataset: DatasetItem) => Promise<void>
+  onRemoveSharedDataset?: (datasetId: string) => Promise<void>
 }
 
 export function UploadPanel({ 

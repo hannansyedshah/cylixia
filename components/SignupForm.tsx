@@ -18,6 +18,8 @@ export function SignupForm() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null)
+  const [checkingEmail, setCheckingEmail] = useState(false)
+  const [emailError, setEmailError] = useState('')
   const router = useRouter()
   const setUser = useSessionStore((state) => state.setUser)
 
@@ -39,6 +41,33 @@ export function SignupForm() {
     }
 
     setLoading(true)
+
+    // Check if email is already registered
+    setCheckingEmail(true)
+    setEmailError('')
+    try {
+      const emailCheckResponse = await fetch('/api/signup/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+
+      const emailCheckData = await emailCheckResponse.json()
+      
+      if (emailCheckData.exists) {
+        setEmailError('This email is already registered. Please use a different email or try logging in.')
+        setLoading(false)
+        setCheckingEmail(false)
+        return
+      }
+    } catch (err: any) {
+      console.error('Error checking email:', err)
+      // Continue with signup if email check fails - Supabase will catch duplicates
+    } finally {
+      setCheckingEmail(false)
+    }
 
     try {
       // Validate invite code via secure API route
@@ -157,15 +186,30 @@ export function SignupForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
-            />
+            <div className="relative">
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setEmailError('') // Clear error when user types
+                }}
+                required
+                className={`h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800 ${
+                  emailError ? 'border-red-500 dark:border-red-500' : ''
+                }`}
+              />
+              {checkingEmail && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-rstudio border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+            {emailError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{emailError}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
