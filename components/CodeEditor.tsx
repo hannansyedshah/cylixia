@@ -6,9 +6,10 @@ import { useState, useEffect } from 'react'
 interface CodeEditorProps {
   value: string
   onChange: (value: string) => void
+  readOnly?: boolean
 }
 
-export function CodeEditor({ value, onChange }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, readOnly = false }: CodeEditorProps) {
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export function CodeEditor({ value, onChange }: CodeEditorProps) {
         lineNumbers: 'on',
         scrollBeyondLastLine: false,
         automaticLayout: true,
+        readOnly: readOnly,
       }}
     />
   )

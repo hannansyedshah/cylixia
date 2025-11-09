@@ -25,8 +25,8 @@ interface VersionHistoryProps {
   projectId: string
   currentCode: string
   currentPlotUrl?: string
-  onVersionRestore: (code: string, plotUrl?: string) => void
-  onSaveVersion: (code: string, plotUrl?: string, description?: string) => void
+  onVersionRestore?: (code: string, plotUrl?: string) => void
+  onSaveVersion?: (code: string, plotUrl?: string, description?: string) => void
 }
 
 // Component for displaying multiple plots with scroll navigation
@@ -181,7 +181,7 @@ export function VersionHistory({
   }, [projectId])
 
   const saveCurrentVersion = async () => {
-    if (!currentCode.trim()) return
+    if (!currentCode.trim() || !onSaveVersion) return
     
     setSaving(true)
     try {
@@ -200,6 +200,7 @@ export function VersionHistory({
         setVersions([data.version, ...versions])
         setDescription('')
         setShowDescriptionInput(false)
+        onSaveVersion(data.version.code, data.version.plot_url, data.version.description)
       }
     } catch (error) {
       console.error('Failed to save version:', error)
@@ -209,6 +210,8 @@ export function VersionHistory({
   }
 
   const restoreVersion = async (versionId: string) => {
+    if (!onVersionRestore) return
+    
     try {
       const response = await fetch(`/api/projects/${projectId}/versions/${versionId}/restore`, {
         method: 'POST'
@@ -290,16 +293,18 @@ export function VersionHistory({
           <span>History</span>
         </Button>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowDescriptionInput(!showDescriptionInput)}
-          disabled={saving}
-          className="flex items-center space-x-1"
-        >
-          <Save className="h-4 w-4" />
-          <span>{saving ? 'Saving...' : 'Save Version'}</span>
-        </Button>
+        {onSaveVersion && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDescriptionInput(!showDescriptionInput)}
+            disabled={saving}
+            className="flex items-center space-x-1"
+          >
+            <Save className="h-4 w-4" />
+            <span>{saving ? 'Saving...' : 'Save Version'}</span>
+          </Button>
+        )}
       </div>
 
       {/* Description Input */}
@@ -454,17 +459,19 @@ export function VersionHistory({
                             )}
                           </div>
                           
-                          <div className="flex flex-col space-y-1 ml-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => restoreVersion(version.id)}
-                              className="flex items-center space-x-1"
-                            >
-                              <RotateCcw className="h-3 w-3" />
-                              <span>Restore</span>
-                            </Button>
-                          </div>
+                          {onVersionRestore && (
+                            <div className="flex flex-col space-y-1 ml-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => restoreVersion(version.id)}
+                                className="flex items-center space-x-1"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                <span>Restore</span>
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

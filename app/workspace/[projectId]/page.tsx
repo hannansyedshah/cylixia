@@ -1124,46 +1124,50 @@ export default function WorkspacePage() {
                 <span>Add Collaborators</span>
               </Button>
             )}
-            {/* Datasets dropdown trigger */}
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setShowDatasetsPanel(v => !v)} 
-              className={`h-8 px-3 ${datasets.some(d => d.persisted && !d.csvText) ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
-            >
-              Datasets ({datasets.length})
-              {datasets.some(d => d.persisted && !d.csvText) && (
-                <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-yellow-900">
-                  {datasets.filter(d => d.persisted && !d.csvText).length} need re-upload
-                </span>
-              )}
-            </Button>
-            {/* Compact AI mode pills */}
-            <div className="flex gap-1 text-xs">
-              <button
-                className={`px-2 py-1 rounded border ${airiaMode === 'legacy' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
-                onClick={() => setAiriaMode('legacy')}
+            {/* Datasets dropdown trigger - hide for view-only users */}
+            {userRole !== 'view' && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setShowDatasetsPanel(v => !v)} 
+                className={`h-8 px-3 ${datasets.some(d => d.persisted && !d.csvText) ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : ''}`}
               >
-                Legacy
-              </button>
-              <button
-                className={`px-2 py-1 rounded border ${airiaMode === 'quick' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
-                onClick={() => setAiriaMode('quick')}
-              >
-                Quick
-              </button>
-              <button
-                className={`px-2 py-1 rounded border ${airiaMode === 'ask' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
-                onClick={() => setAiriaMode('ask')}
-              >
-                Ask Data
-              </button>
-            </div>
+                Datasets ({datasets.length})
+                {datasets.some(d => d.persisted && !d.csvText) && (
+                  <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-yellow-900">
+                    {datasets.filter(d => d.persisted && !d.csvText).length} need re-upload
+                  </span>
+                )}
+              </Button>
+            )}
+            {/* Compact AI mode pills - hide for view-only users */}
+            {userRole !== 'view' && (
+              <div className="flex gap-1 text-xs">
+                <button
+                  className={`px-2 py-1 rounded border ${airiaMode === 'legacy' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                  onClick={() => setAiriaMode('legacy')}
+                >
+                  Legacy
+                </button>
+                <button
+                  className={`px-2 py-1 rounded border ${airiaMode === 'quick' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                  onClick={() => setAiriaMode('quick')}
+                >
+                  Quick
+                </button>
+                <button
+                  className={`px-2 py-1 rounded border ${airiaMode === 'ask' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 font-medium' : 'bg-transparent border-transparent opacity-70'}`}
+                  onClick={() => setAiriaMode('ask')}
+                >
+                  Ask Data
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Datasets dropdown panel */}
-        {showDatasetsPanel && (
+        {/* Datasets dropdown panel - hide for view-only users */}
+        {showDatasetsPanel && userRole !== 'view' && (
           <div className="px-4 pt-2">
             {datasets.some(d => d.persisted && !d.csvText) && (
               <div className="mb-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border-2 border-yellow-400 dark:border-yellow-600">
@@ -1342,7 +1346,7 @@ export default function WorkspacePage() {
                     })
                   )}
                 </div>
-                {/* Privacy Toggle - Compact */}
+                {/* Privacy Toggle - Compact - Disable for view-only users */}
                 {datasets.length > 0 && (
                   <div className="px-4 py-2 bg-blue-50/30 dark:bg-blue-950/10 border-t border-blue-200/30 dark:border-blue-800/30">
                     <div className="flex items-center justify-between">
@@ -1352,12 +1356,13 @@ export default function WorkspacePage() {
                           {privacyMode ? '🔒 Privacy ON' : '⚠️ Privacy OFF'}
                         </span>
                       </div>
-                      <label className="flex items-center space-x-1 cursor-pointer">
+                      <label className={`flex items-center space-x-1 ${userRole === 'view' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                         <input
                           type="checkbox"
                           checked={privacyMode}
                           onChange={(e) => setPrivacyMode(e.target.checked)}
-                          className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-1 dark:bg-gray-700 dark:border-gray-600"
+                          disabled={userRole === 'view'}
+                          className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-1 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           Randomize
@@ -1399,24 +1404,26 @@ export default function WorkspacePage() {
                   projectId={projectId}
                   currentCode={project.code}
                   currentPlotUrl={project.plot_url}
-                  onVersionRestore={handleVersionRestore}
-                  onSaveVersion={handleSaveVersion}
+                  onVersionRestore={userRole === 'view' ? undefined : handleVersionRestore}
+                  onSaveVersion={userRole === 'view' ? undefined : handleSaveVersion}
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Button onClick={() => setEditorFocusMode(!editorFocusMode)} size="sm" variant="outline" className="shadow-none">
-                  {editorFocusMode ? (
-                    <>
-                      <Minimize2 className="h-4 w-4 mr-2" />
-                      Collapse
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="h-4 w-4 mr-2" />
-                      Expand
-                    </>
-                  )}
-                </Button>
+                {userRole !== 'view' && (
+                  <Button onClick={() => setEditorFocusMode(!editorFocusMode)} size="sm" variant="outline" className="shadow-none">
+                    {editorFocusMode ? (
+                      <>
+                        <Minimize2 className="h-4 w-4 mr-2" />
+                        Collapse
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="h-4 w-4 mr-2" />
+                        Expand
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button onClick={handleRunCode} size="sm" disabled={loading} className="shadow-md">
                   <Play className="h-4 w-4 mr-2" />
                   Run
@@ -1425,7 +1432,7 @@ export default function WorkspacePage() {
             </div>
             <div className="flex-1 min-h-0">
               {userRole === 'view' ? (
-                <CodeEditor key={editorKey} value={project.code} onChange={handleCodeChange} />
+                <CodeEditor key={editorKey} value={project.code} onChange={() => {}} readOnly={true} />
               ) : (
                 <CodeEditorCollaborative 
                   key={editorKey} 
