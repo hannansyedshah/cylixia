@@ -131,7 +131,7 @@ export function CollaborationRequests() {
                   <span className="text-sm text-gray-500">invited you to collaborate</span>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Project: <span className="font-medium">{request.project?.name || 'Unknown'}</span>
+                  Project: <span className="font-medium">{request.project?.name || 'Unnamed Project'}</span>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Role: <span className="font-medium capitalize">{request.role}</span>

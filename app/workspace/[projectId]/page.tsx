@@ -69,6 +69,8 @@ export default function WorkspacePage() {
   }
   const [sharedDatasets, setSharedDatasets] = useState<SharedDataset[]>([])
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
+  // Track user preferences for shared datasets (local state, not persisted)
+  const [sharedDatasetPreferences, setSharedDatasetPreferences] = useState<Record<string, { includeChat: boolean; includeRun: boolean }>>({})
   const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick' | 'ask'>('quick')
   const [stdoutText, setStdoutText] = useState<string>('')
   const [stderrText, setStderrText] = useState<string>('')
@@ -277,7 +279,23 @@ export default function WorkspacePage() {
       const response = await fetch(`/api/projects/${projectId}/shared-datasets`)
       if (response.ok) {
         const data = await response.json()
-        setSharedDatasets(data.sharedDatasets || [])
+        const loadedDatasets = data.sharedDatasets || []
+        setSharedDatasets(loadedDatasets)
+        
+        // Initialize preferences with stored values (user can override)
+        setSharedDatasetPreferences(prev => {
+          const newPrefs = { ...prev }
+          loadedDatasets.forEach((ds: SharedDataset) => {
+            if (!newPrefs[ds.id]) {
+              // Initialize with stored values if not already set
+              newPrefs[ds.id] = {
+                includeChat: ds.include_chat,
+                includeRun: ds.include_run
+              }
+            }
+          })
+          return newPrefs
+        })
       } else {
         console.error('Failed to load shared datasets:', response.statusText)
       }
@@ -725,11 +743,7 @@ export default function WorkspacePage() {
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
 
-    // Prevent view-only users from sending messages
-    if (userRole === 'view') {
-      alert('View-only access: You cannot send messages in the AI chat.')
-      return
-    }
+    // Allow all users (including view-only) to send messages
 
     if (!mountedRef.current) return
     
@@ -783,7 +797,11 @@ export default function WorkspacePage() {
               .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
               .map(d => ({ fileName: d.fileName, csvData: d.csvText! })),
             ...sharedDatasets
-              .filter(d => d.include_chat)
+              .filter(d => {
+                const prefs = sharedDatasetPreferences[d.id]
+                // Use user preference if set, otherwise use stored value
+                return prefs ? prefs.includeChat : d.include_chat
+              })
               .map(d => ({ fileName: d.file_name, csvData: d.csv_text }))
           ]
         }),
@@ -927,7 +945,11 @@ export default function WorkspacePage() {
       
       // Prepare CSV data array for execution (originals)
       const runFiles = datasets.filter(d => d.includeRun && d.csvText)
-      const sharedRunFiles = sharedDatasets.filter(d => d.include_run)
+      const sharedRunFiles = sharedDatasets.filter(d => {
+        const prefs = sharedDatasetPreferences[d.id]
+        // Use user preference if set, otherwise use stored value
+        return prefs ? prefs.includeRun : d.include_run
+      })
       const allRunFiles = [
         ...runFiles.map(d => ({ filename: d.fileName, data_base64: btoa(d.csvText!) })),
         ...sharedRunFiles.map(d => ({ filename: d.file_name, data_base64: btoa(d.csv_text) }))
@@ -1349,20 +1371,8 @@ export default function WorkspacePage() {
             </Button>
           </div>
           
-          {/* Right: Add Collaborators Button and other actions */}
+          {/* Right: Actions */}
           <div className="flex items-center gap-2 flex-1 justify-end">
-            {/* Add Collaborators Button - show if user is owner or has edit role */}
-            {(userRole === 'owner' || userRole === 'edit' || userRole === null) && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setShowInviteModal(true)}
-                className="flex items-center space-x-2 bg-rstudio hover:bg-rstudio/90 text-white"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Add Collaborators</span>
-              </Button>
-            )}
             {/* Datasets dropdown trigger - hide for view-only users */}
             {userRole !== 'view' && (
               <Button 
@@ -1478,6 +1488,19 @@ export default function WorkspacePage() {
                 currentUserId={user?.id}
                 onShareDataset={handleShareDataset}
                 onRemoveSharedDataset={handleRemoveSharedDataset}
+                onSharedDatasetPreferenceChange={(datasetId, type, value) => {
+                  setSharedDatasetPreferences(prev => {
+                    const current = prev[datasetId] || { includeChat: true, includeRun: true }
+                    return {
+                      ...prev,
+                      [datasetId]: {
+                        ...current,
+                        [type === 'chat' ? 'includeChat' : 'includeRun']: value
+                      }
+                    }
+                  })
+                }}
+                sharedDatasetPreferences={sharedDatasetPreferences}
               />
             </div>
           </div>
@@ -1655,30 +1678,22 @@ export default function WorkspacePage() {
                   </div>
                 )}
                 {/* AI Mode now in header; removed here to save space */}
-                {/* Prompt Input - Disabled for view-only users */}
-                {userRole !== 'view' ? (
-                  <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                    <div className="flex space-x-2">
-                      <Input
-                        placeholder="Ask me anything about your data... (e.g., 'make a regression plot')"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        disabled={loading}
-                        className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
-                      />
-                      <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
+                {/* Prompt Input - Available for all users */}
+                <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Ask me anything about your data... (e.g., 'make a regression plot')"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      disabled={loading}
+                      className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
+                    />
+                    <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
+                      <Send className="h-4 w-4" />
+                    </Button>
                   </div>
-                ) : (
-                  <div className="p-4 border-t bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span>View-only access: Chat is disabled</span>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </>
           )}
@@ -1723,14 +1738,7 @@ export default function WorkspacePage() {
             </div>
             <div className="flex-1 min-h-0 relative">
               {userRole === 'view' ? (
-                <>
-                  <CodeEditor key={`editor-${editorKey}-view`} value={project.code} onChange={() => {}} readOnly={true} />
-                  {/* Beautiful animated gradient overlay for view-only mode */}
-                  <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-200/2 via-cyan-200/1 to-sky-200/2 dark:from-blue-800/2 dark:via-cyan-800/1 dark:to-sky-800/2 animate-gradient-float"></div>
-                    <div className="absolute inset-0 bg-gradient-to-tl from-sky-200/2 via-cyan-200/1 to-blue-200/2 dark:from-sky-800/2 dark:via-cyan-800/1 dark:to-blue-800/2 animate-gradient-float-reverse" style={{ animationDelay: '1s' }}></div>
-                  </div>
-                </>
+                <CodeEditor key={`editor-${editorKey}-view`} value={project.code} onChange={() => {}} readOnly={true} />
               ) : (
                 <CodeEditorCollaborative 
                   key={`editor-${editorKey}-${userRole}`} 

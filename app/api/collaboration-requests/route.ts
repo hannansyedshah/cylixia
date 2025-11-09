@@ -37,16 +37,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Get project IDs
-    const projectIds = [...new Set(requests.map((r: any) => r.project_id))]
+    const projectIds = [...new Set(requests.map((r: any) => r.project_id).filter(Boolean))]
     
     // Get projects
-    const { data: projects, error: projectsError } = await supabase
-      .from('projects')
-      .select('id, name, description')
-      .in('id', projectIds)
+    let projects: any[] = []
+    if (projectIds.length > 0) {
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name, description')
+        .in('id', projectIds)
 
-    if (projectsError) {
-      console.error('Error fetching projects:', projectsError)
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError)
+      } else if (projectsData) {
+        projects = projectsData
+      }
     }
 
     // Get user IDs
@@ -67,13 +72,17 @@ export async function GET(request: NextRequest) {
 
     // Map requests with related data
     const formattedRequests = (requests || []).map((req: any) => {
-      const project = projects?.find((p: any) => p.id === req.project_id)
+      const project = projects.find((p: any) => p.id === req.project_id)
       const fromUserProfile = profiles?.find((p: any) => p.id === req.from_user_id)
       const toUserProfile = profiles?.find((p: any) => p.id === req.to_user_id)
 
       return {
         ...req,
-        project: project || null,
+        project: project ? {
+          id: project.id,
+          name: project.name || 'Unnamed Project',
+          description: project.description
+        } : null,
         from_user: fromUserProfile || null,
         to_user: toUserProfile || null
       }

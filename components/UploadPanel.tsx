@@ -44,6 +44,8 @@ interface UploadPanelProps {
   currentUserId?: string
   onShareDataset?: (dataset: DatasetItem) => Promise<void>
   onRemoveSharedDataset?: (datasetId: string) => Promise<void>
+  onSharedDatasetPreferenceChange?: (datasetId: string, type: 'chat' | 'run', value: boolean) => void
+  sharedDatasetPreferences?: Record<string, { includeChat: boolean; includeRun: boolean }>
 }
 
 export function UploadPanel({ 
@@ -56,7 +58,9 @@ export function UploadPanel({
   userRole,
   currentUserId,
   onShareDataset,
-  onRemoveSharedDataset
+  onRemoveSharedDataset,
+  onSharedDatasetPreferenceChange,
+  sharedDatasetPreferences = {}
 }: UploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
@@ -65,6 +69,9 @@ export function UploadPanel({
   const [shareWithCollaborators, setShareWithCollaborators] = useState(false)
   const [sharingDatasetId, setSharingDatasetId] = useState<string | null>(null)
   const [removingDatasetId, setRemovingDatasetId] = useState<string | null>(null)
+  const [showShareConfirm, setShowShareConfirm] = useState(false)
+  const [pendingShareDataset, setPendingShareDataset] = useState<DatasetItem | null>(null)
+  const [dontShowShareConfirm, setDontShowShareConfirm] = useState(false)
   
   const canShare = userRole === 'owner' || userRole === 'edit'
   
@@ -185,15 +192,67 @@ export function UploadPanel({
   const handleShareDataset = async (dataset: DatasetItem) => {
     if (!canShare || !onShareDataset || !projectId) return
     
+    // Check if user has opted to skip confirmation
+    const skipConfirm = localStorage.getItem('skipShareDatasetConfirm') === 'true'
+    
+    if (!skipConfirm) {
+      // Show confirmation dialog
+      setPendingShareDataset(dataset)
+      setShowShareConfirm(true)
+      return
+    }
+    
+    // Proceed with sharing
+    await proceedWithShare(dataset)
+  }
+  
+  const proceedWithShare = async (dataset: DatasetItem) => {
+    if (!onShareDataset || !projectId) return
+    
     setSharingDatasetId(dataset.id)
     try {
       await onShareDataset(dataset)
+      setShowShareConfirm(false)
+      setPendingShareDataset(null)
     } catch (error) {
       console.error('Failed to share dataset:', error)
       alert('Failed to share dataset with collaborators')
     } finally {
       setSharingDatasetId(null)
     }
+  }
+  
+  const handleShareConfirm = async () => {
+    if (!pendingShareDataset) return
+    
+    // Save "don't show again" preference
+    if (dontShowShareConfirm) {
+      localStorage.setItem('skipShareDatasetConfirm', 'true')
+    }
+    
+    await proceedWithShare(pendingShareDataset)
+    setDontShowShareConfirm(false)
+  }
+  
+  const handleShareCancel = () => {
+    setShowShareConfirm(false)
+    setPendingShareDataset(null)
+    setDontShowShareConfirm(false)
+  }
+  
+  const toggleSharedDatasetPreference = (datasetId: string, type: 'chat' | 'run') => {
+    const current = sharedDatasetPreferences[datasetId] || { includeChat: true, includeRun: true }
+    const newValue = !current[type === 'chat' ? 'includeChat' : 'includeRun']
+    onSharedDatasetPreferenceChange?.(datasetId, type, newValue)
+  }
+  
+  const getSharedDatasetPreference = (datasetId: string, type: 'chat' | 'run'): boolean => {
+    const prefs = sharedDatasetPreferences[datasetId]
+    if (!prefs) {
+      // Default to true if no preference set
+      return true
+    }
+    return type === 'chat' ? prefs.includeChat : prefs.includeRun
   }
   
   const handleRemoveSharedDataset = async (datasetId: string) => {
@@ -400,11 +459,19 @@ export function UploadPanel({
                       ✓ Added
                     </span>
                   )}
-                  <label className="ml-auto text-xs flex items-center gap-1">
-                    <input type="checkbox" checked={item.include_chat} disabled /> Chat
+                  <label className="ml-auto text-xs flex items-center gap-1 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={getSharedDatasetPreference(item.id, 'chat')} 
+                      onChange={() => toggleSharedDatasetPreference(item.id, 'chat')}
+                    /> Chat
                   </label>
-                  <label className="text-xs flex items-center gap-1">
-                    <input type="checkbox" checked={item.include_run} disabled /> Run
+                  <label className="text-xs flex items-center gap-1 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={getSharedDatasetPreference(item.id, 'run')} 
+                      onChange={() => toggleSharedDatasetPreference(item.id, 'run')}
+                    /> Run
                   </label>
                   {isOwner && onRemoveSharedDataset && (
                     <Button 
@@ -500,6 +567,54 @@ export function UploadPanel({
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Share Confirmation Dialog */}
+      {showShareConfirm && pendingShareDataset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={handleShareCancel}></div>
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[90vw] max-w-md p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Share2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Share Dataset
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  You are sharing <strong>{pendingShareDataset.fileName}</strong> with everyone who has access to this project. The dataset is still stored safely and you can remove it at any time.
+                </p>
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={dontShowShareConfirm}
+                  onChange={(e) => setDontShowShareConfirm(e.target.checked)}
+                  className="rounded"
+                />
+                <span>Don't show this again</span>
+              </label>
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={handleShareCancel}
+                className="px-4"
+              >
+                No
+              </Button>
+              <Button 
+                onClick={handleShareConfirm}
+                className="px-4 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Yes, Share
+              </Button>
+            </div>
           </div>
         </div>
       )}

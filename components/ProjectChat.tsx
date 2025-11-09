@@ -142,11 +142,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
     e.preventDefault()
     if (!newMessage.trim() || sending) return
     
-    // Prevent view-only users from sending messages
-    if (userRole === 'view') {
-      alert('View-only access: You cannot send messages in the collaboration chat.')
-      return
-    }
+    // Allow all users (including view-only) to send messages
 
     const messageText = newMessage.trim()
     setSending(true)
