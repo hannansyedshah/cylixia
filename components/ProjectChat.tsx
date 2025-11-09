@@ -310,29 +310,23 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
           )}
           <div ref={messagesEndRef} />
         </div>
-        {userRole === 'view' ? (
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400 py-2">
-            View-only access: Chat is disabled
-          </div>
-        ) : (
-          <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <Input
-              type="text"
-              placeholder="Type a message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              disabled={sending}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={sending || !newMessage.trim()} size="icon">
-              {sending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
-          </form>
-        )}
+        <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <Input
+            type="text"
+            placeholder="Type a message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            disabled={sending}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={sending || !newMessage.trim()} size="icon">
+            {sending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   )
