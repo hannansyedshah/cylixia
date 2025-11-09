@@ -73,6 +73,7 @@ export function UploadPanel({
   const [pendingShareDataset, setPendingShareDataset] = useState<DatasetItem | null>(null)
   const [dontShowShareConfirm, setDontShowShareConfirm] = useState(false)
   
+  // Allow sharing for project owners and collaborators with 'owner' or 'edit' role
   const canShare = userRole === 'owner' || userRole === 'edit'
   
 

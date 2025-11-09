@@ -98,24 +98,23 @@ export async function POST(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    // Check if user is owner
-    const isOwner = project.user_id === user.id
+    // Check if user is project owner
+    const isProjectOwner = project.user_id === user.id
 
     // Check if user is an accepted collaborator with edit or owner role
-    let isEditor = false
-    if (!isOwner) {
-      const { data: collaborator } = await supabase
-        .from('project_collaborators')
-        .select('role')
-        .eq('project_id', projectId)
-        .eq('user_id', user.id)
-        .eq('status', 'accepted')
-        .single()
+    const { data: collaborator } = await supabase
+      .from('project_collaborators')
+      .select('role')
+      .eq('project_id', projectId)
+      .eq('user_id', user.id)
+      .eq('status', 'accepted')
+      .single()
 
-      isEditor = collaborator?.role === 'edit' || collaborator?.role === 'owner'
-    }
+    const hasOwnerRole = collaborator?.role === 'owner'
+    const hasEditRole = collaborator?.role === 'edit'
+    const canShare = isProjectOwner || hasOwnerRole || hasEditRole
 
-    if (!isOwner && !isEditor) {
+    if (!canShare) {
       return NextResponse.json(
         { error: 'Only owners and editors can share datasets' },
         { status: 403 }
