@@ -414,7 +414,7 @@ export function CodeEditorCollaborative({
         endColumn: 999999
       })
       
-      // Highlight the selection with yellow background
+      // Highlight the selection with soft blue background
       const decorations = editorRef.current.deltaDecorations([], [
         {
           range: {
@@ -424,7 +424,7 @@ export function CodeEditorCollaborative({
             endColumn: 999999
           },
           options: {
-            className: 'bg-yellow-200 dark:bg-yellow-900/30',
+            className: 'bg-blue-50 dark:bg-blue-900/20',
             isWholeLine: true,
             stickiness: 1,
             hoverMessage: { value: 'Shared code selection - Click anywhere to clear' }
