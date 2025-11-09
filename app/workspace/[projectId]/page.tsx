@@ -62,6 +62,7 @@ export default function WorkspacePage() {
   const [userRole, setUserRole] = useState<'owner' | 'edit' | 'view' | null>(null)
   const [showCollaborationSidebar, setShowCollaborationSidebar] = useState<boolean>(false)
   const [showInviteModal, setShowInviteModal] = useState<boolean>(false)
+  const [codeSelection, setCodeSelection] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -1360,6 +1361,7 @@ export default function WorkspacePage() {
                   readOnly={false}
                   enableEditLock={enableEditLock}
                   onEditLockChange={setEnableEditLock}
+                  onCodeSelection={codeSelection}
                 />
               )}
             </div>
@@ -1438,7 +1440,14 @@ export default function WorkspacePage() {
                 projectOwnerId={project?.user_id}
               />
               <div className="h-[400px]">
-                <ProjectChat projectId={projectId} />
+                <ProjectChat 
+                  projectId={projectId}
+                  onCodeSelectionClick={(selection) => {
+                    setCodeSelection(selection)
+                    // Clear selection after 5 seconds
+                    setTimeout(() => setCodeSelection(null), 5000)
+                  }}
+                />
               </div>
             </div>
           </div>

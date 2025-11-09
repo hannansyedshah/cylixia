@@ -15,6 +15,9 @@ interface ChatMessage {
   user_id: string
   message: string
   created_at: string
+  code_selection?: string | null
+  code_selection_start_line?: number | null
+  code_selection_end_line?: number | null
   profiles?: {
     id: string
     display_name: string | null
@@ -24,9 +27,10 @@ interface ChatMessage {
 
 interface ProjectChatProps {
   projectId: string
+  onCodeSelectionClick?: (selection: { code: string; startLine: number; endLine: number }) => void
 }
 
-export function ProjectChat({ projectId }: ProjectChatProps) {
+export function ProjectChat({ projectId, onCodeSelectionClick }: ProjectChatProps) {
   const { user } = useSessionStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -248,6 +252,46 @@ export function ProjectChat({ projectId }: ProjectChatProps) {
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                      {message.code_selection && message.code_selection_start_line && message.code_selection_end_line && (
+                        <button
+                          onClick={() => {
+                            if (onCodeSelectionClick) {
+                              onCodeSelectionClick({
+                                code: message.code_selection,
+                                startLine: message.code_selection_start_line!,
+                                endLine: message.code_selection_end_line!
+                              })
+                            }
+                          }}
+                          className={`mt-2 block w-full text-left p-2 rounded border transition-colors ${
+                            isCurrentUser
+                              ? 'bg-white/20 border-white/30 hover:bg-white/30 text-white'
+                              : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-medium ${
+                              isCurrentUser
+                                ? 'text-white/90'
+                                : 'text-blue-700 dark:text-blue-300'
+                            }`}>
+                              📎 Lines {message.code_selection_start_line}-{message.code_selection_end_line}
+                            </span>
+                            <span className={`text-xs ${
+                              isCurrentUser
+                                ? 'text-white/70'
+                                : 'text-blue-600 dark:text-blue-400'
+                            }`}>Click to view</span>
+                          </div>
+                          <pre className={`text-xs font-mono whitespace-pre-wrap overflow-x-auto max-h-32 overflow-y-auto ${
+                            isCurrentUser
+                              ? 'text-white/90'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}>
+                            {message.code_selection}
+                          </pre>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

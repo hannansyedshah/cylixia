@@ -94,7 +94,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { message } = body
+    const { message, code_selection, code_selection_start_line, code_selection_end_line } = body
 
     if (!message || !message.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -130,7 +130,10 @@ export async function POST(
       .insert({
         project_id: projectId,
         user_id: user.id,
-        message: message.trim()
+        message: message.trim(),
+        code_selection: code_selection || null,
+        code_selection_start_line: code_selection_start_line || null,
+        code_selection_end_line: code_selection_end_line || null
       })
       .select('*')
       .single()
