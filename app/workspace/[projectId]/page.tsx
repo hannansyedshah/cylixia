@@ -76,6 +76,44 @@ export default function WorkspacePage() {
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
   const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Dedicated function to determine and update user role
+  const updateUserRole = useCallback(async (projectUserId: string) => {
+    if (!user?.id || !projectId) {
+      console.warn('⚠️ Cannot determine role: missing user or projectId')
+      return
+    }
+
+    try {
+      // Always check owner first - this is the most reliable check
+      const isOwner = projectUserId === user.id
+      if (isOwner) {
+        console.log('✅ User is project owner')
+        setUserRole('owner')
+        return
+      }
+
+      // If not owner, check collaborator status
+      const collabResponse = await fetch(`/api/projects/${projectId}/collaborators`)
+      if (collabResponse.ok) {
+        const collabData = await collabResponse.json()
+        const currentUserCollab = collabData.collaborators?.find((c: any) => c.user_id === user.id)
+        if (currentUserCollab && currentUserCollab.status === 'accepted') {
+          console.log(`✅ User is collaborator with role: ${currentUserCollab.role}`)
+          setUserRole(currentUserCollab.role as 'owner' | 'edit' | 'view')
+        } else {
+          console.log('⚠️ User is not a collaborator, defaulting to view')
+          setUserRole('view')
+        }
+      } else {
+        console.warn('⚠️ Failed to fetch collaborators, defaulting to view')
+        setUserRole('view')
+      }
+    } catch (error) {
+      console.error('❌ Error determining user role:', error)
+      setUserRole('view') // Default to view on error
+    }
+  }, [user?.id, projectId])
+
   const loadProject = useCallback(async () => {
     if (!projectId || hasLoadedRef.current) return
     
@@ -125,23 +163,8 @@ export default function WorkspacePage() {
         // Load messages from API
         loadMessages()
         
-        // Check user role (owner or collaborator)
-        const isOwner = data.project.user_id === user?.id
-        if (isOwner) {
-          setUserRole('owner')
-        } else {
-          // Check if user is a collaborator
-          const collabResponse = await fetch(`/api/projects/${projectId}/collaborators`)
-          if (collabResponse.ok) {
-            const collabData = await collabResponse.json()
-            const currentUserCollab = collabData.collaborators?.find((c: any) => c.user_id === user?.id)
-            if (currentUserCollab) {
-              setUserRole(currentUserCollab.role as 'owner' | 'edit' | 'view')
-            } else {
-              setUserRole('view') // Default to view if no role found
-            }
-          }
-        }
+        // Determine and update user role
+        await updateUserRole(data.project.user_id)
         
         // Load saved dataset metadata from project.dataset field
         isInitialLoadRef.current = true // Mark as initial load to prevent saving
@@ -384,10 +407,10 @@ export default function WorkspacePage() {
 
   // Subscribe to real-time collaborator role changes to update userRole
   useEffect(() => {
-    if (!projectId || !user?.id) return
+    if (!projectId || !user?.id || !project) return
 
     const channel = supabase
-      .channel(`project-user-role-${projectId}`)
+      .channel(`project-user-role-${projectId}-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -397,10 +420,43 @@ export default function WorkspacePage() {
           filter: `project_id=eq.${projectId} AND user_id=eq.${user.id}`
         },
         async (payload) => {
-          // When the current user's role is updated, reload the project to get the new role
-          console.log('User role updated, reloading project...')
-          hasLoadedRef.current = false
-          await loadProject()
+          // When the current user's role is updated, update role immediately
+          console.log('🔄 User role updated in real-time:', payload.new)
+          const newRole = (payload.new as any).role
+          if (newRole && ['owner', 'edit', 'view'].includes(newRole)) {
+            setUserRole(newRole as 'owner' | 'edit' | 'view')
+          } else {
+            // If role update is unclear, re-check role
+            await updateUserRole(project.user_id)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'project_collaborators',
+          filter: `project_id=eq.${projectId} AND user_id=eq.${user.id}`
+        },
+        async () => {
+          // When user is added as collaborator, update role
+          console.log('🔄 User added as collaborator, updating role...')
+          await updateUserRole(project.user_id)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'project_collaborators',
+          filter: `project_id=eq.${projectId} AND user_id=eq.${user.id}`
+        },
+        async () => {
+          // When user is removed as collaborator, check if they're still owner
+          console.log('🔄 User removed as collaborator, checking role...')
+          await updateUserRole(project.user_id)
         }
       )
       .subscribe()
@@ -408,7 +464,7 @@ export default function WorkspacePage() {
     return () => {
       channel.unsubscribe()
     }
-  }, [projectId, user?.id, loadProject])
+  }, [projectId, user?.id, project, updateUserRole])
 
   // Handle visibility changes to reset stuck states
   // Use ref to access current loading value to avoid recreating listener
