@@ -269,6 +269,23 @@ export default function WorkspacePage() {
     }
   }, [projectId])
 
+  // Load shared datasets
+  const loadSharedDatasets = useCallback(async () => {
+    if (!projectId) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/shared-datasets`)
+      if (response.ok) {
+        const data = await response.json()
+        setSharedDatasets(data.sharedDatasets || [])
+      } else {
+        console.error('Failed to load shared datasets:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error loading shared datasets:', error)
+    }
+  }, [projectId])
+
   // Subscribe to real-time message updates
   useEffect(() => {
     if (!projectId || !mountedRef.current) return
@@ -1072,23 +1089,6 @@ export default function WorkspacePage() {
   // Real-time code updates are handled by CodeEditorCollaborative via useRealtimeProject hook
   // No need for duplicate subscription here
 
-  // Load shared datasets
-  const loadSharedDatasets = useCallback(async () => {
-    if (!projectId) return
-    
-    try {
-      const response = await fetch(`/api/projects/${projectId}/shared-datasets`)
-      if (response.ok) {
-        const data = await response.json()
-        setSharedDatasets(data.sharedDatasets || [])
-      } else {
-        console.error('Failed to load shared datasets:', response.statusText)
-      }
-    } catch (error) {
-      console.error('Error loading shared datasets:', error)
-    }
-  }, [projectId])
-  
   // Share a dataset with collaborators
   const handleShareDataset = useCallback(async (dataset: DatasetItem) => {
     if (!projectId || !dataset.csvText) return
