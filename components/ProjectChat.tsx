@@ -325,10 +325,10 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              disabled={sending || userRole === 'view'}
+              disabled={sending}
               className="flex-1"
             />
-            <Button type="submit" disabled={sending || !newMessage.trim() || userRole === 'view'} size="icon">
+            <Button type="submit" disabled={sending || !newMessage.trim()} size="icon">
               {sending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
