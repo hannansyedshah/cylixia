@@ -1436,7 +1436,7 @@ export default function WorkspacePage() {
                 sharedDatasets={sharedDatasets}
                 onDatasetsChange={(list) => setDatasets(list)}
                 projectId={projectId}
-                userRole={userRole}
+                userRole={userRole ?? undefined}
                 currentUserId={user?.id}
                 onShareDataset={handleShareDataset}
                 onRemoveSharedDataset={handleRemoveSharedDataset}
