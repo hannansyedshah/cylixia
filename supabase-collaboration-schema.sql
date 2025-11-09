@@ -448,6 +448,16 @@ GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_user_by_email(TEXT) TO service_role;
 
+-- Grant execute permissions on all collaboration functions
+GRANT EXECUTE ON FUNCTION public.is_project_collaborator(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_project_collaborator(UUID, UUID) TO anon;
+GRANT EXECUTE ON FUNCTION public.has_pending_invite(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.has_pending_invite(UUID, UUID) TO anon;
+GRANT EXECUTE ON FUNCTION public.can_edit_project(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_edit_project(UUID, UUID) TO anon;
+GRANT EXECUTE ON FUNCTION public.can_view_project_messages(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_view_project_messages(UUID, UUID) TO anon;
+
 -- Note: If the above ALTER PUBLICATION commands fail, you may need to enable Realtime manually in Supabase Dashboard:
 -- 1. Go to Database > Replication
 -- 2. Enable Realtime for: projects, project_chat_messages, project_collaborators

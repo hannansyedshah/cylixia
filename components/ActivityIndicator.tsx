@@ -68,7 +68,6 @@ export function ActivityIndicator({ projectId }: { projectId: string }) {
 
     channel
       .on('presence', { event: 'sync' }, updateActiveUsers)
-      .on('presence', { event: 'update' }, updateActiveUsers)
 
     channel
       .on('presence', { event: 'join' }, ({ newPresences }) => {
