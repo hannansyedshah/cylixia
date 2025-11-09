@@ -743,7 +743,11 @@ export default function WorkspacePage() {
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
 
-    // Allow all users (including view-only) to send messages
+    // Prevent view-only users from using AI chat (they can use collaboration chat)
+    if (userRole === 'view') {
+      alert('View-only access: You cannot use the AI chat. Please use the collaboration chat instead.')
+      return
+    }
 
     if (!mountedRef.current) return
     
@@ -1678,22 +1682,30 @@ export default function WorkspacePage() {
                   </div>
                 )}
                 {/* AI Mode now in header; removed here to save space */}
-                {/* Prompt Input - Available for all users */}
-                <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Ask me anything about your data... (e.g., 'make a regression plot')"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      disabled={loading}
-                      className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
-                    />
-                    <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
-                      <Send className="h-4 w-4" />
-                    </Button>
+                {/* Prompt Input - Disabled for view-only users (they can use collaboration chat) */}
+                {userRole !== 'view' ? (
+                  <div className="p-4 border-t bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="Ask me anything about your data... (e.g., 'make a regression plot')"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                        disabled={loading}
+                        className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
+                      />
+                      <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-4 border-t bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm">
+                    <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span>View-only access: AI chat is disabled. Use the collaboration chat instead.</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
