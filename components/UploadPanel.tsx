@@ -21,17 +21,28 @@ interface UploadPanelProps {
   privacyMode?: boolean
 }
 
-export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: UploadPanelProps) {
+export function UploadPanel({ 
+  datasets, 
+  sharedDatasets = [],
+  onDatasetsChange, 
+  onSharedDatasetsChange,
+  privacyMode = true,
+  projectId,
+  userRole,
+  currentUserId,
+  onShareDataset,
+  onRemoveSharedDataset
+}: UploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
+  const [previewItem, setPreviewItem] = useState<DatasetItem | SharedDataset | null>(null)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
   const [previewViewMode, setPreviewViewMode] = useState<'original' | 'randomized'>('randomized')
+  const [shareWithCollaborators, setShareWithCollaborators] = useState(false)
+  const [sharingDatasetId, setSharingDatasetId] = useState<string | null>(null)
+  const [removingDatasetId, setRemovingDatasetId] = useState<string | null>(null)
   
-  // Reset view mode when opening preview
-  const handlePreviewOpen = (item: DatasetItem) => {
-    setPreviewViewMode(privacyMode ? 'randomized' : 'original')
-    setPreviewItem(item)
-  }
+  const canShare = userRole === 'owner' || userRole === 'edit'
+  
 
   const canAddMore = datasets.length < 5
   const selectedCounts = useMemo(() => ({
@@ -43,7 +54,7 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
     onDatasetsChange?.(next)
   }
 
-  const handleLocalAdd = async (file: File) => {
+  const handleLocalAdd = async (file: File, shouldShare: boolean = false) => {
     if (!file.name.toLowerCase().endsWith('.csv')) return alert('Only .csv files are allowed')
     if (file.size > 10 * 1024 * 1024) return alert('File too large (max 10MB)')
 
@@ -67,6 +78,16 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
       notifyChange(updated)
     } else {
       notifyChange([...(datasets || []), item])
+    }
+    
+    // If share checkbox is checked and user can share, share the dataset
+    if (shouldShare && canShare && onShareDataset && projectId) {
+      try {
+        await onShareDataset(item)
+      } catch (error) {
+        console.error('Failed to share dataset:', error)
+        alert('Failed to share dataset with collaborators')
+      }
     }
   }
 
@@ -130,9 +151,53 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
     if (!pendingFiles) return
     for (const f of pendingFiles) {
       // eslint-disable-next-line no-await-in-loop
-      await handleLocalAdd(f)
+      await handleLocalAdd(f, shareWithCollaborators)
     }
     setPendingFiles(null)
+    setShareWithCollaborators(false)
+  }
+  
+  const handleShareDataset = async (dataset: DatasetItem) => {
+    if (!canShare || !onShareDataset || !projectId) return
+    
+    setSharingDatasetId(dataset.id)
+    try {
+      await onShareDataset(dataset)
+    } catch (error) {
+      console.error('Failed to share dataset:', error)
+      alert('Failed to share dataset with collaborators')
+    } finally {
+      setSharingDatasetId(null)
+    }
+  }
+  
+  const handleRemoveSharedDataset = async (datasetId: string) => {
+    if (!onRemoveSharedDataset) return
+    
+    setRemovingDatasetId(datasetId)
+    try {
+      await onRemoveSharedDataset(datasetId)
+    } catch (error) {
+      console.error('Failed to remove shared dataset:', error)
+      alert('Failed to remove shared dataset')
+    } finally {
+      setRemovingDatasetId(null)
+    }
+  }
+  
+  const handlePreviewOpen = (item: DatasetItem | SharedDataset) => {
+    const csvText = 'csvText' in item ? item.csvText : item.csv_text
+    const previewItem: DatasetItem = {
+      id: item.id,
+      fileName: 'file_name' in item ? item.file_name : item.fileName,
+      sizeBytes: 'size_bytes' in item ? item.size_bytes : item.sizeBytes,
+      persisted: true,
+      includeChat: 'include_chat' in item ? item.include_chat : item.includeChat,
+      includeRun: 'include_run' in item ? item.include_run : item.includeRun,
+      csvText: csvText || undefined
+    }
+    setPreviewViewMode(privacyMode ? 'randomized' : 'original')
+    setPreviewItem(previewItem)
   }
 
   const cancelPending = () => {
@@ -199,48 +264,137 @@ export function UploadPanel({ datasets, onDatasetsChange, privacyMode = true }: 
         </div>
       )}
 
-      {/* List */}
-      {datasets.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {datasets.map(item => {
-            const isPlaceholder = item.persisted && !item.csvText
-            return (
-              <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${
-                isPlaceholder 
-                  ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700' 
-                  : 'bg-white dark:bg-gray-800'
-              }`}>
-                <span className={`inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium ${
-                  isPlaceholder
-                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'
-                    : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
-                }`}>
-                  {isPlaceholder ? '⚠️' : '📊'} <span className="ml-1 truncate">{item.fileName}</span>
-                </span>
-                {item.sizeBytes > 0 && (
-                  <span className="text-[10px] text-gray-500">{(item.sizeBytes/1024).toFixed(1)} KB</span>
-                )}
-                {isPlaceholder ? (
-                  <span className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
-                    Re-upload needed
+      {/* Shared Datasets Section */}
+      {sharedDatasets.length > 0 && (
+        <div className="mt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Shared Datasets</h3>
+          </div>
+          <div className="space-y-2">
+            {sharedDatasets.map(item => {
+              const isOwner = item.user_id === currentUserId
+              const sharerName = item.profiles?.display_name || 'User'
+              return (
+                <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
+                  <span className="inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-300 dark:border-green-700">
+                    <Share2 className="w-3 h-3 mr-1" />
+                    <span className="truncate">{item.file_name}</span>
                   </span>
-                ) : (
+                  {item.size_bytes > 0 && (
+                    <span className="text-[10px] text-gray-500">{(item.size_bytes/1024).toFixed(1)} KB</span>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                    <UserAvatar
+                      userId={item.user_id}
+                      displayName={sharerName}
+                      avatarUrl={item.profiles?.avatar_url}
+                      size="xs"
+                    />
+                    <span className="truncate">by {sharerName}</span>
+                  </div>
                   <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
                     <Eye className="h-3.5 w-3.5 mr-1" /> Preview
                   </Button>
-                )}
-                <label className="ml-auto text-xs flex items-center gap-1">
-                  <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} /> Chat
-                </label>
-                <label className="text-xs flex items-center gap-1">
-                  <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={isPlaceholder} /> Run
-                </label>
-                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
-                  <X className="h-4 w-4 text-red-600" />
-                </Button>
-              </div>
-            )
-          })}
+                  <label className="ml-auto text-xs flex items-center gap-1">
+                    <input type="checkbox" checked={item.include_chat} disabled /> Chat
+                  </label>
+                  <label className="text-xs flex items-center gap-1">
+                    <input type="checkbox" checked={item.include_run} disabled /> Run
+                  </label>
+                  {isOwner && onRemoveSharedDataset && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleRemoveSharedDataset(item.id)} 
+                      disabled={removingDatasetId === item.id}
+                      className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20"
+                    >
+                      {removingDatasetId === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4 text-red-600" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Local Datasets Section */}
+      {datasets.length > 0 && (
+        <div className={`mt-3 ${sharedDatasets.length > 0 ? 'border-t pt-3' : ''}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Upload className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Your Datasets</h3>
+          </div>
+          <div className="space-y-2">
+            {datasets.map(item => {
+              const isPlaceholder = item.persisted && !item.csvText
+              const isShared = sharedDatasets.some(sd => sd.file_name === item.fileName)
+              return (
+                <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${
+                  isPlaceholder 
+                    ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700' 
+                    : 'bg-white dark:bg-gray-800'
+                }`}>
+                  <span className={`inline-flex items-center max-w-[40%] truncate px-2 py-1 rounded-full text-xs font-medium ${
+                    isPlaceholder
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700'
+                      : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                  }`}>
+                    {isPlaceholder ? '⚠️' : '📊'} <span className="ml-1 truncate">{item.fileName}</span>
+                    {isShared && (
+                      <span className="ml-1 px-1 py-0.5 rounded text-[10px] bg-green-500 text-white">Shared</span>
+                    )}
+                  </span>
+                  {item.sizeBytes > 0 && (
+                    <span className="text-[10px] text-gray-500">{(item.sizeBytes/1024).toFixed(1)} KB</span>
+                  )}
+                  {isPlaceholder ? (
+                    <span className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
+                      Re-upload needed
+                    </span>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+                      </Button>
+                      {canShare && !isShared && item.csvText && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleShareDataset(item)}
+                          disabled={sharingDatasetId === item.id}
+                          className="h-7 px-2"
+                        >
+                          {sharingDatasetId === item.id ? (
+                            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Share2 className="h-3.5 w-3.5 mr-1" /> Share
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  <label className="ml-auto text-xs flex items-center gap-1">
+                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} /> Chat
+                  </label>
+                  <label className="text-xs flex items-center gap-1">
+                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={isPlaceholder} /> Run
+                  </label>
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
+                    <X className="h-4 w-4 text-red-600" />
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

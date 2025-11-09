@@ -49,6 +49,25 @@ export default function WorkspacePage() {
   const [loadingProject, setLoadingProject] = useState(true)
   type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string }
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
+  
+  // Shared datasets state
+  interface SharedDataset {
+    id: string
+    project_id: string
+    user_id: string
+    file_name: string
+    csv_text: string
+    size_bytes: number
+    include_chat: boolean
+    include_run: boolean
+    created_at: string
+    profiles?: {
+      id: string
+      display_name: string | null
+      avatar_url: string | null
+    } | null
+  }
+  const [sharedDatasets, setSharedDatasets] = useState<SharedDataset[]>([])
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
   const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick' | 'ask'>('quick')
   const [stdoutText, setStdoutText] = useState<string>('')
@@ -165,6 +184,9 @@ export default function WorkspacePage() {
         
         // Determine and update user role
         await updateUserRole(data.project.user_id)
+        
+        // Load shared datasets
+        await loadSharedDatasets()
         
         // Load saved dataset metadata from project.dataset field
         isInitialLoadRef.current = true // Mark as initial load to prevent saving
@@ -478,6 +500,33 @@ export default function WorkspacePage() {
     }
   }, [userRole])
 
+  // Real-time subscription for shared_datasets changes
+  useEffect(() => {
+    if (!projectId) return
+
+    const channel = supabase
+      .channel(`shared_datasets:${projectId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shared_datasets',
+          filter: `project_id=eq.${projectId}`,
+        },
+        async (payload) => {
+          console.log('Shared dataset changed:', payload.eventType)
+          // Reload shared datasets when changes occur
+          await loadSharedDatasets()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [projectId, loadSharedDatasets])
+
   // Handle visibility changes to reset stuck states
   // Use ref to access current loading value to avoid recreating listener
   const loadingRef = useRef(loading)
@@ -712,9 +761,14 @@ export default function WorkspacePage() {
           userId: user?.id || user?.email || 'anonymous',
           privacyMode,
           mode: airiaMode,
-          csvFilesForChat: datasets
-            .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
-            .map(d => ({ fileName: d.fileName, csvData: d.csvText! }))
+          csvFilesForChat: [
+            ...datasets
+              .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
+              .map(d => ({ fileName: d.fileName, csvData: d.csvText! })),
+            ...sharedDatasets
+              .filter(d => d.include_chat)
+              .map(d => ({ fileName: d.file_name, csvData: d.csv_text }))
+          ]
         }),
         signal: controller.signal,
       })
@@ -856,11 +910,16 @@ export default function WorkspacePage() {
       
       // Prepare CSV data array for execution (originals)
       const runFiles = datasets.filter(d => d.includeRun && d.csvText)
-      const csv_files = runFiles.map(d => ({ filename: d.fileName, data_base64: btoa(d.csvText!) }))
+      const sharedRunFiles = sharedDatasets.filter(d => d.include_run)
+      const allRunFiles = [
+        ...runFiles.map(d => ({ filename: d.fileName, data_base64: btoa(d.csvText!) })),
+        ...sharedRunFiles.map(d => ({ filename: d.file_name, data_base64: btoa(d.csv_text) }))
+      ]
+      const csv_files = allRunFiles
       // Backward compatibility: also send the first CSV as single fields expected by backend
-      const primary = runFiles[0]
-      const csv_base64 = primary ? btoa(primary.csvText!) : undefined
-      const file_name = primary ? primary.fileName : undefined
+      const primary = runFiles[0] || sharedRunFiles[0]
+      const csv_base64 = primary ? (primary.csvText ? btoa(primary.csvText) : btoa(primary.csv_text)) : undefined
+      const file_name = primary ? (primary.fileName || primary.file_name) : undefined
       
       const response = await fetch("/api/execute", {
         method: "POST",
@@ -1012,6 +1071,76 @@ export default function WorkspacePage() {
 
   // Real-time code updates are handled by CodeEditorCollaborative via useRealtimeProject hook
   // No need for duplicate subscription here
+
+  // Load shared datasets
+  const loadSharedDatasets = useCallback(async () => {
+    if (!projectId) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/shared-datasets`)
+      if (response.ok) {
+        const data = await response.json()
+        setSharedDatasets(data.sharedDatasets || [])
+      } else {
+        console.error('Failed to load shared datasets:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error loading shared datasets:', error)
+    }
+  }, [projectId])
+  
+  // Share a dataset with collaborators
+  const handleShareDataset = useCallback(async (dataset: DatasetItem) => {
+    if (!projectId || !dataset.csvText) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/shared-datasets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_name: dataset.fileName,
+          csv_text: dataset.csvText,
+          size_bytes: dataset.sizeBytes,
+          include_chat: dataset.includeChat,
+          include_run: dataset.includeRun
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to share dataset')
+      }
+      
+      const data = await response.json()
+      // Add the new shared dataset to the list
+      setSharedDatasets(prev => [...prev, data.sharedDataset])
+    } catch (error: any) {
+      console.error('Failed to share dataset:', error)
+      throw error
+    }
+  }, [projectId])
+  
+  // Remove a shared dataset
+  const handleRemoveSharedDataset = useCallback(async (datasetId: string) => {
+    if (!projectId) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/shared-datasets/${datasetId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to remove shared dataset')
+      }
+      
+      // Remove from local state
+      setSharedDatasets(prev => prev.filter(d => d.id !== datasetId))
+    } catch (error: any) {
+      console.error('Failed to remove shared dataset:', error)
+      throw error
+    }
+  }, [projectId])
 
   // Save dataset metadata when datasets change (debounced to avoid excessive saves)
   useEffect(() => {
@@ -1296,7 +1425,13 @@ export default function WorkspacePage() {
               <UploadPanel 
                 privacyMode={privacyMode}
                 datasets={datasets}
+                sharedDatasets={sharedDatasets}
                 onDatasetsChange={(list) => setDatasets(list)}
+                projectId={projectId}
+                userRole={userRole}
+                currentUserId={user?.id}
+                onShareDataset={handleShareDataset}
+                onRemoveSharedDataset={handleRemoveSharedDataset}
               />
             </div>
           </div>
