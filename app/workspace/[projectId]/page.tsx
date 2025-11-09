@@ -939,11 +939,11 @@ export default function WorkspacePage() {
         ? ('csvText' in primary && primary.csvText 
             ? btoa(primary.csvText) 
             : 'csv_text' in primary 
-              ? btoa(primary.csv_text) 
+              ? btoa((primary as SharedDataset).csv_text) 
               : undefined)
         : undefined
       const file_name = primary 
-        ? ('fileName' in primary ? primary.fileName : 'file_name' in primary ? primary.file_name : undefined)
+        ? ('fileName' in primary ? primary.fileName : (primary as SharedDataset).file_name)
         : undefined
       
       const response = await fetch("/api/execute", {
