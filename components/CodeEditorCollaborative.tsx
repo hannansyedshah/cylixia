@@ -117,36 +117,38 @@ export function CodeEditorCollaborative({
           setTypingUser(null)
         }
         
-        // Sync lock state from other users
-        const currentLockState = editLockEnabledRef.current
-        if (foundLockEnabled && !currentLockState) {
-          // Another user has lock enabled, sync our state
+        // Sync lock state from other users - if ANYONE has it on, everyone should see it on
+        // Check if ANY user (including ourselves) has lock enabled
+        let anyoneHasLock = false
+        Object.values(state).forEach((presences: any) => {
+          presences.forEach((presence: any) => {
+            if (presence.lockEnabled) {
+              anyoneHasLock = true
+            }
+          })
+        })
+        
+        // Sync our lock state to match if anyone has it enabled
+        if (anyoneHasLock && !editLockEnabledRef.current) {
+          // Someone has lock enabled, sync our state to ON
           setEditLockEnabled(true)
+          editLockEnabledRef.current = true
           if (onEditLockChange) {
             onEditLockChange(true)
           }
-        } else if (!foundLockEnabled && currentLockState) {
-          // No one has lock enabled, but we think it's on - only turn off if we didn't just enable it
-          // This prevents race conditions
-          const otherUserHasLock = Object.values(state).some((presences: any) => {
-            return presences.some((p: any) => 
-              p.userId !== user?.id && p.lockEnabled
-            )
-          })
-          if (!otherUserHasLock) {
-            // No one else has lock, but check if we should keep it on
-            // Only turn off if we're sure no one has it
-            setEditLockEnabled(false)
-            if (onEditLockChange) {
-              onEditLockChange(false)
-            }
+        } else if (!anyoneHasLock && editLockEnabledRef.current) {
+          // No one has lock enabled, sync our state to OFF
+          setEditLockEnabled(false)
+          editLockEnabledRef.current = false
+          if (onEditLockChange) {
+            onEditLockChange(false)
           }
         }
         
-        // Update locked state based on lock enabled and typing
+        // Update locked state: if lock is enabled AND someone else is typing, block editing
         if (editLockEnabledRef.current && foundTyping) {
           setIsLocked(true)
-        } else if (!foundLockEnabled) {
+        } else {
           setIsLocked(false)
         }
       })
@@ -155,9 +157,10 @@ export function CodeEditorCollaborative({
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         newPresences.forEach((presence: any) => {
           if (presence.userId !== user?.id) {
-            // Check if lock is enabled by another user (not ourselves)
+            // Check if lock is enabled by another user - sync immediately
             if (presence.lockEnabled && !editLockEnabledRef.current) {
               setEditLockEnabled(true)
+              editLockEnabledRef.current = true
               if (onEditLockChange) {
                 onEditLockChange(true)
               }
@@ -170,6 +173,7 @@ export function CodeEditorCollaborative({
                 avatarUrl: presence.avatarUrl
               }
               setTypingUser(typingStateRef.current[presence.userId])
+              // If lock is enabled and someone is typing, block editing
               if (editLockEnabledRef.current) {
                 setIsLocked(true)
               }
@@ -183,22 +187,31 @@ export function CodeEditorCollaborative({
           const remaining = Object.values(typingStateRef.current)
           if (remaining.length > 0) {
             setTypingUser(remaining[0])
-            setIsLocked(true)
+            // If lock is enabled and someone is still typing, keep locked
+            if (editLockEnabledRef.current) {
+              setIsLocked(true)
+            }
           } else {
             setTypingUser(null)
             // Check if anyone else has lock enabled
             const state = channel.presenceState()
-            let hasLockEnabled = false
+            let anyoneHasLock = false
             Object.values(state).forEach((presences: any) => {
               presences.forEach((p: any) => {
-                if (p.userId !== user?.id && p.lockEnabled) {
-                  hasLockEnabled = true
+                if (p.lockEnabled) {
+                  anyoneHasLock = true
                 }
               })
             })
-            if (!hasLockEnabled) {
-              setIsLocked(false)
+            // If no one has lock enabled, sync our state to OFF
+            if (!anyoneHasLock && editLockEnabledRef.current) {
+              setEditLockEnabled(false)
+              editLockEnabledRef.current = false
+              if (onEditLockChange) {
+                onEditLockChange(false)
+              }
             }
+            setIsLocked(false)
           }
         })
       })
@@ -232,18 +245,42 @@ export function CodeEditorCollaborative({
     }
   }, [projectId, user])
   
-  // Update presence when lock state changes
+  // Update presence when lock state changes - this broadcasts to all users
   useEffect(() => {
     if (presenceChannelRef.current && user) {
-      // Update presence with new lock state
-      presenceChannelRef.current.track({
-        userId: user.id,
-        displayName: user.email || 'User',
-        typing: false,
-        lockEnabled: editLockEnabled
-      }).catch((err: any) => {
-        console.error('Failed to update presence:', err)
-      })
+      // Get current profile for display name
+      supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('id', user.id)
+        .single()
+        .then(({ data: profile }) => {
+          if (presenceChannelRef.current) {
+            presenceChannelRef.current.track({
+              userId: user.id,
+              displayName: profile?.display_name || user.email || 'User',
+              avatarUrl: profile?.avatar_url,
+              typing: false,
+              lockEnabled: editLockEnabled
+            }).catch((err: any) => {
+              console.error('Failed to update presence:', err)
+            })
+          }
+        })
+        .catch((err: any) => {
+          console.error('Failed to load profile:', err)
+          // Fallback without profile
+          if (presenceChannelRef.current) {
+            presenceChannelRef.current.track({
+              userId: user.id,
+              displayName: user.email || 'User',
+              typing: false,
+              lockEnabled: editLockEnabled
+            }).catch((err: any) => {
+              console.error('Failed to update presence:', err)
+            })
+          }
+        })
     }
   }, [editLockEnabled, user])
 
