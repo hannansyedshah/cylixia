@@ -1854,9 +1854,11 @@ export default function WorkspacePage() {
                             <div className="mt-2 relative group">
                               <button
                                 onClick={() => {
-                                  navigator.clipboard.writeText(message.code)
-                                  setCopiedCodeId(message.id)
-                                  setTimeout(() => setCopiedCodeId(null), 2000)
+                                  if (message.code) {
+                                    navigator.clipboard.writeText(message.code)
+                                    setCopiedCodeId(message.id)
+                                    setTimeout(() => setCopiedCodeId(null), 2000)
+                                  }
                                 }}
                                 className="absolute top-2 right-2 p-1.5 rounded bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors z-10"
                                 title="Copy code"
