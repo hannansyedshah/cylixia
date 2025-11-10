@@ -8,6 +8,7 @@ import { UserAvatar } from './UserAvatar'
 import { Send, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/store/useSessionStore'
+import { playChatSound } from '@/lib/soundNotifications'
 
 interface ChatMessage {
   id: string
@@ -128,6 +129,12 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
             setMessages(prev => {
               const exists = prev.some(m => m.id === newMessage.id)
               if (exists) return prev
+              
+              // Play notification sound if message is from another user
+              if (newMessage.user_id !== user?.id) {
+                playChatSound()
+              }
+              
               return [...prev, newMessage]
             })
           }

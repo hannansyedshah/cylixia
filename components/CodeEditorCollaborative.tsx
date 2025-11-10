@@ -6,6 +6,7 @@ import { useRealtimeProject } from '@/hooks/useRealtimeProject'
 import { Wifi, WifiOff, Lock, Unlock, Share2, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/store/useSessionStore'
+import { playCollaborationSound } from '@/lib/soundNotifications'
 import { UserAvatar } from './UserAvatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,6 +73,9 @@ export function CodeEditorCollaborative({
       if (code !== lastKnownRemoteCodeRef.current && code !== localValue) {
         lastKnownRemoteCodeRef.current = code
         setHasRemoteUpdates(true) // Show refresh button with indicator
+        
+        // Play notification sound for collaboration edits
+        playCollaborationSound()
         
         // Show a brief notification that edits were made
         // The refresh button will be visible, but we can also show a toast-like indicator
