@@ -153,7 +153,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
             )}
             <div>
               <h2 className="text-lg font-semibold">
-                Viewing {viewedUserProfile?.display_name || 'User'}'s Workspace
+                Viewing {viewedUserProfile?.display_name || 'User'}&apos;s Workspace
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Real-time view of their code, terminal, and plots</p>
             </div>

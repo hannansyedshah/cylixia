@@ -293,7 +293,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                             className="w-full text-xs"
                             variant="outline"
                           >
-                            👁️ View {message.profiles?.display_name || 'User'}'s Workspace
+                            👁️ View {message.profiles?.display_name || 'User'}&apos;s Workspace
                           </Button>
                         </div>
                       ) : (
