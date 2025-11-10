@@ -93,6 +93,7 @@ export default function WorkspacePage() {
   const [showInviteModal, setShowInviteModal] = useState<boolean>(false)
   const [codeSelection, setCodeSelection] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
+  const [isWorkspaceBeingViewed, setIsWorkspaceBeingViewed] = useState<boolean>(false) // Track if someone is viewing our workspace
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
