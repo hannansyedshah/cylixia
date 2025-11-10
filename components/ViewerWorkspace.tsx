@@ -101,7 +101,12 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[ViewerWorkspace] Subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('[ViewerWorkspace] Successfully subscribed to real-time updates')
+        }
+      })
 
     subscriptionRef.current = channel
 
@@ -113,6 +118,16 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   }, [projectId, userId])
 
   // Terminal output is now stored in the database and shared in real-time
+
+  // Ensure Monaco editor updates when viewedCode changes
+  useEffect(() => {
+    if (editorRef.current && viewedCode !== undefined) {
+      const currentValue = editorRef.current.getValue()
+      if (currentValue !== viewedCode) {
+        editorRef.current.setValue(viewedCode)
+      }
+    }
+  }, [viewedCode])
 
   // Theme detection
   useEffect(() => {
@@ -214,6 +229,16 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
                 theme={theme}
                 onMount={(editor) => {
                   editorRef.current = editor
+                  // Set initial value
+                  if (viewedCode) {
+                    editor.setValue(viewedCode)
+                  }
+                }}
+                onChange={(value) => {
+                  // This shouldn't be called since readOnly is true, but just in case
+                  if (value !== viewedCode) {
+                    setViewedCode(value || '')
+                  }
                 }}
                 options={{
                   minimap: { enabled: false },
