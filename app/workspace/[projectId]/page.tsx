@@ -97,6 +97,7 @@ export default function WorkspacePage() {
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
   const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const recentlyAddedMessageIdsRef = useRef<Set<string>>(new Set()) // Track messages we just added to prevent duplicates
+  const lastUserMessageTimeRef = useRef<number>(0) // Track when we last sent a user message (to identify if we triggered an assistant response)
 
   // Dedicated function to determine and update user role
   const updateUserRole = useCallback(async (projectUserId: string) => {
@@ -348,17 +349,27 @@ export default function WorkspacePage() {
             }
 
             // Prevent duplicate messages - only skip if we just added this message locally
-            // Check if this message is from the current user (user messages) or if it's an assistant message we just added
             const isFromCurrentUser = newMessage.user_id === user?.id
             const isRecentlyAdded = recentlyAddedMessageIdsRef.current.has(newMessage.id)
             
-            // Only skip if:
-            // 1. It's a user message from the current user AND we just added it, OR
-            // 2. It's an assistant message AND we just added it (meaning we triggered it)
-            if (isRecentlyAdded && (isFromCurrentUser || newMessage.role === 'assistant')) {
-              // This is a message we just added locally, ignore the real-time update
+            // For user messages: only skip if it's from the current user AND we just added it
+            if (newMessage.role === 'user' && isFromCurrentUser && isRecentlyAdded) {
+              // This is our own user message we just added, skip it
               recentlyAddedMessageIdsRef.current.delete(newMessage.id)
               return
+            }
+            
+            // For assistant messages: only skip if we just added it AND we sent a user message recently (within 10 seconds)
+            // This means we triggered this assistant response
+            if (newMessage.role === 'assistant' && isRecentlyAdded) {
+              const timeSinceLastUserMessage = Date.now() - lastUserMessageTimeRef.current
+              if (timeSinceLastUserMessage < 10000) {
+                // We sent a user message recently and this assistant message is in our ref, so we triggered it
+                recentlyAddedMessageIdsRef.current.delete(newMessage.id)
+                return
+              }
+              // If it's been more than 10 seconds, this might be from someone else, so show it
+              recentlyAddedMessageIdsRef.current.delete(newMessage.id)
             }
             
             // For messages from other users or assistant messages we didn't trigger, show them
@@ -790,6 +801,9 @@ export default function WorkspacePage() {
         
         // Mark this message as recently added so real-time subscription doesn't duplicate it
         recentlyAddedMessageIdsRef.current.add(userMessageId)
+        
+        // Track when we sent this message (to identify if we triggered the next assistant response)
+        lastUserMessageTimeRef.current = Date.now()
         
         const userMessage: Message = {
           id: userMessageId,
