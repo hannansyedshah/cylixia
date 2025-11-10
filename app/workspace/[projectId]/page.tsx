@@ -591,6 +591,35 @@ export default function WorkspacePage() {
     }
   }, [userRole])
 
+  // Poll for role changes as a fallback if realtime subscription fails
+  useEffect(() => {
+    if (!projectId || !user?.id || !project) return
+
+    // Poll every 2 seconds to check for role changes (fallback)
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/collaborators`)
+        if (response.ok) {
+          const data = await response.json()
+          const currentUserCollab = data.collaborators?.find((c: any) => c.user_id === user.id)
+          if (currentUserCollab && currentUserCollab.status === 'accepted') {
+            const newRole = currentUserCollab.role as 'owner' | 'edit' | 'view'
+            // Only update if role actually changed
+            if (newRole !== userRole) {
+              console.log(`🔄 Role changed via polling: ${userRole} -> ${newRole}`)
+              setUserRole(newRole)
+              setEditorKey(prev => prev + 1)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for role changes:', error)
+      }
+    }, 2000) // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [projectId, user?.id, project, userRole])
+
   // Real-time subscription for shared_datasets changes
   useEffect(() => {
     if (!projectId) return
@@ -1457,35 +1486,6 @@ export default function WorkspacePage() {
       </Layout>
     )
   }
-
-  // Poll for role changes as a fallback if realtime subscription fails
-  useEffect(() => {
-    if (!projectId || !user?.id || !project) return
-
-    // Poll every 2 seconds to check for role changes (fallback)
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/projects/${projectId}/collaborators`)
-        if (response.ok) {
-          const data = await response.json()
-          const currentUserCollab = data.collaborators?.find((c: any) => c.user_id === user.id)
-          if (currentUserCollab && currentUserCollab.status === 'accepted') {
-            const newRole = currentUserCollab.role as 'owner' | 'edit' | 'view'
-            // Only update if role actually changed
-            if (newRole !== userRole) {
-              console.log(`🔄 Role changed via polling: ${userRole} -> ${newRole}`)
-              setUserRole(newRole)
-              setEditorKey(prev => prev + 1)
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error polling for role changes:', error)
-      }
-    }, 2000) // Poll every 2 seconds
-
-    return () => clearInterval(pollInterval)
-  }, [projectId, user?.id, project, userRole])
 
   return (
     <Layout>
