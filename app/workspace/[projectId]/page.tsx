@@ -106,7 +106,11 @@ export default function WorkspacePage() {
   // Dedicated function to determine and update user role
   const updateUserRole = useCallback(async (projectUserId: string) => {
     if (!user?.id || !projectId) {
-      console.warn('⚠️ Cannot determine role: missing user or projectId')
+      // Don't log warning if user is not loaded yet (initial load)
+      if (user === null) {
+        return // User is still loading
+      }
+      console.warn('⚠️ Cannot determine role: missing user or projectId', { userId: user?.id, projectId })
       return
     }
 
@@ -1197,10 +1201,14 @@ export default function WorkspacePage() {
       const now = new Date().toISOString()
       setProject({ ...project, code: newCode, updated_at: now })
       
-      // Save to database if:
-      // 1. Real-time collaboration is enabled, OR
-      // 2. Someone is viewing this workspace (so they can see updates)
-      if (realtimeCollaborationEnabled || isWorkspaceBeingViewed) {
+      // Always save code to database when:
+      // 1. User has edit access (owner or collaborator with edit/owner role), OR
+      // 2. Real-time collaboration is enabled (both owner and collaborators can save), OR
+      // 3. Someone is viewing this workspace (so they can see updates), OR
+      // 4. Someone is viewing via owner's "View Workspace" button (viewingUserId is set)
+      // This ensures all users' code changes are saved and viewers always see the latest code
+      const hasEditAccess = userRole === 'owner' || userRole === 'edit'
+      if (hasEditAccess || realtimeCollaborationEnabled || isWorkspaceBeingViewed || viewingUserId) {
         // Debounce the API call - don't await to prevent blocking
         fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
@@ -1212,10 +1220,10 @@ export default function WorkspacePage() {
           }
         })
       }
-      // When collaboration is disabled and no one is viewing, code is only in local state
-      // It will be saved when collaboration is enabled or when someone views the workspace
+      // When user doesn't have edit access and collaboration is disabled and no one is viewing, 
+      // code is only in local state. It will be saved when collaboration is enabled or when someone views the workspace
     }
-  }, [project, projectId, realtimeCollaborationEnabled, isWorkspaceBeingViewed])
+  }, [project, projectId, userRole, realtimeCollaborationEnabled, isWorkspaceBeingViewed, viewingUserId])
 
   // Real-time code updates are handled by CodeEditorCollaborative via useRealtimeProject hook
   // No need for duplicate subscription here

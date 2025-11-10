@@ -93,14 +93,29 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
   useEffect(() => {
     if (!user?.id || !onWorkspaceViewStatusChange) return
     
+    // Check if there's a /sendterminal message with this user's ID
+    // The message should be from another user (not the current user) pointing to the current user's workspace
     const isBeingViewed = messages.some(message => {
       if (message.message.startsWith('/sendterminal ')) {
         const userId = message.message.split(' ')[1]
-        return userId === user.id
+        // Check if this message is from another user (not the current user)
+        // and points to the current user's workspace
+        const isFromAnotherUser = message.user_id !== user.id
+        const isPointingToMyWorkspace = userId === user.id
+        return isFromAnotherUser && isPointingToMyWorkspace
       }
       return false
     })
     
+    console.log('[ProjectChat] Checking if workspace is being viewed:', isBeingViewed, {
+      messagesCount: messages.length,
+      userId: user.id,
+      matchingMessages: messages.filter(m => m.message.startsWith('/sendterminal ')).map(m => ({
+        message: m.message,
+        from: m.user_id,
+        to: m.message.split(' ')[1]
+      }))
+    })
     onWorkspaceViewStatusChange(isBeingViewed)
   }, [messages, user?.id, onWorkspaceViewStatusChange])
 
