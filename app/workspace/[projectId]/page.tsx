@@ -76,6 +76,7 @@ export default function WorkspacePage() {
   const [stdoutText, setStdoutText] = useState<string>('')
   const [stderrText, setStderrText] = useState<string>('')
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
+  const [plotViewMode, setPlotViewMode] = useState<'plot' | 'graph'>('plot') // Default to 'plot'
   const [editorFocusMode, setEditorFocusMode] = useState<boolean>(false)
   const [enableEditLock, setEnableEditLock] = useState<boolean>(false)
   const [realtimeCollaborationEnabled, setRealtimeCollaborationEnabled] = useState<boolean>(false) // Real-time code editing is opt-in
@@ -2000,6 +2001,20 @@ export default function WorkspacePage() {
                   View
                 </span>
                 <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-1 border-r border-gray-300 dark:border-gray-600 pr-2 mr-2">
+                    <button
+                      className={`px-2 py-1 rounded border ${plotViewMode === 'plot' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
+                      onClick={() => setPlotViewMode('plot')}
+                    >
+                      Plot
+                    </button>
+                    <button
+                      className={`px-2 py-1 rounded border ${plotViewMode === 'graph' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
+                      onClick={() => setPlotViewMode('graph')}
+                    >
+                      Graph
+                    </button>
+                  </div>
                   <button
                     className={`px-2 py-1 rounded border ${!showTerminalNextToPlot ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
                     onClick={() => setShowTerminalNextToPlot(false)}

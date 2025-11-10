@@ -12,7 +12,7 @@ import { UserAvatar } from './UserAvatar'
 
 interface ViewerWorkspaceProps {
   userId: string
-  projectId: string
+  projectId?: string // Optional: if not provided, will find the user's project
   onClose: () => void
   onImportCode?: (code: string) => void
 }
@@ -26,6 +26,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   const [viewedStderr, setViewedStderr] = useState<string>('')
   const [viewedUserProfile, setViewedUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
+  const [viewMode, setViewMode] = useState<'plot' | 'graph'>('plot') // Default to 'plot'
   const subscriptionRef = useRef<any>(null)
   const editorRef = useRef<any>(null)
 
@@ -45,13 +46,59 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
     loadProfile()
   }, [userId])
 
-  // Load initial project state
+  // Load initial project state - find the project that belongs to the userId being viewed
   useEffect(() => {
     const loadProject = async () => {
+      let targetProjectId = projectId
+      
+      // If projectId is not provided or doesn't belong to the viewed user, find their project
+      if (!targetProjectId) {
+        const { data: userProjects } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
+        
+        if (userProjects) {
+          targetProjectId = userProjects.id
+        } else {
+          console.warn('No project found for user:', userId)
+          return
+        }
+      } else {
+        // Verify the project belongs to the viewed user
+        const { data: project } = await supabase
+          .from('projects')
+          .select('user_id')
+          .eq('id', targetProjectId)
+          .single()
+        
+        if (project && project.user_id !== userId) {
+          // Project doesn't belong to viewed user, find their project instead
+          const { data: userProjects } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (userProjects) {
+            targetProjectId = userProjects.id
+          } else {
+            console.warn('No project found for user:', userId)
+            return
+          }
+        }
+      }
+      
+      // Load the project data
       const { data } = await supabase
         .from('projects')
         .select('code, plot_url, stdout, stderr')
-        .eq('id', projectId)
+        .eq('id', targetProjectId)
         .single()
       
       if (data) {
@@ -71,29 +118,96 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
             setViewedPlotUrls([plotUrl])
           }
         } else {
-          setViewedPlotUrls([])
+          // If no plot_url in project, check latest version for all graphs/plots
+          try {
+            const versionsResponse = await fetch(`/api/projects/${targetProjectId}/versions`)
+            if (versionsResponse.ok) {
+              const versionsData = await versionsResponse.json()
+              if (versionsData.versions && versionsData.versions.length > 0) {
+                const latestVersion = versionsData.versions[0] // Versions are sorted by created_at desc
+                if (latestVersion.plot_url) {
+                  try {
+                    const parsed = JSON.parse(latestVersion.plot_url)
+                    if (Array.isArray(parsed)) {
+                      setViewedPlotUrls(parsed)
+                    } else {
+                      setViewedPlotUrls([latestVersion.plot_url])
+                    }
+                  } catch {
+                    setViewedPlotUrls([latestVersion.plot_url])
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to load plots from latest version:', error)
+          }
         }
         setViewedStdout(data.stdout || '')
         setViewedStderr(data.stderr || '')
       }
     }
     loadProject()
-  }, [projectId])
+  }, [projectId, userId])
 
   // Subscribe to real-time code updates from this user
   useEffect(() => {
-    if (!projectId || !userId) return
+    if (!userId) return
 
-    const channel = supabase
-      .channel(`viewer-${projectId}-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'projects',
-          filter: `id=eq.${projectId}`
-        },
+    // Find the project ID for the viewed user
+    const setupSubscription = async () => {
+      let targetProjectId = projectId
+      
+      if (!targetProjectId) {
+        const { data: userProjects } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
+        
+        if (userProjects) {
+          targetProjectId = userProjects.id
+        } else {
+          return
+        }
+      } else {
+        // Verify the project belongs to the viewed user
+        const { data: project } = await supabase
+          .from('projects')
+          .select('user_id')
+          .eq('id', targetProjectId)
+          .single()
+        
+        if (project && project.user_id !== userId) {
+          // Project doesn't belong to viewed user, find their project instead
+          const { data: userProjects } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('user_id', userId)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (userProjects) {
+            targetProjectId = userProjects.id
+          } else {
+            return
+          }
+        }
+      }
+
+      const channel = supabase
+        .channel(`viewer-${targetProjectId}-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'projects',
+            filter: `id=eq.${targetProjectId}`
+          },
         (payload) => {
           const newData = payload.new as any
           if (newData.code !== undefined) {
@@ -141,11 +255,15 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
         }
       })
 
-    subscriptionRef.current = channel
+      subscriptionRef.current = channel
+    }
+    
+    setupSubscription()
 
     return () => {
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe()
+        subscriptionRef.current = null
       }
     }
   }, [projectId, userId])
@@ -296,12 +414,28 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
               />
             </div>
 
-            {/* Plot Viewer */}
-            <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-medium dark:text-gray-200">
-                Plot Viewer
+            {/* Plot/Graph Viewer */}
+            <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col">
+              <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+                <span className="text-xs font-medium dark:text-gray-200">
+                  {viewMode === 'plot' ? 'Plot Viewer' : 'Graph Viewer'}
+                </span>
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    className={`px-2 py-1 rounded border ${viewMode === 'plot' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
+                    onClick={() => setViewMode('plot')}
+                  >
+                    Plot
+                  </button>
+                  <button
+                    className={`px-2 py-1 rounded border ${viewMode === 'graph' ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600' : 'bg-transparent border-transparent opacity-60'}`}
+                    onClick={() => setViewMode('graph')}
+                  >
+                    Graph
+                  </button>
+                </div>
               </div>
-              <div className="h-[calc(100%-32px)] overflow-auto">
+              <div className="flex-1 min-h-0 overflow-auto">
                 <PlotViewer plotUrl={viewedPlotUrl} plotUrls={viewedPlotUrls} />
               </div>
             </div>
