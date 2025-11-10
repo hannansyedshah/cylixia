@@ -3,7 +3,7 @@
 import { Editor } from '@monaco-editor/react'
 import { useState, useEffect, useRef } from 'react'
 import { useRealtimeProject } from '@/hooks/useRealtimeProject'
-import { Wifi, WifiOff, Lock, Unlock, Share2 } from 'lucide-react'
+import { Wifi, WifiOff, Lock, Unlock, Share2, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/store/useSessionStore'
 import { UserAvatar } from './UserAvatar'
@@ -45,6 +45,8 @@ export function CodeEditorCollaborative({
   const [editLockEnabled, setEditLockEnabled] = useState(enableEditLock)
   const isUserTypingRef = useRef(false) // Track if current user is actively typing
   const typingDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const [hasRemoteUpdates, setHasRemoteUpdates] = useState(false) // Track if there are remote updates available
+  const lastKnownRemoteCodeRef = useRef<string | null>(null) // Track last known remote code
   const [selectedCode, setSelectedCode] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
@@ -65,41 +67,18 @@ export function CodeEditorCollaborative({
   const { isConnected, broadcastCodeChange } = useRealtimeProject({
     projectId,
     onCodeChange: (code) => {
-      // This callback is called when we receive a remote update
-      // Only apply remote changes if user is NOT currently typing
-      // This allows free typing without interference
-      if (editorRef.current && !isUserTypingRef.current) {
-        // Only update if the code is actually different to avoid unnecessary updates
-        if (code !== localValue) {
-          // Mark that we're applying a remote change (not a local edit)
-          isLocalChangeRef.current = false
-          
-          setLocalValue(code)
-          onChange(code)
-          
-          // Update editor value directly - this is critical for real-time updates
-          try {
-            // Get current cursor position to preserve it if possible
-            const editor = editorRef.current
-            const position = editor.getPosition()
-            
-            editorRef.current.setValue(code)
-            
-            // Try to restore cursor position if it's still valid
-            if (position) {
-              try {
-                editor.setPosition(position)
-              } catch {
-                // Position might be invalid after code change, that's okay
-              }
-            }
-          } catch (error) {
-            console.error('[CodeEditor] Error updating editor value:', error)
-          }
-        }
+      // DISABLED: Don't automatically apply remote updates
+      // Instead, just track that there are updates available
+      if (code !== lastKnownRemoteCodeRef.current && code !== localValue) {
+        lastKnownRemoteCodeRef.current = code
+        setHasRemoteUpdates(true) // Show refresh button with indicator
+        
+        // Show a brief notification that edits were made
+        // The refresh button will be visible, but we can also show a toast-like indicator
+        console.log('[CodeEditor] Remote edits detected - refresh available')
       }
     },
-    debounceMs: 200 // Fast updates for instant feel
+    debounceMs: 200
   })
 
   // Subscribe to shared edit lock state and typing indicators via presence
@@ -434,6 +413,9 @@ export function CodeEditorCollaborative({
     isLocalChangeRef.current = true
     onChange(code)
     
+    // Clear the "has remote updates" flag when user types (they're making their own changes)
+    setHasRemoteUpdates(false)
+    
     // Broadcast typing status
     if (!readOnly) {
       broadcastTyping(true)
@@ -445,13 +427,13 @@ export function CodeEditorCollaborative({
     }
     
     // Debounce the broadcast - only send when user stops typing
-    // This prevents conflicts and allows free typing
     typingDebounceRef.current = setTimeout(() => {
       // User has stopped typing, now broadcast the change
       isUserTypingRef.current = false
       
       if (!readOnly) {
         broadcastCodeChange(code)
+        lastKnownRemoteCodeRef.current = code // Update our known remote code
       }
       
       // Stop typing indicator after a short delay
@@ -459,6 +441,35 @@ export function CodeEditorCollaborative({
         broadcastTyping(false)
       }, 300)
     }, 800) // Wait 800ms after user stops typing before broadcasting
+  }
+
+  // Manual refresh function to fetch latest code
+  const handleRefresh = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('code')
+        .eq('id', projectId)
+        .single()
+
+      if (error) throw error
+
+      if (data && data.code !== localValue) {
+        setLocalValue(data.code)
+        onChange(data.code)
+        lastKnownRemoteCodeRef.current = data.code
+        setHasRemoteUpdates(false)
+        
+        // Update editor
+        if (editorRef.current) {
+          editorRef.current.setValue(data.code)
+        }
+      } else {
+        setHasRemoteUpdates(false)
+      }
+    } catch (error) {
+      console.error('[CodeEditor] Failed to refresh:', error)
+    }
   }
 
   const toggleEditLock = async () => {
@@ -681,7 +692,23 @@ export function CodeEditorCollaborative({
 
   return (
     <div className="relative h-full">
-      <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded-md shadow-sm flex-wrap">
+      {/* Notification banner for remote edits */}
+      {hasRemoteUpdates && (
+        <div className="absolute top-0 left-0 right-0 z-20 bg-green-500 dark:bg-green-600 text-white px-4 py-2 text-sm font-medium flex items-center justify-between animate-slide-down shadow-lg">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>New edits have been made by another collaborator</span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded transition-colors font-semibold"
+          >
+            Refresh Now
+          </button>
+        </div>
+      )}
+      
+      <div className={`absolute ${hasRemoteUpdates ? 'top-12' : 'top-2'} right-2 z-10 flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded-md shadow-sm flex-wrap transition-all`}>
         {/* Edit Lock Toggle */}
         {!readOnly && (
           <button
@@ -704,6 +731,18 @@ export function CodeEditorCollaborative({
                 <span>Lock Off</span>
               </>
             )}
+          </button>
+        )}
+
+        {/* Refresh Button - Show when there are remote updates */}
+        {hasRemoteUpdates && (
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 transition-colors animate-pulse"
+            title="Refresh to see latest changes"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>New edits available - Click to refresh</span>
           </button>
         )}
 
