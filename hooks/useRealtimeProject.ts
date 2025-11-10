@@ -20,7 +20,7 @@ interface UseRealtimeProjectOptions {
 export function useRealtimeProject({ 
   projectId, 
   onCodeChange,
-  debounceMs = 2000 // Increased to 2 seconds to significantly reduce egress
+  debounceMs = 200 // Fast updates for instant feel
 }: UseRealtimeProjectOptions) {
   const { user } = useSessionStore()
   const [isConnected, setIsConnected] = useState(false)
@@ -85,15 +85,12 @@ export function useRealtimeProject({
 
           // Only apply if the code is actually different and newer than our last local state
           if (newData.code !== undefined && onCodeChangeRef.current) {
-            // Check if this update is newer than our last local code
-            // If the incoming code is the same as our last local code, it might be stale
             const incomingCode = newData.code
             const currentLocalCode = lastLocalCodeRef.current
             
-            // Apply the update if:
-            // 1. The code is different from our last local state, OR
-            // 2. We don't have a last local state (first load)
-            if (incomingCode !== currentLocalCode || currentLocalCode === null) {
+            // Only apply if code is significantly different (not just minor changes)
+            // This prevents stuttering from rapid updates
+            if (incomingCode !== currentLocalCode) {
               // Mark that we're applying a remote change
               isApplyingRemoteChangeRef.current = true
               
@@ -103,13 +100,13 @@ export function useRealtimeProject({
               // Update our last local code ref to match the incoming code
               lastLocalCodeRef.current = incomingCode
               
-              // Call the callback
+              // Call the callback (this will update the editor)
               onCodeChangeRef.current(incomingCode)
               
-              // Reset the flag after a short delay to allow the change to propagate
+              // Reset the flag quickly to allow new updates
               setTimeout(() => {
                 isApplyingRemoteChangeRef.current = false
-              }, 100)
+              }, 50) // Faster reset for smoother updates
             } else {
               // Update timestamp even if we don't apply the code (to track latest update)
               lastUpdateRef.current = newData.updated_at
