@@ -19,7 +19,7 @@ interface UseRealtimeProjectOptions {
 export function useRealtimeProject({ 
   projectId, 
   onCodeChange,
-  debounceMs = 200 
+  debounceMs = 2000 // Increased to 2 seconds to significantly reduce egress
 }: UseRealtimeProjectOptions) {
   const { user } = useSessionStore()
   const [isConnected, setIsConnected] = useState(false)
@@ -37,8 +37,6 @@ export function useRealtimeProject({
   useEffect(() => {
     if (!projectId || !user) return
 
-    console.log(`[Realtime] Subscribing to project ${projectId}`)
-
     // Subscribe to project changes
     const channel = supabase
       .channel(`project-${projectId}`) // Stable channel name per project
@@ -51,13 +49,11 @@ export function useRealtimeProject({
           filter: `id=eq.${projectId}`
         },
         (payload) => {
-          console.log('[Realtime] Received update:', payload)
           const newData = payload.new as ProjectUpdate
           
           // Ignore updates from current user to prevent loops
           // Only ignore if the timestamp matches exactly (same update we just sent)
           if (newData.updated_at === lastUpdateRef.current) {
-            console.log('[Realtime] Ignoring update from current user (same timestamp)')
             return
           }
 
@@ -65,45 +61,49 @@ export function useRealtimeProject({
           lastUpdateRef.current = newData.updated_at
 
           if (newData.code !== undefined && onCodeChangeRef.current) {
-            console.log('[Realtime] Calling onCodeChange with new code, length:', newData.code.length)
             onCodeChangeRef.current(newData.code)
           }
         }
       )
       .subscribe((status) => {
-        console.log(`[Realtime] Subscription status: ${status}`)
         setIsConnected(status === 'SUBSCRIBED')
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] Successfully subscribed to project changes')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Channel error - check if projects table is enabled for Realtime')
-        }
       })
 
     subscriptionRef.current = channel
 
     return () => {
-      console.log(`[Realtime] Unsubscribing from project ${projectId}`)
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe()
       }
     }
   }, [projectId, user]) // Removed onCodeChange from dependencies
 
+  const lastBroadcastedCodeRef = useRef<string | null>(null)
+
   const broadcastCodeChange = useCallback(async (code: string) => {
     if (!projectId || !user) return
 
-    // Debounce updates
+    // Skip if code hasn't actually changed
+    if (code === lastBroadcastedCodeRef.current) {
+      return
+    }
+
+    // Debounce updates to reduce egress
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
     }
 
     debounceTimeoutRef.current = setTimeout(async () => {
+      // Double-check code hasn't changed during debounce
+      if (code === lastBroadcastedCodeRef.current) {
+        return
+      }
+
       try {
         const now = new Date().toISOString()
         lastUpdateRef.current = now
+        lastBroadcastedCodeRef.current = code
 
-        console.log(`[Realtime] Broadcasting code change for project ${projectId}`)
         const { error } = await supabase
           .from('projects')
           .update({ code, updated_at: now })
@@ -111,11 +111,12 @@ export function useRealtimeProject({
 
         if (error) {
           console.error('[Realtime] Failed to broadcast code change:', error)
-        } else {
-          console.log('[Realtime] Code change broadcasted successfully')
+          // Reset on error so we can retry
+          lastBroadcastedCodeRef.current = null
         }
       } catch (error) {
         console.error('[Realtime] Failed to broadcast code change:', error)
+        lastBroadcastedCodeRef.current = null
       }
     }, debounceMs)
   }, [projectId, user, debounceMs])

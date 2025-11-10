@@ -68,26 +68,20 @@ export function CodeEditorCollaborative({
       if (!isLocalChangeRef.current && editorRef.current) {
         // Only update if the code is actually different to avoid unnecessary updates
         if (code !== localValue) {
-          console.log('[CodeEditor] Updating editor with new code from another user')
           setLocalValue(code)
           onChange(code)
           // Update editor value directly - this is critical for real-time updates
           try {
             editorRef.current.setValue(code)
-            console.log('[CodeEditor] Editor value updated successfully')
           } catch (error) {
             console.error('[CodeEditor] Error updating editor value:', error)
           }
-        } else {
-          console.log('[CodeEditor] Code unchanged, skipping update')
         }
-      } else {
-        console.log('[CodeEditor] Skipping update - isLocalChange:', isLocalChangeRef.current)
       }
       // Reset the flag after handling the change
       isLocalChangeRef.current = false
     },
-    debounceMs: 150 // Faster updates for better real-time feel
+    debounceMs: 2000 // Reduced frequency to save egress - updates every 2 seconds
   })
 
   // Subscribe to shared edit lock state and typing indicators via presence
