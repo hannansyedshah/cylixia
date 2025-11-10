@@ -504,6 +504,8 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (!projectId || !user?.id || !project) return
 
+    console.log('🔔 Setting up realtime subscription for role changes...')
+
     const channel = supabase
       .channel(`project-user-role-${projectId}-${user.id}`)
       .on(
@@ -520,6 +522,7 @@ export default function WorkspacePage() {
           const newRole = (payload.new as any).role
           if (newRole && ['owner', 'edit', 'view'].includes(newRole)) {
             // Update role immediately for instant UI changes
+            console.log(`✅ Updating userRole to: ${newRole}`)
             setUserRole(newRole as 'owner' | 'edit' | 'view')
             // Force editor re-render by updating editor key
             setEditorKey(prev => prev + 1)
@@ -527,6 +530,7 @@ export default function WorkspacePage() {
             // This ensures AI chat, file upload, and editor are updated instantly
           } else {
             // If role update is unclear, re-check role
+            console.log('⚠️ Role update unclear, re-checking role...')
             await updateUserRole(project.user_id)
             setEditorKey(prev => prev + 1)
           }
@@ -564,9 +568,17 @@ export default function WorkspacePage() {
           setEditorKey(prev => prev + 1)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('📡 Realtime subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to role changes')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error in role subscription')
+        }
+      })
 
     return () => {
+      console.log('🔕 Unsubscribing from role changes...')
       channel.unsubscribe()
     }
   }, [projectId, user?.id, project, updateUserRole])
@@ -1446,6 +1458,35 @@ export default function WorkspacePage() {
     )
   }
 
+  // Poll for role changes as a fallback if realtime subscription fails
+  useEffect(() => {
+    if (!projectId || !user?.id || !project) return
+
+    // Poll every 2 seconds to check for role changes (fallback)
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/collaborators`)
+        if (response.ok) {
+          const data = await response.json()
+          const currentUserCollab = data.collaborators?.find((c: any) => c.user_id === user.id)
+          if (currentUserCollab && currentUserCollab.status === 'accepted') {
+            const newRole = currentUserCollab.role as 'owner' | 'edit' | 'view'
+            // Only update if role actually changed
+            if (newRole !== userRole) {
+              console.log(`🔄 Role changed via polling: ${userRole} -> ${newRole}`)
+              setUserRole(newRole)
+              setEditorKey(prev => prev + 1)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for role changes:', error)
+      }
+    }, 2000) // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [projectId, user?.id, project, userRole])
+
   return (
     <Layout>
       <div className="h-[calc(100vh-80px)] flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-gray-900 dark:to-purple-950/30">
@@ -1602,6 +1643,7 @@ export default function WorkspacePage() {
             )}
             <div className="border rounded-lg bg-white dark:bg-gray-800 shadow-md">
               <UploadPanel 
+                key={`upload-panel-${userRole}`}
                 privacyMode={privacyMode}
                 datasets={datasets}
                 sharedDatasets={sharedDatasets}
@@ -1986,6 +2028,7 @@ export default function WorkspacePage() {
               />
               <div className="h-[400px]">
                 <ProjectChat 
+                  key={`project-chat-${userRole}`}
                   projectId={projectId}
                   userRole={userRole}
                   onCodeSelectionClick={(selection) => {
