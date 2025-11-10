@@ -15,12 +15,14 @@ interface UseRealtimeProjectOptions {
   projectId: string
   onCodeChange?: (code: string) => void
   debounceMs?: number
+  enabled?: boolean // Whether real-time collaboration is enabled
 }
 
 export function useRealtimeProject({ 
   projectId, 
   onCodeChange,
-  debounceMs = 200 // Fast updates for instant feel
+  debounceMs = 200, // Fast updates for instant feel
+  enabled = true // Default to enabled for backward compatibility
 }: UseRealtimeProjectOptions) {
   const { user } = useSessionStore()
   const [isConnected, setIsConnected] = useState(false)
@@ -56,7 +58,7 @@ export function useRealtimeProject({
   }, [projectId, user])
 
   useEffect(() => {
-    if (!projectId || !user) return
+    if (!projectId || !user || !enabled) return // Don't subscribe if disabled
 
     // Subscribe to project changes
     const channel = supabase
@@ -125,7 +127,7 @@ export function useRealtimeProject({
         subscriptionRef.current.unsubscribe()
       }
     }
-  }, [projectId, user]) // Removed onCodeChange from dependencies
+  }, [projectId, user, enabled]) // Added enabled to dependencies
 
   const lastBroadcastedCodeRef = useRef<string | null>(null)
 

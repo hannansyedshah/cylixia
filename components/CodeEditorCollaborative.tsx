@@ -21,6 +21,7 @@ interface CodeEditorCollaborativeProps {
   enableEditLock?: boolean
   onEditLockChange?: (enabled: boolean) => void
   onCodeSelection?: { code: string; startLine: number; endLine: number } | null
+  realtimeCollaborationEnabled?: boolean // Whether real-time collaboration is enabled
 }
 
 interface TypingUser {
@@ -36,7 +37,8 @@ export function CodeEditorCollaborative({
   readOnly = false,
   enableEditLock = false,
   onEditLockChange,
-  onCodeSelection
+  onCodeSelection,
+  realtimeCollaborationEnabled = false
 }: CodeEditorCollaborativeProps) {
   const { user } = useSessionStore()
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
@@ -65,9 +67,10 @@ export function CodeEditorCollaborative({
     editLockEnabledRef.current = editLockEnabled
   }, [editLockEnabled])
 
+  // Only subscribe to real-time updates if collaboration is enabled
   const { isConnected, broadcastCodeChange } = useRealtimeProject({
     projectId,
-    onCodeChange: (code) => {
+    onCodeChange: realtimeCollaborationEnabled ? (code) => {
       // DISABLED: Don't automatically apply remote updates
       // Instead, just track that there are updates available
       if (code !== lastKnownRemoteCodeRef.current && code !== localValue) {
@@ -78,8 +81,9 @@ export function CodeEditorCollaborative({
         // The refresh button will be visible, but we can also show a toast-like indicator
         console.log('[CodeEditor] Remote edits detected - refresh available')
       }
-    },
-    debounceMs: 200
+    } : undefined, // Don't subscribe if collaboration is disabled
+    debounceMs: 200,
+    enabled: realtimeCollaborationEnabled // Pass enabled flag
   })
 
   // Subscribe to shared edit lock state and typing indicators via presence
@@ -432,7 +436,7 @@ export function CodeEditorCollaborative({
       // User has stopped typing, now broadcast the change
       isUserTypingRef.current = false
       
-      if (!readOnly) {
+      if (!readOnly && realtimeCollaborationEnabled) {
         broadcastCodeChange(code)
         lastKnownRemoteCodeRef.current = code // Update our known remote code
       }

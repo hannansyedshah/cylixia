@@ -77,6 +77,7 @@ export default function WorkspacePage() {
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
   const [editorFocusMode, setEditorFocusMode] = useState<boolean>(false)
   const [enableEditLock, setEnableEditLock] = useState<boolean>(false)
+  const [realtimeCollaborationEnabled, setRealtimeCollaborationEnabled] = useState<boolean>(false) // Real-time code editing is opt-in
   const hasLoadedRef = useRef(false)
   const [showDatasetsPanel, setShowDatasetsPanel] = useState<boolean>(false)
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
@@ -1848,6 +1849,7 @@ export default function WorkspacePage() {
                   enableEditLock={enableEditLock}
                   onEditLockChange={setEnableEditLock}
                   onCodeSelection={codeSelection}
+                  realtimeCollaborationEnabled={realtimeCollaborationEnabled}
                 />
               )}
             </div>
@@ -1937,6 +1939,9 @@ export default function WorkspacePage() {
                     if (project && userRole !== 'view') {
                       handleCodeChange(code)
                     }
+                  }}
+                  onRealtimeCollaborationToggle={(enabled) => {
+                    setRealtimeCollaborationEnabled(enabled)
                   }}
                 />
               </div>

@@ -7,7 +7,7 @@ import { useSessionStore } from '@/store/useSessionStore'
 import { TerminalView } from './TerminalView'
 import { PlotViewer } from './PlotViewer'
 import { Button } from '@/components/ui/button'
-import { X, Download, Copy, Play } from 'lucide-react'
+import { X, Download, Copy } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
 
 interface ViewerWorkspaceProps {
@@ -25,7 +25,6 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   const [viewedStderr, setViewedStderr] = useState<string>('')
   const [viewedUserProfile, setViewedUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
-  const [running, setRunning] = useState(false)
   const subscriptionRef = useRef<any>(null)
 
   // Load user profile
@@ -138,66 +137,6 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
     }
   }
 
-  const handleRunCode = async () => {
-    if (!viewedCode.trim() || running) return
-    
-    setRunning(true)
-    try {
-      const response = await fetch("/api/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: viewedCode }),
-      })
-
-      const data = await response.json()
-      
-      if (response.ok) {
-        // Update terminal output in database
-        if (typeof data?.stdout === 'string') {
-          setViewedStdout(data.stdout)
-          await supabase
-            .from('projects')
-            .update({ stdout: data.stdout })
-            .eq('id', projectId)
-        }
-        if (typeof data?.stderr === 'string') {
-          setViewedStderr(data.stderr)
-          await supabase
-            .from('projects')
-            .update({ stderr: data.stderr })
-            .eq('id', projectId)
-        }
-        // Update plot if available
-        if (data.plot_base64 || data.plot) {
-          const plotUrl = Array.isArray(data.plot_base64) 
-            ? data.plot_base64[0] 
-            : (data.plot_base64 || data.plot)
-          setViewedPlotUrl(plotUrl)
-          await supabase
-            .from('projects')
-            .update({ plot_url: plotUrl })
-            .eq('id', projectId)
-        }
-      } else {
-        const errorOutput = `${viewedStderr}\n${data.error || 'Failed to execute code'}`
-        setViewedStderr(errorOutput)
-        await supabase
-          .from('projects')
-          .update({ stderr: errorOutput })
-          .eq('id', projectId)
-      }
-    } catch (error: any) {
-      const errorOutput = `${viewedStderr}\n${error.message || 'Execution error'}`
-      setViewedStderr(errorOutput)
-      await supabase
-        .from('projects')
-        .update({ stderr: errorOutput })
-        .eq('id', projectId)
-    } finally {
-      setRunning(false)
-    }
-  }
-
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 pt-16 sm:pt-20">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[calc(95vh-4rem)] flex flex-col overflow-hidden">
@@ -220,15 +159,6 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            <Button
-              onClick={handleRunCode}
-              disabled={running || !viewedCode.trim()}
-              size="sm"
-              className="flex items-center gap-1 sm:gap-2 bg-rstudio hover:bg-rstudio/90"
-            >
-              <Play className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Run</span>
-            </Button>
             <Button
               onClick={handleCopyCode}
               variant="outline"

@@ -32,9 +32,10 @@ interface ProjectChatProps {
   userRole?: 'owner' | 'edit' | 'view' | null
   onCodeSelectionClick?: (selection: { code: string; startLine: number; endLine: number }) => void
   onImportCode?: (code: string) => void
+  onRealtimeCollaborationToggle?: (enabled: boolean) => void
 }
 
-export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImportCode }: ProjectChatProps) {
+export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImportCode, onRealtimeCollaborationToggle }: ProjectChatProps) {
   const { user } = useSessionStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -51,6 +52,8 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
   const commands = [
     { command: '/sendterminal', description: 'Share your workspace view (editor + terminal + plot)' },
     { command: '/seeeditor', description: 'Alias for /sendterminal' },
+    { command: '/sharecode', description: 'Enable real-time code collaboration' },
+    { command: '/stopsharecode', description: 'Disable real-time code collaboration' },
   ]
 
   useEffect(() => {
@@ -187,11 +190,27 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
     // Check for special commands
     // /sendterminal - share workspace view (terminal + editor + plot)
     // /seeeditor - same as /sendterminal (alias)
+    // /sharecode - enable real-time code collaboration
+    // /stopsharecode - disable real-time code collaboration
     const isViewCommand = messageText.toLowerCase().startsWith('/sendterminal') || 
                          messageText.toLowerCase().startsWith('/seeeditor') ||
                          messageText.toLowerCase().startsWith('see editor')
+    const isShareCodeCommand = messageText.toLowerCase().startsWith('/sharecode')
+    const isStopShareCodeCommand = messageText.toLowerCase().startsWith('/stopsharecode')
     
     setSending(true)
+    
+    // Handle collaboration toggle commands immediately (don't send as message)
+    if (isShareCodeCommand || isStopShareCodeCommand) {
+      const enabled = isShareCodeCommand
+      if (onRealtimeCollaborationToggle) {
+        onRealtimeCollaborationToggle(enabled)
+        // Show confirmation
+        alert(enabled ? 'Real-time code collaboration enabled! You will see updates when others edit code.' : 'Real-time code collaboration disabled.')
+      }
+      setSending(false)
+      return
+    }
     
     // Optimistically add the message to local state immediately
     const tempMessage: ChatMessage = {
@@ -302,10 +321,10 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                       {isCurrentUser && (
                         <button
                           onClick={() => handleDeleteMessage(message.id)}
-                          className="ml-2 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
+                          className="ml-2 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors flex-shrink-0 border border-transparent hover:border-red-200 dark:hover:border-red-800"
                           title="Delete message"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
