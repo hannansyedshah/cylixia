@@ -48,91 +48,77 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
     loadProfile()
   }, [userId])
 
+  // Reset state when userId changes
+  useEffect(() => {
+    console.log('[ViewerWorkspace] User changed, resetting state. New userId:', userId)
+    // Reset all state when switching users
+    setViewedCode('')
+    setViewedPlotUrl(null)
+    setViewedPlotUrls([])
+    setViewedStdout('')
+    setViewedStderr('')
+    setTargetProjectId(null)
+    
+    // Clean up existing subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe()
+      subscriptionRef.current = null
+    }
+  }, [userId])
+
   // Load initial project state - find the project that belongs to the userId being viewed
   useEffect(() => {
+    if (!userId) return
+    
     const loadProject = async () => {
-      let targetProjectId = projectId
+      console.log('[ViewerWorkspace] Loading project for userId:', userId, 'projectId:', projectId, 'projectName:', projectName)
       
-      // If projectId is not provided or doesn't belong to the viewed user, find their project
-      if (!targetProjectId) {
-        // First, try to find a project with the same name as the current project (if provided)
-        if (projectName) {
-          const { data: matchingProject } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('name', projectName)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          
-          if (matchingProject) {
-            targetProjectId = matchingProject.id
-          }
-        }
-        
-        // If no matching name found, get their most recently updated project
-        if (!targetProjectId) {
-          const { data: userProjects } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('user_id', userId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .single()
-          
-          if (userProjects) {
-            targetProjectId = userProjects.id
-          } else {
-            console.warn('No project found for user:', userId)
-            return
-          }
-        }
-      } else {
-        // Verify the project belongs to the viewed user
-        const { data: project } = await supabase
+      // ALWAYS find the project that belongs to the viewed user
+      // Don't trust the projectId prop - it might be from the current user's project
+      let targetProjectId: string | undefined = undefined
+      
+      // First, try to find a project with the same name as the current project (if provided)
+      if (projectName) {
+        const { data: matchingProject } = await supabase
           .from('projects')
-          .select('user_id')
-          .eq('id', targetProjectId)
-          .single()
+          .select('id')
+          .eq('user_id', userId)
+          .eq('name', projectName)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
         
-        if (project && project.user_id !== userId) {
-          // Project doesn't belong to viewed user, find their project instead
-          // First try to find one with matching name
-          if (projectName) {
-            const { data: matchingProject } = await supabase
-              .from('projects')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('name', projectName)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-            
-            if (matchingProject) {
-              targetProjectId = matchingProject.id
-            }
-          }
-          
-          // If no matching name, get most recent
-          if (!targetProjectId || (project && project.user_id !== userId)) {
-            const { data: userProjects } = await supabase
-              .from('projects')
-              .select('id')
-              .eq('user_id', userId)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .single()
-            
-            if (userProjects) {
-              targetProjectId = userProjects.id
-            } else {
-              console.warn('No project found for user:', userId)
-              return
-            }
-          }
+        if (matchingProject) {
+          targetProjectId = matchingProject.id
+          console.log('[ViewerWorkspace] Found matching project by name:', targetProjectId)
         }
       }
+      
+      // If no matching name found, get their most recently updated project
+      if (!targetProjectId) {
+        const { data: userProjects } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single()
+        
+        if (userProjects) {
+          targetProjectId = userProjects.id
+          console.log('[ViewerWorkspace] Found user\'s most recent project:', targetProjectId)
+        } else {
+          console.warn('[ViewerWorkspace] No project found for user:', userId)
+          return
+        }
+      }
+      
+      if (!targetProjectId) {
+        console.error('[ViewerWorkspace] Failed to find target project for user:', userId)
+        return
+      }
+      
+      console.log('[ViewerWorkspace] Final targetProjectId:', targetProjectId)
       
       // Load the project data
       const { data, error } = await supabase
@@ -527,4 +513,5 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
     </div>
   )
 }
+
 
