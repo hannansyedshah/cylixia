@@ -1197,9 +1197,10 @@ export default function WorkspacePage() {
       const now = new Date().toISOString()
       setProject({ ...project, code: newCode, updated_at: now })
       
-      // Only save to database if real-time collaboration is enabled
-      // This prevents code from being shared in real-time when collaboration is disabled
-      if (realtimeCollaborationEnabled) {
+      // Save to database if:
+      // 1. Real-time collaboration is enabled, OR
+      // 2. Someone is viewing this workspace (so they can see updates)
+      if (realtimeCollaborationEnabled || isWorkspaceBeingViewed) {
         // Debounce the API call - don't await to prevent blocking
         fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
@@ -1211,10 +1212,10 @@ export default function WorkspacePage() {
           }
         })
       }
-      // When collaboration is disabled, code is only in local state
-      // It will be saved when collaboration is enabled or when explicitly saved
+      // When collaboration is disabled and no one is viewing, code is only in local state
+      // It will be saved when collaboration is enabled or when someone views the workspace
     }
-  }, [project, projectId, realtimeCollaborationEnabled])
+  }, [project, projectId, realtimeCollaborationEnabled, isWorkspaceBeingViewed])
 
   // Real-time code updates are handled by CodeEditorCollaborative via useRealtimeProject hook
   // No need for duplicate subscription here
