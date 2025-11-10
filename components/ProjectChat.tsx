@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from './UserAvatar'
-import { Send, Loader2, Trash2 } from 'lucide-react'
+import { Send, Loader2, Trash2, Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/store/useSessionStore'
 import { playChatSound } from '@/lib/soundNotifications'
@@ -42,6 +42,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
   const [userProfile, setUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const subscriptionRef = useRef<any>(null)
@@ -411,22 +412,11 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                         <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200">{message.message}</p>
                       )}
                       {message.code_selection && message.code_selection_start_line && message.code_selection_end_line && (
-                        <button
-                          onClick={() => {
-                            if (onCodeSelectionClick && message.code_selection && message.code_selection_start_line && message.code_selection_end_line) {
-                              onCodeSelectionClick({
-                                code: message.code_selection,
-                                startLine: message.code_selection_start_line,
-                                endLine: message.code_selection_end_line
-                              })
-                            }
-                          }}
-                          className={`mt-2 block w-full text-left p-2 rounded border transition-colors ${
-                            isCurrentUser
-                              ? 'bg-white/20 border-white/30 hover:bg-white/30 text-white'
-                              : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50'
-                          }`}
-                        >
+                        <div className={`mt-2 block w-full text-left p-2 rounded border transition-colors relative ${
+                          isCurrentUser
+                            ? 'bg-white/20 border-white/30 hover:bg-white/30 text-white'
+                            : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50'
+                        }`}>
                           <div className="flex items-center justify-between mb-1">
                             <span className={`text-xs font-medium ${
                               isCurrentUser
@@ -435,20 +425,57 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                             }`}>
                               📎 Lines {message.code_selection_start_line}-{message.code_selection_end_line}
                             </span>
-                            <span className={`text-xs ${
-                              isCurrentUser
-                                ? 'text-white/70'
-                                : 'text-blue-600 dark:text-blue-400'
-                            }`}>Click to view</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (message.code_selection) {
+                                    navigator.clipboard.writeText(message.code_selection)
+                                    setCopiedCodeId(message.id)
+                                    setTimeout(() => setCopiedCodeId(null), 2000)
+                                  }
+                                }}
+                                className={`p-1 rounded hover:bg-white/20 dark:hover:bg-black/20 transition-colors ${
+                                  isCurrentUser
+                                    ? 'text-white/70 hover:text-white'
+                                    : 'text-blue-600 dark:text-blue-400'
+                                }`}
+                                title="Copy code"
+                              >
+                                {copiedCodeId === message.id ? (
+                                  <Check className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </button>
+                              <span className={`text-xs ${
+                                isCurrentUser
+                                  ? 'text-white/70'
+                                  : 'text-blue-600 dark:text-blue-400'
+                              }`}>Click to view</span>
+                            </div>
                           </div>
-                          <pre className={`text-xs font-mono whitespace-pre-wrap overflow-x-auto max-h-32 overflow-y-auto ${
-                            isCurrentUser
-                              ? 'text-white/90'
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}>
-                            {message.code_selection}
-                          </pre>
-                        </button>
+                          <button
+                            onClick={() => {
+                              if (onCodeSelectionClick && message.code_selection && message.code_selection_start_line && message.code_selection_end_line) {
+                                onCodeSelectionClick({
+                                  code: message.code_selection,
+                                  startLine: message.code_selection_start_line,
+                                  endLine: message.code_selection_end_line
+                                })
+                              }
+                            }}
+                            className="w-full text-left"
+                          >
+                            <pre className={`text-xs font-mono whitespace-pre-wrap overflow-x-auto max-h-32 overflow-y-auto ${
+                              isCurrentUser
+                                ? 'text-white/90'
+                                : 'text-gray-700 dark:text-gray-300'
+                            }`}>
+                              {message.code_selection}
+                            </pre>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

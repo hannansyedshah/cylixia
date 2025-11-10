@@ -18,7 +18,7 @@ import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
-import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus } from 'lucide-react'
+import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -95,6 +95,7 @@ export default function WorkspacePage() {
   const [codeSelection, setCodeSelection] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
   const [isWorkspaceBeingViewed, setIsWorkspaceBeingViewed] = useState<boolean>(false) // Track if someone is viewing our workspace
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -1850,9 +1851,26 @@ export default function WorkspacePage() {
                             })}
                           </div>
                           {message.code && (
-                            <pre className="mt-2 p-3 bg-black/10 dark:bg-black/30 rounded-lg text-xs overflow-x-auto border border-white/20">
-                              <code>{message.code}</code>
-                            </pre>
+                            <div className="mt-2 relative group">
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(message.code)
+                                  setCopiedCodeId(message.id)
+                                  setTimeout(() => setCopiedCodeId(null), 2000)
+                                }}
+                                className="absolute top-2 right-2 p-1.5 rounded bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors z-10"
+                                title="Copy code"
+                              >
+                                {copiedCodeId === message.id ? (
+                                  <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                                ) : (
+                                  <Copy className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
+                                )}
+                              </button>
+                              <pre className="p-3 bg-black/10 dark:bg-black/30 rounded-lg text-xs overflow-x-auto border border-white/20">
+                                <code>{message.code}</code>
+                              </pre>
+                            </div>
                           )}
                         </div>
                       </div>

@@ -26,6 +26,7 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
   const [viewedStdout, setViewedStdout] = useState<string>('')
   const [viewedStderr, setViewedStderr] = useState<string>('')
   const [viewedUserProfile, setViewedUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
+  const [targetProjectId, setTargetProjectId] = useState<string | null>(null) // Store the actual project ID being viewed
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
   const [viewMode, setViewMode] = useState<'plot' | 'graph'>('plot') // Default to 'plot'
   const subscriptionRef = useRef<any>(null)
@@ -184,6 +185,8 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
         }
         setViewedStdout(data.stdout || '')
         setViewedStderr(data.stderr || '')
+        // Store the target project ID so we can use it consistently
+        setTargetProjectId(targetProjectId)
       }
     }
     loadProject()
@@ -191,89 +194,10 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
 
   // Subscribe to real-time code updates from this user
   useEffect(() => {
-    if (!userId) return
+    if (!userId || !targetProjectId) return
 
-    // Find the project ID for the viewed user (same logic as loadProject)
+    // Use the stored targetProjectId instead of recalculating
     const setupSubscription = async () => {
-      let targetProjectId = projectId
-      
-      if (!targetProjectId) {
-        // First, try to find a project with the same name as the current project (if provided)
-        if (projectName) {
-          const { data: matchingProject } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('name', projectName)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          
-          if (matchingProject) {
-            targetProjectId = matchingProject.id
-          }
-        }
-        
-        // If no matching name found, get their most recently updated project
-        if (!targetProjectId) {
-          const { data: userProjects } = await supabase
-            .from('projects')
-            .select('id')
-            .eq('user_id', userId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .single()
-          
-          if (userProjects) {
-            targetProjectId = userProjects.id
-          } else {
-            return
-          }
-        }
-      } else {
-        // Verify the project belongs to the viewed user
-        const { data: project } = await supabase
-          .from('projects')
-          .select('user_id')
-          .eq('id', targetProjectId)
-          .single()
-        
-        if (project && project.user_id !== userId) {
-          // Project doesn't belong to viewed user, find their project instead
-          // First try to find one with matching name
-          if (projectName) {
-            const { data: matchingProject } = await supabase
-              .from('projects')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('name', projectName)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-            
-            if (matchingProject) {
-              targetProjectId = matchingProject.id
-            }
-          }
-          
-          // If no matching name, get most recent
-          if (!targetProjectId || (project && project.user_id !== userId)) {
-            const { data: userProjects } = await supabase
-              .from('projects')
-              .select('id')
-              .eq('user_id', userId)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .single()
-            
-            if (userProjects) {
-              targetProjectId = userProjects.id
-            } else {
-              return
-            }
-          }
-        }
-      }
 
       const channel = supabase
         .channel(`viewer-${targetProjectId}-${userId}`)
@@ -343,7 +267,7 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
         subscriptionRef.current = null
       }
     }
-  }, [projectId, userId, projectName])
+  }, [targetProjectId, userId])
 
   // Terminal output is now stored in the database and shared in real-time
 
@@ -487,7 +411,7 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
               <TerminalView 
                 stdout={viewedStdout} 
                 stderr={viewedStderr} 
-                projectId={projectId}
+                projectId={targetProjectId || undefined}
               />
             </div>
 
