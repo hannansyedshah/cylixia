@@ -135,13 +135,19 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
       }
       
       // Load the project data
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .select('code, plot_url, stdout, stderr')
         .eq('id', targetProjectId)
         .single()
       
+      if (error) {
+        console.error('[ViewerWorkspace] Error loading project:', error)
+        return
+      }
+      
       if (data) {
+        console.log('[ViewerWorkspace] Loaded project data for:', targetProjectId)
         setViewedCode(data.code || '')
         const plotUrl = data.plot_url || null
         setViewedPlotUrl(plotUrl)
@@ -150,6 +156,7 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
           try {
             const parsed = JSON.parse(plotUrl)
             if (Array.isArray(parsed)) {
+              console.log('[ViewerWorkspace] Found multiple plots in project:', parsed.length)
               setViewedPlotUrls(parsed)
             } else {
               setViewedPlotUrls([plotUrl])
@@ -169,6 +176,7 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
                   try {
                     const parsed = JSON.parse(latestVersion.plot_url)
                     if (Array.isArray(parsed)) {
+                      console.log('[ViewerWorkspace] Found multiple plots in latest version:', parsed.length)
                       setViewedPlotUrls(parsed)
                     } else {
                       setViewedPlotUrls([latestVersion.plot_url])
@@ -180,13 +188,16 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
               }
             }
           } catch (error) {
-            console.warn('Failed to load plots from latest version:', error)
+            console.warn('[ViewerWorkspace] Failed to load plots from latest version:', error)
           }
         }
         setViewedStdout(data.stdout || '')
         setViewedStderr(data.stderr || '')
-        // Store the target project ID so we can use it consistently
+        // Store the target project ID so we can use it consistently - this will trigger the subscription
+        console.log('[ViewerWorkspace] Setting targetProjectId to:', targetProjectId)
         setTargetProjectId(targetProjectId || null)
+      } else {
+        console.warn('[ViewerWorkspace] No project data found for:', targetProjectId)
       }
     }
     loadProject()
@@ -194,25 +205,38 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
 
   // Subscribe to real-time code updates from this user
   useEffect(() => {
-    if (!userId || !targetProjectId) return
+    if (!userId || !targetProjectId) {
+      console.log('[ViewerWorkspace] Skipping subscription setup:', { userId, targetProjectId })
+      return
+    }
 
-    // Use the stored targetProjectId instead of recalculating
-    const setupSubscription = async () => {
+    console.log('[ViewerWorkspace] Setting up subscription for project:', targetProjectId)
 
-      const channel = supabase
-        .channel(`viewer-${targetProjectId}-${userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'projects',
-            filter: `id=eq.${targetProjectId}`
-          },
+    // Clean up any existing subscription first
+    if (subscriptionRef.current) {
+      console.log('[ViewerWorkspace] Cleaning up existing subscription')
+      subscriptionRef.current.unsubscribe()
+      subscriptionRef.current = null
+    }
+
+    // Set up new subscription
+    const channel = supabase
+      .channel(`viewer-${targetProjectId}-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'projects',
+          filter: `id=eq.${targetProjectId}`
+        },
         (payload) => {
+          console.log('[ViewerWorkspace] Received real-time update:', payload)
           const newData = payload.new as any
+          
           if (newData.code !== undefined) {
             const newCode = newData.code
+            console.log('[ViewerWorkspace] Updating code:', newCode.substring(0, 50) + '...')
             setViewedCode(newCode)
             // Update Monaco editor directly for real-time updates
             if (editorRef.current) {
@@ -222,10 +246,86 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
               }
             }
           }
+          
           if (newData.plot_url !== undefined) {
             const plotUrl = newData.plot_url || null
+            console.log('[ViewerWorkspace] Updating plot_url:', plotUrl ? 'has plot' : 'no plot')
             setViewedPlotUrl(plotUrl)
             // Parse plot_url - could be a single URL or JSON array
+            if (plotUrl) {
+              try {
+                const parsed = JSON.parse(plotUrl)
+                if (Array.isArray(parsed)) {
+                  console.log('[ViewerWorkspace] Found multiple plots:', parsed.length)
+                  setViewedPlotUrls(parsed)
+                } else {
+                  setViewedPlotUrls([plotUrl])
+                }
+              } catch {
+                setViewedPlotUrls([plotUrl])
+              }
+            } else {
+              setViewedPlotUrls([])
+            }
+          }
+          
+          if (newData.stdout !== undefined) {
+            console.log('[ViewerWorkspace] Updating stdout')
+            setViewedStdout(newData.stdout || '')
+          }
+          
+          if (newData.stderr !== undefined) {
+            console.log('[ViewerWorkspace] Updating stderr')
+            setViewedStderr(newData.stderr || '')
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[ViewerWorkspace] Subscription status:', status)
+        if (status === 'SUBSCRIBED') {
+          console.log('[ViewerWorkspace] ✅ Successfully subscribed to real-time updates for project:', targetProjectId)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[ViewerWorkspace] ❌ Channel error')
+        } else if (status === 'TIMED_OUT') {
+          console.error('[ViewerWorkspace] ❌ Subscription timed out')
+        } else if (status === 'CLOSED') {
+          console.log('[ViewerWorkspace] Subscription closed')
+        }
+      })
+
+    subscriptionRef.current = channel
+
+    return () => {
+      console.log('[ViewerWorkspace] Cleaning up subscription')
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
+        subscriptionRef.current = null
+      }
+    }
+  }, [targetProjectId, userId])
+
+  // Polling fallback - refresh data every 3 seconds as backup if real-time fails
+  useEffect(() => {
+    if (!targetProjectId) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data } = await supabase
+          .from('projects')
+          .select('code, plot_url, stdout, stderr')
+          .eq('id', targetProjectId)
+          .single()
+
+        if (data) {
+          // Only update if something changed to avoid unnecessary re-renders
+          setViewedCode(prev => prev !== data.code ? (data.code || '') : prev)
+          setViewedStdout(prev => prev !== data.stdout ? (data.stdout || '') : prev)
+          setViewedStderr(prev => prev !== data.stderr ? (data.stderr || '') : prev)
+          
+          // Update plots if changed
+          const plotUrl = data.plot_url || null
+          if (plotUrl !== viewedPlotUrl) {
+            setViewedPlotUrl(plotUrl)
             if (plotUrl) {
               try {
                 const parsed = JSON.parse(plotUrl)
@@ -241,33 +341,14 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
               setViewedPlotUrls([])
             }
           }
-          if (newData.stdout !== undefined) {
-            setViewedStdout(newData.stdout || '')
-          }
-          if (newData.stderr !== undefined) {
-            setViewedStderr(newData.stderr || '')
-          }
         }
-      )
-      .subscribe((status) => {
-        console.log('[ViewerWorkspace] Subscription status:', status)
-        if (status === 'SUBSCRIBED') {
-          console.log('[ViewerWorkspace] Successfully subscribed to real-time updates')
-        }
-      })
-
-      subscriptionRef.current = channel
-    }
-    
-    setupSubscription()
-
-    return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe()
-        subscriptionRef.current = null
+      } catch (error) {
+        console.warn('[ViewerWorkspace] Polling error:', error)
       }
-    }
-  }, [targetProjectId, userId])
+    }, 3000) // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [targetProjectId, viewedPlotUrl])
 
   // Terminal output is now stored in the database and shared in real-time
 
