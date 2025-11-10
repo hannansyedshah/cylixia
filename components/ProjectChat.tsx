@@ -33,9 +33,10 @@ interface ProjectChatProps {
   onCodeSelectionClick?: (selection: { code: string; startLine: number; endLine: number }) => void
   onImportCode?: (code: string) => void
   onRealtimeCollaborationToggle?: (enabled: boolean) => void
+  onWorkspaceViewStatusChange?: (isBeingViewed: boolean) => void // Callback when workspace view status changes
 }
 
-export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImportCode, onRealtimeCollaborationToggle }: ProjectChatProps) {
+export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImportCode, onRealtimeCollaborationToggle, onWorkspaceViewStatusChange }: ProjectChatProps) {
   const { user } = useSessionStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -87,6 +88,21 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Check if someone is viewing this workspace via /sendterminal
+  useEffect(() => {
+    if (!user?.id || !onWorkspaceViewStatusChange) return
+    
+    const isBeingViewed = messages.some(message => {
+      if (message.message.startsWith('/sendterminal ')) {
+        const userId = message.message.split(' ')[1]
+        return userId === user.id
+      }
+      return false
+    })
+    
+    onWorkspaceViewStatusChange(isBeingViewed)
+  }, [messages, user?.id, onWorkspaceViewStatusChange])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -163,6 +179,16 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
     if (!confirm('Are you sure you want to delete this message?')) return
     
     try {
+      // Check if this is a /sendterminal message and if someone is viewing that workspace
+      const messageToDelete = messages.find(m => m.id === messageId)
+      if (messageToDelete && messageToDelete.message.startsWith('/sendterminal ')) {
+        const userId = messageToDelete.message.split(' ')[1]
+        // If someone is viewing this workspace, close it
+        if (viewingUserId === userId) {
+          setViewingUserId(null)
+        }
+      }
+
       const response = await fetch(`/api/projects/${projectId}/chat/${messageId}`, {
         method: 'DELETE',
       })
@@ -338,9 +364,20 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                       {/* Check if message is a view command */}
                       {message.message.startsWith('/sendterminal ') ? (
                         <div className="space-y-2">
-                          <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200">
-                            {message.profiles?.display_name || 'User'} shared their workspace
-                          </p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200 flex-1">
+                              {message.profiles?.display_name || 'User'} shared their workspace
+                            </p>
+                            {isCurrentUser && (
+                              <button
+                                onClick={() => handleDeleteMessage(message.id)}
+                                className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors flex-shrink-0 border border-transparent hover:border-red-200 dark:hover:border-red-800"
+                                title="Stop sharing workspace"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                           <Button
                             onClick={() => {
                               const userId = message.message.split(' ')[1]

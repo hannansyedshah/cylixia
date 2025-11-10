@@ -1859,6 +1859,19 @@ export default function WorkspacePage() {
                   onEditLockChange={setEnableEditLock}
                   onCodeSelection={codeSelection}
                   realtimeCollaborationEnabled={realtimeCollaborationEnabled}
+                  onRealtimeCollaborationToggle={(enabled) => {
+                    setRealtimeCollaborationEnabled(enabled)
+                    // When enabling collaboration, save current code to database
+                    if (enabled && project) {
+                      fetch(`/api/projects/${projectId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: project.code }),
+                      }).catch(error => {
+                        console.error('Failed to save code when enabling collaboration:', error)
+                      })
+                    }
+                  }}
                 />
               )}
             </div>
@@ -1893,7 +1906,13 @@ export default function WorkspacePage() {
                 {showTerminalNextToPlot ? (
                   <div className="h-full w-full flex gap-2 p-2">
                     <div className="w-1/2 min-w-0">
-                      <TerminalView stdout={stdoutText} stderr={stderrText} projectId={projectId} />
+                      <TerminalView 
+                        stdout={stdoutText} 
+                        stderr={stderrText} 
+                        projectId={projectId}
+                        realtimeCollaborationEnabled={realtimeCollaborationEnabled}
+                        isWorkspaceBeingViewed={isWorkspaceBeingViewed}
+                      />
                     </div>
                     <div className="w-1/2 min-w-0">
                       <PlotViewer 
@@ -1962,6 +1981,9 @@ export default function WorkspacePage() {
                         console.error('Failed to save code when enabling collaboration:', error)
                       })
                     }
+                  }}
+                  onWorkspaceViewStatusChange={(isBeingViewed) => {
+                    setIsWorkspaceBeingViewed(isBeingViewed)
                   }}
                 />
               </div>

@@ -22,6 +22,7 @@ interface CodeEditorCollaborativeProps {
   onEditLockChange?: (enabled: boolean) => void
   onCodeSelection?: { code: string; startLine: number; endLine: number } | null
   realtimeCollaborationEnabled?: boolean // Whether real-time collaboration is enabled
+  onRealtimeCollaborationToggle?: (enabled: boolean) => void // Callback to toggle real-time collaboration
 }
 
 interface TypingUser {
@@ -38,7 +39,8 @@ export function CodeEditorCollaborative({
   enableEditLock = false,
   onEditLockChange,
   onCodeSelection,
-  realtimeCollaborationEnabled = false
+  realtimeCollaborationEnabled = false,
+  onRealtimeCollaborationToggle
 }: CodeEditorCollaborativeProps) {
   const { user } = useSessionStore()
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
@@ -714,6 +716,34 @@ export function CodeEditorCollaborative({
       )}
       
       <div className={`absolute ${hasRemoteUpdates ? 'top-10' : 'top-2'} right-2 z-10 flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded-md shadow-sm flex-wrap transition-all`}>
+        {/* Real-time Collaboration Toggle */}
+        {!readOnly && onRealtimeCollaborationToggle && (
+          <button
+            onClick={() => {
+              const newState = !realtimeCollaborationEnabled
+              onRealtimeCollaborationToggle(newState)
+            }}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+              realtimeCollaborationEnabled
+                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+            title={realtimeCollaborationEnabled ? 'Disable real-time collaboration' : 'Enable real-time collaboration'}
+          >
+            {realtimeCollaborationEnabled ? (
+              <>
+                <Wifi className="w-3 h-3" />
+                <span>Linked</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3" />
+                <span>Not Linked</span>
+              </>
+            )}
+          </button>
+        )}
+
         {/* Edit Lock Toggle */}
         {!readOnly && (
           <button
