@@ -694,21 +694,21 @@ export function CodeEditorCollaborative({
     <div className="relative h-full">
       {/* Notification banner for remote edits */}
       {hasRemoteUpdates && (
-        <div className="absolute top-0 left-0 right-0 z-20 bg-green-500 dark:bg-green-600 text-white px-4 py-2 text-sm font-medium flex items-center justify-between animate-slide-down shadow-lg">
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            <span>New edits have been made by another collaborator</span>
+        <div className="absolute top-2 left-2 right-2 z-20 bg-green-500/95 dark:bg-green-600/95 backdrop-blur-sm text-white px-3 py-1.5 text-xs font-medium flex items-center justify-between rounded-md shadow-md animate-slide-down border border-green-400/30">
+          <div className="flex items-center gap-1.5">
+            <RefreshCw className="w-3 h-3 animate-spin" />
+            <span>New edits available</span>
           </div>
           <button
             onClick={handleRefresh}
-            className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded transition-colors font-semibold"
+            className="px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-xs font-semibold transition-colors"
           >
-            Refresh Now
+            Refresh
           </button>
         </div>
       )}
       
-      <div className={`absolute ${hasRemoteUpdates ? 'top-12' : 'top-2'} right-2 z-10 flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded-md shadow-sm flex-wrap transition-all`}>
+      <div className={`absolute ${hasRemoteUpdates ? 'top-10' : 'top-2'} right-2 z-10 flex items-center gap-2 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded-md shadow-sm flex-wrap transition-all`}>
         {/* Edit Lock Toggle */}
         {!readOnly && (
           <button
@@ -738,11 +738,11 @@ export function CodeEditorCollaborative({
         {hasRemoteUpdates && (
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 transition-colors animate-pulse"
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
             title="Refresh to see latest changes"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>New edits available - Click to refresh</span>
+            <span>Refresh</span>
           </button>
         )}
 
