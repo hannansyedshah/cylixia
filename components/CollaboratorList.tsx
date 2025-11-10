@@ -23,6 +23,8 @@ interface CollaboratorListProps {
   onRemove?: (userId: string) => void
   canManage?: boolean
   onProfileClick?: (userId: string) => void
+  onViewWorkspace?: (userId: string) => void // Callback to view a collaborator's workspace
+  isOwner?: boolean // Whether the current user is the project owner
 }
 
 export function CollaboratorList({ 
@@ -31,7 +33,9 @@ export function CollaboratorList({
   onRoleChange,
   onRemove,
   canManage = false,
-  onProfileClick
+  onProfileClick,
+  onViewWorkspace,
+  isOwner = false
 }: CollaboratorListProps) {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -123,6 +127,19 @@ export function CollaboratorList({
                       </button>
                     )}
                   </>
+                )}
+                {/* Owner can view any collaborator's workspace */}
+                {isOwner && onViewWorkspace && !isCurrentUser && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onViewWorkspace(collaborator.user_id)
+                    }}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    title="View workspace"
+                  >
+                    👁️ View Workspace
+                  </button>
                 )}
               </div>
             </div>

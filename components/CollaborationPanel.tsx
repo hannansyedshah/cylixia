@@ -27,9 +27,10 @@ interface Collaborator {
 interface CollaborationPanelProps {
   projectId: string
   projectOwnerId?: string
+  onViewWorkspace?: (userId: string) => void // Callback to view a collaborator's workspace
 }
 
-export function CollaborationPanel({ projectId, projectOwnerId }: CollaborationPanelProps) {
+export function CollaborationPanel({ projectId, projectOwnerId, onViewWorkspace }: CollaborationPanelProps) {
   const { user } = useSessionStore()
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [loading, setLoading] = useState(true)
@@ -184,6 +185,8 @@ export function CollaborationPanel({ projectId, projectOwnerId }: CollaborationP
               setSelectedUserId(userId)
               setShowProfileModal(true)
             }}
+            onViewWorkspace={projectOwnerId === user?.id ? onViewWorkspace : undefined}
+            isOwner={projectOwnerId === user?.id}
           />
         </CardContent>
       </Card>

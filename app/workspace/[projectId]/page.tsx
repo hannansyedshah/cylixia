@@ -8,6 +8,7 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { CodeEditorCollaborative } from '@/components/CodeEditorCollaborative'
 import { CollaborationPanel } from '@/components/CollaborationPanel'
 import { ProjectChat } from '@/components/ProjectChat'
+import { ViewerWorkspace } from '@/components/ViewerWorkspace'
 import { InviteCollaboratorModal } from '@/components/InviteCollaboratorModal'
 import { PlotViewer } from '@/components/PlotViewer'
 import { TerminalView } from '@/components/TerminalView'
@@ -91,6 +92,7 @@ export default function WorkspacePage() {
   const [showCollaborationSidebar, setShowCollaborationSidebar] = useState<boolean>(false)
   const [showInviteModal, setShowInviteModal] = useState<boolean>(false)
   const [codeSelection, setCodeSelection] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -1193,18 +1195,25 @@ export default function WorkspacePage() {
     if (project && mountedRef.current) {
       const now = new Date().toISOString()
       setProject({ ...project, code: newCode, updated_at: now })
-      // Debounce the API call - don't await to prevent blocking
-      fetch(`/api/projects/${projectId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: newCode }),
-      }).catch(error => {
-        if (mountedRef.current) {
-          console.error('Failed to save code:', error)
-        }
-      })
+      
+      // Only save to database if real-time collaboration is enabled
+      // This prevents code from being shared in real-time when collaboration is disabled
+      if (realtimeCollaborationEnabled) {
+        // Debounce the API call - don't await to prevent blocking
+        fetch(`/api/projects/${projectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: newCode }),
+        }).catch(error => {
+          if (mountedRef.current) {
+            console.error('Failed to save code:', error)
+          }
+        })
+      }
+      // When collaboration is disabled, code is only in local state
+      // It will be saved when collaboration is enabled or when explicitly saved
     }
-  }, [project, projectId])
+  }, [project, projectId, realtimeCollaborationEnabled])
 
   // Real-time code updates are handled by CodeEditorCollaborative via useRealtimeProject hook
   // No need for duplicate subscription here
@@ -1926,6 +1935,7 @@ export default function WorkspacePage() {
               <CollaborationPanel 
                 projectId={projectId}
                 projectOwnerId={project?.user_id}
+                onViewWorkspace={(userId) => setViewingUserId(userId)}
               />
               <div className="h-[400px]">
                 <ProjectChat 
@@ -1942,6 +1952,16 @@ export default function WorkspacePage() {
                   }}
                   onRealtimeCollaborationToggle={(enabled) => {
                     setRealtimeCollaborationEnabled(enabled)
+                    // When enabling collaboration, save current code to database
+                    if (enabled && project) {
+                      fetch(`/api/projects/${projectId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: project.code }),
+                      }).catch(error => {
+                        console.error('Failed to save code when enabling collaboration:', error)
+                      })
+                    }
                   }}
                 />
               </div>
@@ -1959,6 +1979,20 @@ export default function WorkspacePage() {
               if (showCollaborationSidebar) {
                 // The CollaborationPanel will refresh on its own
                 setShowInviteModal(false)
+              }
+            }}
+          />
+        )}
+
+        {/* Viewer Workspace - for owner to view collaborator's workspace */}
+        {viewingUserId && (
+          <ViewerWorkspace
+            userId={viewingUserId}
+            projectId={projectId}
+            onClose={() => setViewingUserId(null)}
+            onImportCode={(code) => {
+              if (project && userRole !== 'view') {
+                handleCodeChange(code)
               }
             }}
           />
