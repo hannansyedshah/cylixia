@@ -186,7 +186,7 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
         setViewedStdout(data.stdout || '')
         setViewedStderr(data.stderr || '')
         // Store the target project ID so we can use it consistently
-        setTargetProjectId(targetProjectId)
+        setTargetProjectId(targetProjectId || null)
       }
     }
     loadProject()
