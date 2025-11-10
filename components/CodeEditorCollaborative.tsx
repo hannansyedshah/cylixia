@@ -63,23 +63,39 @@ export function CodeEditorCollaborative({
   const { isConnected, broadcastCodeChange } = useRealtimeProject({
     projectId,
     onCodeChange: (code) => {
-      // Update if change came from another user or from AI (not local typing)
-      // AI updates will have isLocalChangeRef.current = false
-      if (!isLocalChangeRef.current && editorRef.current) {
+      // This callback is called when we receive a remote update
+      // Only update if change came from another user (not local typing)
+      // The hook already handles filtering, so we can trust this is a remote change
+      if (editorRef.current) {
         // Only update if the code is actually different to avoid unnecessary updates
         if (code !== localValue) {
+          // Mark that we're applying a remote change (not a local edit)
+          isLocalChangeRef.current = false
+          
           setLocalValue(code)
           onChange(code)
+          
           // Update editor value directly - this is critical for real-time updates
           try {
+            // Get current cursor position to preserve it if possible
+            const editor = editorRef.current
+            const position = editor.getPosition()
+            
             editorRef.current.setValue(code)
+            
+            // Try to restore cursor position if it's still valid
+            if (position) {
+              try {
+                editor.setPosition(position)
+              } catch {
+                // Position might be invalid after code change, that's okay
+              }
+            }
           } catch (error) {
             console.error('[CodeEditor] Error updating editor value:', error)
           }
         }
       }
-      // Reset the flag after handling the change
-      isLocalChangeRef.current = false
     },
     debounceMs: 2000 // Reduced frequency to save egress - updates every 2 seconds
   })
