@@ -13,11 +13,12 @@ import { UserAvatar } from './UserAvatar'
 interface ViewerWorkspaceProps {
   userId: string
   projectId?: string // Optional: if not provided, will find the user's project
+  projectName?: string // Optional: if provided, will try to find a project with this name first
   onClose: () => void
   onImportCode?: (code: string) => void
 }
 
-export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: ViewerWorkspaceProps) {
+export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImportCode }: ViewerWorkspaceProps) {
   const { user } = useSessionStore()
   const [viewedCode, setViewedCode] = useState<string>('')
   const [viewedPlotUrl, setViewedPlotUrl] = useState<string | null>(null)
@@ -53,30 +54,24 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
       
       // If projectId is not provided or doesn't belong to the viewed user, find their project
       if (!targetProjectId) {
-        const { data: userProjects } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('user_id', userId)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single()
-        
-        if (userProjects) {
-          targetProjectId = userProjects.id
-        } else {
-          console.warn('No project found for user:', userId)
-          return
+        // First, try to find a project with the same name as the current project (if provided)
+        if (projectName) {
+          const { data: matchingProject } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('name', projectName)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (matchingProject) {
+            targetProjectId = matchingProject.id
+          }
         }
-      } else {
-        // Verify the project belongs to the viewed user
-        const { data: project } = await supabase
-          .from('projects')
-          .select('user_id')
-          .eq('id', targetProjectId)
-          .single()
         
-        if (project && project.user_id !== userId) {
-          // Project doesn't belong to viewed user, find their project instead
+        // If no matching name found, get their most recently updated project
+        if (!targetProjectId) {
           const { data: userProjects } = await supabase
             .from('projects')
             .select('id')
@@ -90,6 +85,50 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
           } else {
             console.warn('No project found for user:', userId)
             return
+          }
+        }
+      } else {
+        // Verify the project belongs to the viewed user
+        const { data: project } = await supabase
+          .from('projects')
+          .select('user_id')
+          .eq('id', targetProjectId)
+          .single()
+        
+        if (project && project.user_id !== userId) {
+          // Project doesn't belong to viewed user, find their project instead
+          // First try to find one with matching name
+          if (projectName) {
+            const { data: matchingProject } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('name', projectName)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            
+            if (matchingProject) {
+              targetProjectId = matchingProject.id
+            }
+          }
+          
+          // If no matching name, get most recent
+          if (!targetProjectId || (project && project.user_id !== userId)) {
+            const { data: userProjects } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('user_id', userId)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .single()
+            
+            if (userProjects) {
+              targetProjectId = userProjects.id
+            } else {
+              console.warn('No project found for user:', userId)
+              return
+            }
           }
         }
       }
@@ -148,40 +187,35 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
       }
     }
     loadProject()
-  }, [projectId, userId])
+  }, [projectId, userId, projectName])
 
   // Subscribe to real-time code updates from this user
   useEffect(() => {
     if (!userId) return
 
-    // Find the project ID for the viewed user
+    // Find the project ID for the viewed user (same logic as loadProject)
     const setupSubscription = async () => {
       let targetProjectId = projectId
       
       if (!targetProjectId) {
-        const { data: userProjects } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('user_id', userId)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single()
-        
-        if (userProjects) {
-          targetProjectId = userProjects.id
-        } else {
-          return
+        // First, try to find a project with the same name as the current project (if provided)
+        if (projectName) {
+          const { data: matchingProject } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('name', projectName)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          
+          if (matchingProject) {
+            targetProjectId = matchingProject.id
+          }
         }
-      } else {
-        // Verify the project belongs to the viewed user
-        const { data: project } = await supabase
-          .from('projects')
-          .select('user_id')
-          .eq('id', targetProjectId)
-          .single()
         
-        if (project && project.user_id !== userId) {
-          // Project doesn't belong to viewed user, find their project instead
+        // If no matching name found, get their most recently updated project
+        if (!targetProjectId) {
           const { data: userProjects } = await supabase
             .from('projects')
             .select('id')
@@ -194,6 +228,49 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
             targetProjectId = userProjects.id
           } else {
             return
+          }
+        }
+      } else {
+        // Verify the project belongs to the viewed user
+        const { data: project } = await supabase
+          .from('projects')
+          .select('user_id')
+          .eq('id', targetProjectId)
+          .single()
+        
+        if (project && project.user_id !== userId) {
+          // Project doesn't belong to viewed user, find their project instead
+          // First try to find one with matching name
+          if (projectName) {
+            const { data: matchingProject } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('name', projectName)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            
+            if (matchingProject) {
+              targetProjectId = matchingProject.id
+            }
+          }
+          
+          // If no matching name, get most recent
+          if (!targetProjectId || (project && project.user_id !== userId)) {
+            const { data: userProjects } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('user_id', userId)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .single()
+            
+            if (userProjects) {
+              targetProjectId = userProjects.id
+            } else {
+              return
+            }
           }
         }
       }
@@ -266,7 +343,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
         subscriptionRef.current = null
       }
     }
-  }, [projectId, userId])
+  }, [projectId, userId, projectName])
 
   // Terminal output is now stored in the database and shared in real-time
 

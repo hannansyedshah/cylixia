@@ -2139,6 +2139,7 @@ export default function WorkspacePage() {
           <ViewerWorkspace
             userId={viewingUserId}
             projectId={projectId}
+            projectName={project?.name}
             onClose={() => setViewingUserId(null)}
             onImportCode={(code) => {
               if (project && userRole !== 'view') {
