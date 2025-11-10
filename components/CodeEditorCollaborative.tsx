@@ -74,9 +74,6 @@ export function CodeEditorCollaborative({
         lastKnownRemoteCodeRef.current = code
         setHasRemoteUpdates(true) // Show refresh button with indicator
         
-        // Play notification sound for collaboration edits
-        playCollaborationSound()
-        
         // Show a brief notification that edits were made
         // The refresh button will be visible, but we can also show a toast-like indicator
         console.log('[CodeEditor] Remote edits detected - refresh available')

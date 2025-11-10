@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from './UserAvatar'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/store/useSessionStore'
 import { playChatSound } from '@/lib/soundNotifications'
@@ -44,6 +44,14 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const subscriptionRef = useRef<any>(null)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
+  const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [autocompleteIndex, setAutocompleteIndex] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  
+  const commands = [
+    { command: '/sendterminal', description: 'Share your workspace view (editor + terminal + plot)' },
+    { command: '/seeeditor', description: 'Alias for /sendterminal' },
+  ]
 
   useEffect(() => {
     loadUserProfile()
@@ -148,6 +156,26 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
     subscriptionRef.current = channel
   }
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/chat/${messageId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete message')
+      }
+
+      // Remove from local state
+      setMessages(prev => prev.filter(m => m.id !== messageId))
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete message')
+    }
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() || sending) return
@@ -157,6 +185,8 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
     const messageText = newMessage.trim()
     
     // Check for special commands
+    // /sendterminal - share workspace view (terminal + editor + plot)
+    // /seeeditor - same as /sendterminal (alias)
     const isViewCommand = messageText.toLowerCase().startsWith('/sendterminal') || 
                          messageText.toLowerCase().startsWith('/seeeditor') ||
                          messageText.toLowerCase().startsWith('see editor')
@@ -260,7 +290,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                   </div>
                   <div className={`flex-1 min-w-0 ${isCurrentUser ? 'flex items-end flex-col' : ''}`}>
                     <div className={`flex items-baseline gap-2 mb-1 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                      <span className="text-xs font-medium truncate max-w-[120px]" title={displayName}>
+                      <span className="text-xs font-medium truncate max-w-[120px] dark:text-gray-200" title={displayName}>
                         {truncatedName}
                       </span>
                       <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0">
@@ -269,6 +299,15 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                           minute: '2-digit'
                         })}
                       </span>
+                      {isCurrentUser && (
+                        <button
+                          onClick={() => handleDeleteMessage(message.id)}
+                          className="ml-1 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                          title="Delete message"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                     <div
                       className={`inline-block max-w-[85%] px-3 py-2 rounded-lg break-words ${
@@ -280,7 +319,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                       {/* Check if message is a view command */}
                       {message.message.startsWith('/sendterminal ') ? (
                         <div className="space-y-2">
-                          <p className="text-xs whitespace-pre-wrap leading-relaxed">
+                              <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200">
                             {message.profiles?.display_name || 'User'} wants to share their workspace view
                           </p>
                           <Button
@@ -291,14 +330,14 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                               }
                             }}
                             size="sm"
-                            className="w-full text-xs"
-                            variant="outline"
+                            className="w-full text-xs bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-sm"
+                            variant="default"
                           >
                             👁️ View {message.profiles?.display_name || 'User'}&apos;s Workspace
                           </Button>
                         </div>
                       ) : (
-                        <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.message}</p>
+                        <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200">{message.message}</p>
                       )}
                       {message.code_selection && message.code_selection_start_line && message.code_selection_end_line && (
                         <button
@@ -348,15 +387,70 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
           )}
           <div ref={messagesEndRef} />
         </div>
-        <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <Input
-            type="text"
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            disabled={sending}
-            className="flex-1"
-          />
+        <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700 relative">
+          <div className="flex-1 relative">
+            <Input
+              ref={inputRef}
+              type="text"
+              placeholder="Type a message... (use / for commands)"
+              value={newMessage}
+              onChange={(e) => {
+                const value = e.target.value
+                setNewMessage(value)
+                // Show autocomplete when typing /
+                if (value.startsWith('/') && !value.includes(' ')) {
+                  setShowAutocomplete(true)
+                  setAutocompleteIndex(0)
+                } else {
+                  setShowAutocomplete(false)
+                }
+              }}
+              onKeyDown={(e) => {
+                if (showAutocomplete && commands.length > 0) {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setAutocompleteIndex((prev) => (prev + 1) % commands.length)
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setAutocompleteIndex((prev) => (prev - 1 + commands.length) % commands.length)
+                  } else if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    const selected = commands[autocompleteIndex]
+                    if (selected) {
+                      setNewMessage(selected.command + ' ')
+                      setShowAutocomplete(false)
+                      inputRef.current?.focus()
+                    }
+                  } else if (e.key === 'Escape') {
+                    setShowAutocomplete(false)
+                  }
+                }
+              }}
+              disabled={sending}
+              className="flex-1"
+            />
+            {showAutocomplete && commands.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-48 overflow-auto">
+                {commands.map((cmd, idx) => (
+                  <button
+                    key={cmd.command}
+                    type="button"
+                    onClick={() => {
+                      setNewMessage(cmd.command + ' ')
+                      setShowAutocomplete(false)
+                      inputRef.current?.focus()
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      idx === autocompleteIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
+                    } ${idx === 0 ? 'rounded-t-lg' : ''} ${idx === commands.length - 1 ? 'rounded-b-lg' : ''}`}
+                  >
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{cmd.command}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{cmd.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Button type="submit" disabled={sending || !newMessage.trim()} size="icon">
             {sending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

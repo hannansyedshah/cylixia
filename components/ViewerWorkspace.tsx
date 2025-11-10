@@ -7,7 +7,7 @@ import { useSessionStore } from '@/store/useSessionStore'
 import { TerminalView } from './TerminalView'
 import { PlotViewer } from './PlotViewer'
 import { Button } from '@/components/ui/button'
-import { X, Download, Copy } from 'lucide-react'
+import { X, Download, Copy, Play } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
 
 interface ViewerWorkspaceProps {
@@ -25,6 +25,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   const [viewedStderr, setViewedStderr] = useState<string>('')
   const [viewedUserProfile, setViewedUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
+  const [running, setRunning] = useState(false)
   const subscriptionRef = useRef<any>(null)
 
   // Load user profile
@@ -137,12 +138,72 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
     }
   }
 
+  const handleRunCode = async () => {
+    if (!viewedCode.trim() || running) return
+    
+    setRunning(true)
+    try {
+      const response = await fetch("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: viewedCode }),
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Update terminal output in database
+        if (typeof data?.stdout === 'string') {
+          setViewedStdout(data.stdout)
+          await supabase
+            .from('projects')
+            .update({ stdout: data.stdout })
+            .eq('id', projectId)
+        }
+        if (typeof data?.stderr === 'string') {
+          setViewedStderr(data.stderr)
+          await supabase
+            .from('projects')
+            .update({ stderr: data.stderr })
+            .eq('id', projectId)
+        }
+        // Update plot if available
+        if (data.plot_base64 || data.plot) {
+          const plotUrl = Array.isArray(data.plot_base64) 
+            ? data.plot_base64[0] 
+            : (data.plot_base64 || data.plot)
+          setViewedPlotUrl(plotUrl)
+          await supabase
+            .from('projects')
+            .update({ plot_url: plotUrl })
+            .eq('id', projectId)
+        }
+      } else {
+        const errorOutput = `${viewedStderr}\n${data.error || 'Failed to execute code'}`
+        setViewedStderr(errorOutput)
+        await supabase
+          .from('projects')
+          .update({ stderr: errorOutput })
+          .eq('id', projectId)
+      }
+    } catch (error: any) {
+      const errorOutput = `${viewedStderr}\n${error.message || 'Execution error'}`
+      setViewedStderr(errorOutput)
+      await supabase
+        .from('projects')
+        .update({ stderr: errorOutput })
+        .eq('id', projectId)
+    } finally {
+      setRunning(false)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full h-full max-w-7xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             {viewedUserProfile && (
               <UserAvatar
                 userId={userId}
@@ -151,37 +212,47 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
                 size="sm"
               />
             )}
-            <div>
-              <h2 className="text-lg font-semibold">
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-lg font-semibold truncate dark:text-white">
                 Viewing {viewedUserProfile?.display_name || 'User'}&apos;s Workspace
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Real-time view of their code, terminal, and plots</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            <Button
+              onClick={handleRunCode}
+              disabled={running || !viewedCode.trim()}
+              size="sm"
+              className="flex items-center gap-1 sm:gap-2 bg-rstudio hover:bg-rstudio/90"
+            >
+              <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Run</span>
+            </Button>
             <Button
               onClick={handleCopyCode}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2"
             >
-              <Copy className="w-4 h-4" />
-              Copy Code
+              <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Copy</span>
             </Button>
             {onImportCode && (
               <Button
                 onClick={handleImportCode}
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2"
               >
-                <Download className="w-4 h-4" />
-                Import to Editor
+                <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Import</span>
               </Button>
             )}
             <Button
               onClick={onClose}
               variant="ghost"
               size="icon"
+              className="flex-shrink-0"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -189,13 +260,13 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
         </div>
 
         {/* Content - Side by side */}
-        <div className="flex-1 overflow-hidden grid grid-cols-2 gap-4 p-4">
+        <div className="flex-1 min-h-0 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 p-2 sm:p-4">
           {/* Left: Code Editor */}
-          <div className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-medium">
+          <div className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden min-h-0">
+            <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-medium dark:text-gray-200">
               Code Editor (Read-only)
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <Editor
                 height="100%"
                 defaultLanguage="r"
@@ -214,9 +285,9 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
           </div>
 
           {/* Right: Terminal and Plot */}
-          <div className="flex flex-col gap-4">
-            {/* Terminal */}
-            <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="flex flex-col gap-3 sm:gap-4 min-h-0">
+            {/* Terminal - Fixed height with scroll */}
+            <div className="h-64 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex-shrink-0">
               <TerminalView 
                 stdout={viewedStdout} 
                 stderr={viewedStderr} 
@@ -225,8 +296,8 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
             </div>
 
             {/* Plot Viewer */}
-            <div className="h-64 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-medium">
+            <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-medium dark:text-gray-200">
                 Plot Viewer
               </div>
               <div className="h-[calc(100%-32px)] overflow-auto">
