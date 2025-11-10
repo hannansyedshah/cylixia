@@ -73,15 +73,30 @@ export function CodeEditorCollaborative({
   const { isConnected, broadcastCodeChange } = useRealtimeProject({
     projectId,
     onCodeChange: realtimeCollaborationEnabled ? (code) => {
-      // DISABLED: Don't automatically apply remote updates
-      // Instead, just track that there are updates available
+      // Automatically apply remote updates when collaboration is enabled
       if (code !== lastKnownRemoteCodeRef.current && code !== localValue) {
-        lastKnownRemoteCodeRef.current = code
-        setHasRemoteUpdates(true) // Show refresh button with indicator
-        
-        // Show a brief notification that edits were made
-        // The refresh button will be visible, but we can also show a toast-like indicator
-        console.log('[CodeEditor] Remote edits detected - refresh available')
+        // Don't apply if user is currently typing
+        if (!isUserTypingRef.current) {
+          lastKnownRemoteCodeRef.current = code
+          setLocalValue(code)
+          onChange(code) // Update parent component
+          setHasRemoteUpdates(false) // Clear the refresh indicator since we applied it
+          
+          // Update Monaco editor directly
+          if (editorRef.current) {
+            const currentValue = editorRef.current.getValue()
+            if (currentValue !== code) {
+              editorRef.current.setValue(code)
+            }
+          }
+          
+          console.log('[CodeEditor] Remote edits applied automatically')
+        } else {
+          // User is typing, just track that there are updates available
+          lastKnownRemoteCodeRef.current = code
+          setHasRemoteUpdates(true) // Show refresh button with indicator
+          console.log('[CodeEditor] Remote edits detected but user is typing - refresh available')
+        }
       }
     } : undefined, // Don't subscribe if collaboration is disabled
     debounceMs: 200,

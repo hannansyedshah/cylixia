@@ -26,6 +26,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   const [viewedUserProfile, setViewedUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const [theme, setTheme] = useState<'light' | 'vs-dark'>('light')
   const subscriptionRef = useRef<any>(null)
+  const editorRef = useRef<any>(null)
 
   // Load user profile
   useEffect(() => {
@@ -79,7 +80,15 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
         (payload) => {
           const newData = payload.new as any
           if (newData.code !== undefined) {
-            setViewedCode(newData.code)
+            const newCode = newData.code
+            setViewedCode(newCode)
+            // Update Monaco editor directly for real-time updates
+            if (editorRef.current) {
+              const currentValue = editorRef.current.getValue()
+              if (currentValue !== newCode) {
+                editorRef.current.setValue(newCode)
+              }
+            }
           }
           if (newData.plot_url !== undefined) {
             setViewedPlotUrl(newData.plot_url || null)
@@ -203,6 +212,9 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
                 defaultLanguage="r"
                 value={viewedCode}
                 theme={theme}
+                onMount={(editor) => {
+                  editorRef.current = editor
+                }}
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
