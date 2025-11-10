@@ -21,6 +21,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   const { user } = useSessionStore()
   const [viewedCode, setViewedCode] = useState<string>('')
   const [viewedPlotUrl, setViewedPlotUrl] = useState<string | null>(null)
+  const [viewedPlotUrls, setViewedPlotUrls] = useState<string[]>([])
   const [viewedStdout, setViewedStdout] = useState<string>('')
   const [viewedStderr, setViewedStderr] = useState<string>('')
   const [viewedUserProfile, setViewedUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
@@ -55,7 +56,23 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
       
       if (data) {
         setViewedCode(data.code || '')
-        setViewedPlotUrl(data.plot_url || null)
+        const plotUrl = data.plot_url || null
+        setViewedPlotUrl(plotUrl)
+        // Parse plot_url - could be a single URL or JSON array
+        if (plotUrl) {
+          try {
+            const parsed = JSON.parse(plotUrl)
+            if (Array.isArray(parsed)) {
+              setViewedPlotUrls(parsed)
+            } else {
+              setViewedPlotUrls([plotUrl])
+            }
+          } catch {
+            setViewedPlotUrls([plotUrl])
+          }
+        } else {
+          setViewedPlotUrls([])
+        }
         setViewedStdout(data.stdout || '')
         setViewedStderr(data.stderr || '')
       }
@@ -91,7 +108,23 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
             }
           }
           if (newData.plot_url !== undefined) {
-            setViewedPlotUrl(newData.plot_url || null)
+            const plotUrl = newData.plot_url || null
+            setViewedPlotUrl(plotUrl)
+            // Parse plot_url - could be a single URL or JSON array
+            if (plotUrl) {
+              try {
+                const parsed = JSON.parse(plotUrl)
+                if (Array.isArray(parsed)) {
+                  setViewedPlotUrls(parsed)
+                } else {
+                  setViewedPlotUrls([plotUrl])
+                }
+              } catch {
+                setViewedPlotUrls([plotUrl])
+              }
+            } else {
+              setViewedPlotUrls([])
+            }
           }
           if (newData.stdout !== undefined) {
             setViewedStdout(newData.stdout || '')
@@ -269,7 +302,7 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
                 Plot Viewer
               </div>
               <div className="h-[calc(100%-32px)] overflow-auto">
-                <PlotViewer plotUrl={viewedPlotUrl} />
+                <PlotViewer plotUrl={viewedPlotUrl} plotUrls={viewedPlotUrls} />
               </div>
             </div>
           </div>

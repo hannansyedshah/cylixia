@@ -194,6 +194,48 @@ export default function WorkspacePage() {
         if (projectWithMessages.stdout) setStdoutText(projectWithMessages.stdout)
         if (projectWithMessages.stderr) setStderrText(projectWithMessages.stderr)
         
+        // Load plots from project.plot_url or latest version
+        if (projectWithMessages.plot_url) {
+          try {
+            // Try to parse as JSON array (for multiple plots)
+            const parsed = JSON.parse(projectWithMessages.plot_url)
+            if (Array.isArray(parsed)) {
+              setGalleryPlots(parsed)
+            } else {
+              // Single plot URL
+              setGalleryPlots([projectWithMessages.plot_url])
+            }
+          } catch {
+            // Not JSON, treat as single plot URL
+            setGalleryPlots([projectWithMessages.plot_url])
+          }
+        } else {
+          // If no plot_url in project, check latest version
+          try {
+            const versionsResponse = await fetch(`/api/projects/${projectId}/versions`)
+            if (versionsResponse.ok) {
+              const versionsData = await versionsResponse.json()
+              if (versionsData.versions && versionsData.versions.length > 0) {
+                const latestVersion = versionsData.versions[0] // Versions are sorted by created_at desc
+                if (latestVersion.plot_url) {
+                  try {
+                    const parsed = JSON.parse(latestVersion.plot_url)
+                    if (Array.isArray(parsed)) {
+                      setGalleryPlots(parsed)
+                    } else {
+                      setGalleryPlots([latestVersion.plot_url])
+                    }
+                  } catch {
+                    setGalleryPlots([latestVersion.plot_url])
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to load plots from latest version:', error)
+          }
+        }
+        
         // Load messages from API
         loadMessages()
         
