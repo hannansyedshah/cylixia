@@ -96,6 +96,7 @@ export default function WorkspacePage() {
   const runAbortControllerRef = useRef<AbortController | null>(null)
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
   const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const recentlyAddedMessageIdsRef = useRef<Set<string>>(new Set()) // Track messages we just added to prevent duplicates
 
   // Dedicated function to determine and update user role
   const updateUserRole = useCallback(async (projectUserId: string) => {
@@ -346,7 +347,13 @@ export default function WorkspacePage() {
               profiles: profile
             }
 
-            // Prevent duplicate messages
+            // Prevent duplicate messages - skip if we just added this message locally
+            if (recentlyAddedMessageIdsRef.current.has(newMessage.id)) {
+              // This is a message we just added locally, ignore the real-time update
+              recentlyAddedMessageIdsRef.current.delete(newMessage.id)
+              return
+            }
+            
             setProject((prev: any) => {
               if (!prev) return prev
               const exists = prev.messages?.some((m: Message) => m.id === newMessage.id)
@@ -770,8 +777,13 @@ export default function WorkspacePage() {
       
       // Add user message to local state immediately so it appears in the UI
       if (mountedRef.current && userMessageData.message) {
+        const userMessageId = userMessageData.message.id || Math.random().toString(36).substring(7)
+        
+        // Mark this message as recently added so real-time subscription doesn't duplicate it
+        recentlyAddedMessageIdsRef.current.add(userMessageId)
+        
         const userMessage: Message = {
-          id: userMessageData.message.id || Math.random().toString(36).substring(7),
+          id: userMessageId,
           role: 'user' as const,
           content: prompt,
           created_at: userMessageData.message.created_at || new Date().toISOString(),
@@ -783,6 +795,11 @@ export default function WorkspacePage() {
           ...prev,
           messages: [...(prev.messages || []), userMessage]
         }))
+        
+        // Clear the tracking after a short delay (real-time should arrive within this time)
+        setTimeout(() => {
+          recentlyAddedMessageIdsRef.current.delete(userMessageId)
+        }, 2000)
       }
 
       if (!mountedRef.current) return
@@ -893,7 +910,7 @@ export default function WorkspacePage() {
         created_at: new Date().toISOString()
       }
       
-      await fetch(`/api/projects/${projectId}/messages`, {
+      const assistantMessageResponse = await fetch(`/api/projects/${projectId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -904,13 +921,32 @@ export default function WorkspacePage() {
         signal: controller.signal,
       })
       
+      const assistantMessageData = await assistantMessageResponse.json()
+      
+      // Get the actual message ID from the database response
+      const actualMessageId = assistantMessageData.message?.id || newMessage.id
+      
+      // Mark this message as recently added so real-time subscription doesn't duplicate it
+      recentlyAddedMessageIdsRef.current.add(actualMessageId)
+      
+      // Update the message with the actual ID from database
+      const messageWithId = {
+        ...newMessage,
+        id: actualMessageId
+      }
+      
       // Update messages locally
       if (mountedRef.current) {
         setProject((prev: any) => ({
           ...prev,
-          messages: [...prev.messages, newMessage]
+          messages: [...prev.messages, messageWithId]
         }))
       }
+      
+      // Clear the tracking after a short delay (real-time should arrive within this time)
+      setTimeout(() => {
+        recentlyAddedMessageIdsRef.current.delete(actualMessageId)
+      }, 2000)
     } catch (error: any) {
       if (!mountedRef.current) return
       if (error.name === 'AbortError') {
