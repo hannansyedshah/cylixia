@@ -31,6 +31,7 @@ interface ProjectChatProps {
   projectId: string
   userRole?: 'owner' | 'edit' | 'view' | null
   onCodeSelectionClick?: (selection: { code: string; startLine: number; endLine: number }) => void
+  onImportCode?: (code: string) => void
 }
 
 export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImportCode }: ProjectChatProps) {
