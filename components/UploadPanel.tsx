@@ -88,6 +88,12 @@ export function UploadPanel({
   }
 
   const handleLocalAdd = async (file: File, shouldShare: boolean = false) => {
+    // Prevent file upload for view-only users
+    if (userRole === 'view') {
+      alert('View-only access: You cannot upload files.')
+      return
+    }
+    
     if (!file.name.toLowerCase().endsWith('.csv')) return alert('Only .csv files are allowed')
     if (file.size > 10 * 1024 * 1024) return alert('File too large (max 10MB)')
 
@@ -140,6 +146,14 @@ export function UploadPanel({
   }
 
   const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Prevent file upload for view-only users
+    if (userRole === 'view') {
+      e.preventDefault()
+      alert('View-only access: You cannot upload files.')
+      if (inputRef.current) inputRef.current.value = ''
+      return
+    }
+    
     const all = Array.from(e.target.files || [])
     if (all.length === 0) return
     
@@ -353,6 +367,10 @@ export function UploadPanel({
     notifyChange(next)
   }
 
+  // Disable file upload for view-only users
+  const isViewOnly = userRole === 'view'
+  const canUpload = canAddMore && !isViewOnly
+
   return (
     <div className="p-3 border-b bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-950/30">
       <div className="flex items-center justify-between gap-2">
@@ -365,11 +383,27 @@ export function UploadPanel({
             multiple
             className="hidden"
             onChange={handleSelectFiles}
+            disabled={isViewOnly}
           />
-          <label htmlFor="file-upload" className="flex-1 cursor-pointer">
-            <div className={`w-full inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 border-2 border-dashed border-rstudio/30 bg-white dark:bg-gray-700 hover:bg-rstudio/5 dark:hover:bg-rstudio/10 text-rstudio dark:text-white h-12 px-4 py-2 transform ${canAddMore ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'}`}>
+          <label 
+            htmlFor="file-upload" 
+            className={`flex-1 ${isViewOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={(e) => {
+              if (isViewOnly) {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+          >
+            <div className={`w-full inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 border-2 border-dashed border-rstudio/30 bg-white dark:bg-gray-700 text-rstudio dark:text-white h-12 px-4 py-2 ${
+              isViewOnly 
+                ? 'opacity-50 cursor-not-allowed' 
+                : canAddMore 
+                  ? 'hover:bg-rstudio/5 dark:hover:bg-rstudio/10 hover:scale-105 active:scale-95' 
+                  : 'opacity-50 cursor-not-allowed'
+            }`}>
               <Upload className="h-5 w-5 mr-2" />
-              <span className="font-semibold">Add CSV</span>
+              <span className="font-semibold">{isViewOnly ? 'View-only: File upload disabled' : 'Add CSV'}</span>
             </div>
           </label>
         </div>
@@ -444,7 +478,7 @@ export function UploadPanel({
                   <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
                     <Eye className="h-3.5 w-3.5 mr-1" /> Preview
                   </Button>
-                  {!isInLocalDatasets && (
+                  {!isInLocalDatasets && !isViewOnly && (
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -460,18 +494,20 @@ export function UploadPanel({
                       ✓ Added
                     </span>
                   )}
-                  <label className="ml-auto text-xs flex items-center gap-1 cursor-pointer">
+                  <label className={`ml-auto text-xs flex items-center gap-1 ${isViewOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                     <input 
                       type="checkbox" 
                       checked={getSharedDatasetPreference(item.id, 'chat')} 
                       onChange={() => toggleSharedDatasetPreference(item.id, 'chat')}
+                      disabled={isViewOnly}
                     /> Chat
                   </label>
-                  <label className="text-xs flex items-center gap-1 cursor-pointer">
+                  <label className={`text-xs flex items-center gap-1 ${isViewOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                     <input 
                       type="checkbox" 
                       checked={getSharedDatasetPreference(item.id, 'run')} 
                       onChange={() => toggleSharedDatasetPreference(item.id, 'run')}
+                      disabled={isViewOnly}
                     /> Run
                   </label>
                   {isOwner && onRemoveSharedDataset && (
@@ -557,14 +593,16 @@ export function UploadPanel({
                     </>
                   )}
                   <label className="ml-auto text-xs flex items-center gap-1">
-                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={shouldShowPlaceholder} /> Chat
+                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={shouldShowPlaceholder || isViewOnly} /> Chat
                   </label>
                   <label className="text-xs flex items-center gap-1">
-                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={shouldShowPlaceholder} /> Run
+                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={shouldShowPlaceholder || isViewOnly} /> Run
                   </label>
-                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
-                    <X className="h-4 w-4 text-red-600" />
-                  </Button>
+                  {!isViewOnly && (
+                    <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-100 dark:hover:bg-red-900/20">
+                      <X className="h-4 w-4 text-red-600" />
+                    </Button>
+                  )}
                 </div>
               )
             })}

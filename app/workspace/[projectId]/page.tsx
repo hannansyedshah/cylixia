@@ -519,12 +519,16 @@ export default function WorkspacePage() {
           console.log('🔄 User role updated in real-time:', payload.new)
           const newRole = (payload.new as any).role
           if (newRole && ['owner', 'edit', 'view'].includes(newRole)) {
+            // Update role immediately for instant UI changes
             setUserRole(newRole as 'owner' | 'edit' | 'view')
             // Force editor re-render by updating editor key
             setEditorKey(prev => prev + 1)
+            // Force re-render of all components that depend on userRole
+            // This ensures AI chat, file upload, and editor are updated instantly
           } else {
             // If role update is unclear, re-check role
             await updateUserRole(project.user_id)
+            setEditorKey(prev => prev + 1)
           }
         }
       )
@@ -540,6 +544,7 @@ export default function WorkspacePage() {
           // When user is added as collaborator, update role
           console.log('🔄 User added as collaborator, updating role...')
           await updateUserRole(project.user_id)
+          // Force editor re-render
           setEditorKey(prev => prev + 1)
         }
       )
@@ -555,6 +560,7 @@ export default function WorkspacePage() {
           // When user is removed as collaborator, check if they're still owner
           console.log('🔄 User removed as collaborator, checking role...')
           await updateUserRole(project.user_id)
+          // Force editor re-render
           setEditorKey(prev => prev + 1)
         }
       )
@@ -1003,6 +1009,12 @@ export default function WorkspacePage() {
   const handleRunCode = async () => {
     if (!project) {
       console.error('No project loaded')
+      return
+    }
+    
+    // Prevent view-only users from running code
+    if (userRole === 'view') {
+      alert('View-only access: You cannot run code.')
       return
     }
     
@@ -1849,7 +1861,13 @@ export default function WorkspacePage() {
                     )}
                   </Button>
                 )}
-                <Button onClick={handleRunCode} size="sm" disabled={loading} className="shadow-md">
+                <Button 
+                  onClick={handleRunCode} 
+                  size="sm" 
+                  disabled={loading || userRole === 'view'} 
+                  className="shadow-md"
+                  title={userRole === 'view' ? 'View-only access: You cannot run code' : 'Run R code'}
+                >
                   <Play className="h-4 w-4 mr-2" />
                   Run
                 </Button>
