@@ -347,12 +347,21 @@ export default function WorkspacePage() {
               profiles: profile
             }
 
-            // Prevent duplicate messages - skip if we just added this message locally
-            if (recentlyAddedMessageIdsRef.current.has(newMessage.id)) {
+            // Prevent duplicate messages - only skip if we just added this message locally
+            // Check if this message is from the current user (user messages) or if it's an assistant message we just added
+            const isFromCurrentUser = newMessage.user_id === user?.id
+            const isRecentlyAdded = recentlyAddedMessageIdsRef.current.has(newMessage.id)
+            
+            // Only skip if:
+            // 1. It's a user message from the current user AND we just added it, OR
+            // 2. It's an assistant message AND we just added it (meaning we triggered it)
+            if (isRecentlyAdded && (isFromCurrentUser || newMessage.role === 'assistant')) {
               // This is a message we just added locally, ignore the real-time update
               recentlyAddedMessageIdsRef.current.delete(newMessage.id)
               return
             }
+            
+            // For messages from other users or assistant messages we didn't trigger, show them
             
             setProject((prev: any) => {
               if (!prev) return prev
