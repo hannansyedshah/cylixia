@@ -9,6 +9,7 @@ import { Send, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/store/useSessionStore'
 import { playChatSound } from '@/lib/soundNotifications'
+import { ViewerWorkspace } from './ViewerWorkspace'
 
 interface ChatMessage {
   id: string
@@ -32,7 +33,7 @@ interface ProjectChatProps {
   onCodeSelectionClick?: (selection: { code: string; startLine: number; endLine: number }) => void
 }
 
-export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: ProjectChatProps) {
+export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImportCode }: ProjectChatProps) {
   const { user } = useSessionStore()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -41,6 +42,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
   const [userProfile, setUserProfile] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const subscriptionRef = useRef<any>(null)
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
 
   useEffect(() => {
     loadUserProfile()
@@ -152,6 +154,12 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
     // Allow all users (including view-only) to send messages
 
     const messageText = newMessage.trim()
+    
+    // Check for special commands
+    const isViewCommand = messageText.toLowerCase().startsWith('/sendterminal') || 
+                         messageText.toLowerCase().startsWith('/seeeditor') ||
+                         messageText.toLowerCase().startsWith('see editor')
+    
     setSending(true)
     
     // Optimistically add the message to local state immediately
@@ -159,7 +167,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
       id: `temp-${Date.now()}`,
       project_id: projectId,
       user_id: user?.id || '',
-      message: messageText,
+      message: isViewCommand ? `/sendterminal ${user?.id || 'unknown'}` : messageText,
       created_at: new Date().toISOString(),
       profiles: {
         id: user?.id || '',
@@ -174,7 +182,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
       const response = await fetch(`/api/projects/${projectId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText })
+        body: JSON.stringify({ message: isViewCommand ? `/sendterminal ${user?.id || 'unknown'}` : messageText })
       })
 
       if (!response.ok) {
@@ -268,7 +276,29 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
                           : 'bg-gray-100 dark:bg-gray-800 text-darktext dark:text-white'
                       }`}
                     >
-                      <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.message}</p>
+                      {/* Check if message is a view command */}
+                      {message.message.startsWith('/sendterminal ') ? (
+                        <div className="space-y-2">
+                          <p className="text-xs whitespace-pre-wrap leading-relaxed">
+                            {message.profiles?.display_name || 'User'} wants to share their workspace view
+                          </p>
+                          <Button
+                            onClick={() => {
+                              const userId = message.message.split(' ')[1]
+                              if (userId && userId !== 'unknown') {
+                                setViewingUserId(userId)
+                              }
+                            }}
+                            size="sm"
+                            className="w-full text-xs"
+                            variant="outline"
+                          >
+                            👁️ View {message.profiles?.display_name || 'User'}'s Workspace
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs whitespace-pre-wrap leading-relaxed">{message.message}</p>
+                      )}
                       {message.code_selection && message.code_selection_start_line && message.code_selection_end_line && (
                         <button
                           onClick={() => {
@@ -335,6 +365,16 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick }: Proje
           </Button>
         </form>
       </CardContent>
+      
+      {/* Viewer Workspace Modal */}
+      {viewingUserId && (
+        <ViewerWorkspace
+          userId={viewingUserId}
+          projectId={projectId}
+          onClose={() => setViewingUserId(null)}
+          onImportCode={onImportCode}
+        />
+      )}
     </Card>
   )
 }

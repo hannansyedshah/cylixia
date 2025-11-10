@@ -182,6 +182,9 @@ export default function WorkspacePage() {
           messages: data.project.messages || []
         }
         setProject(projectWithMessages)
+        // Load terminal output from database
+        if (projectWithMessages.stdout) setStdoutText(projectWithMessages.stdout)
+        if (projectWithMessages.stderr) setStderrText(projectWithMessages.stderr)
         
         // Load messages from API
         loadMessages()
@@ -1055,8 +1058,24 @@ export default function WorkspacePage() {
       // Capture terminal output if available
       try {
         if (mountedRef.current) {
-          if (typeof data?.stdout === 'string') setStdoutText(data.stdout)
-          if (typeof data?.stderr === 'string') setStderrText(data.stderr)
+          if (typeof data?.stdout === 'string') {
+            setStdoutText(data.stdout)
+            // Save to database for real-time sharing
+            fetch(`/api/projects/${projectId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stdout: data.stdout }),
+            }).catch(err => console.error('Failed to save stdout:', err))
+          }
+          if (typeof data?.stderr === 'string') {
+            setStderrText(data.stderr)
+            // Save to database for real-time sharing
+            fetch(`/api/projects/${projectId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ stderr: data.stderr }),
+            }).catch(err => console.error('Failed to save stderr:', err))
+          }
         }
       } catch {}
 
@@ -1153,7 +1172,14 @@ export default function WorkspacePage() {
       if (!mountedRef.current) return
       console.error('Execution error:', error)
       if (mountedRef.current) {
-        setStderrText(prev => `${prev}\n${error.message}`)
+        const errorOutput = `${stderrText}\n${error.message}`
+        setStderrText(errorOutput)
+        // Save to database for real-time sharing
+        fetch(`/api/projects/${projectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stderr: errorOutput }),
+        }).catch(err => console.error('Failed to save stderr:', err))
       }
     } finally {
       if (mountedRef.current) {
@@ -1325,7 +1351,9 @@ export default function WorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           code: code,
-          plot_url: plotUrlToSave
+          plot_url: plotUrlToSave,
+          stdout: '',
+          stderr: ''
         }),
       }).catch(error => {
         if (mountedRef.current) {
@@ -1904,6 +1932,11 @@ export default function WorkspacePage() {
                   onCodeSelectionClick={(selection) => {
                     setCodeSelection(selection)
                     // Don't auto-clear - let user click off to clear
+                  }}
+                  onImportCode={(code) => {
+                    if (project && userRole !== 'view') {
+                      handleCodeChange(code)
+                    }
                   }}
                 />
               </div>
