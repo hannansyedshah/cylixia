@@ -43,7 +43,8 @@ export function CodeEditorCollaborative({
   const [typingUser, setTypingUser] = useState<TypingUser | null>(null)
   const [isLocked, setIsLocked] = useState(false)
   const [editLockEnabled, setEditLockEnabled] = useState(enableEditLock)
-  const [isSomeoneElseTyping, setIsSomeoneElseTyping] = useState(false) // Track if someone else is typing
+  const isUserTypingRef = useRef(false) // Track if current user is actively typing
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null)
   const [selectedCode, setSelectedCode] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
   const [shareMessage, setShareMessage] = useState('')
@@ -65,9 +66,9 @@ export function CodeEditorCollaborative({
     projectId,
     onCodeChange: (code) => {
       // This callback is called when we receive a remote update
-      // Only update if change came from another user (not local typing)
-      // The hook already handles filtering, so we can trust this is a remote change
-      if (editorRef.current) {
+      // Only apply remote changes if user is NOT currently typing
+      // This allows free typing without interference
+      if (editorRef.current && !isUserTypingRef.current) {
         // Only update if the code is actually different to avoid unnecessary updates
         if (code !== localValue) {
           // Mark that we're applying a remote change (not a local edit)
@@ -139,10 +140,8 @@ export function CodeEditorCollaborative({
         if (foundTyping) {
           const firstTyping = Object.values(typingStateRef.current)[0]
           setTypingUser(firstTyping as TypingUser)
-          setIsSomeoneElseTyping(true) // Block editing when someone else is typing
         } else {
           setTypingUser(null)
-          setIsSomeoneElseTyping(false) // Allow editing when no one else is typing
         }
         
         // Sync lock state from other users - if ANYONE has it on, everyone should see it on
@@ -202,7 +201,6 @@ export function CodeEditorCollaborative({
                 avatarUrl: presence.avatarUrl
               }
               setTypingUser(typingStateRef.current[presence.userId])
-              setIsSomeoneElseTyping(true) // Block editing when someone else is typing
               // If lock is enabled and someone is typing, block editing
               if (editLockEnabledRef.current) {
                 setIsLocked(true)
@@ -217,14 +215,12 @@ export function CodeEditorCollaborative({
           const remaining = Object.values(typingStateRef.current)
           if (remaining.length > 0) {
             setTypingUser(remaining[0])
-            setIsSomeoneElseTyping(true) // Still someone typing
             // If lock is enabled and someone is still typing, keep locked
             if (editLockEnabledRef.current) {
               setIsLocked(true)
             }
           } else {
             setTypingUser(null)
-            setIsSomeoneElseTyping(false) // No one else typing, allow editing
             // Check if anyone else has lock enabled
             const state = channel.presenceState()
             let anyoneHasLock = false
@@ -384,29 +380,17 @@ export function CodeEditorCollaborative({
     }
   }
 
-  // Clear typing status after inactivity (always broadcast typing, not just when lock is on)
+  // Cleanup typing debounce on unmount
   useEffect(() => {
-    if (!user) return
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
-    }
-
-    // Always broadcast typing status, not just when lock is enabled
-    if (localValue && !readOnly) {
-      broadcastTyping(true)
-      
-      typingTimeoutRef.current = setTimeout(() => {
-        broadcastTyping(false)
-      }, 500) // Stop typing after 500ms of inactivity (faster response)
-    }
-
     return () => {
+      if (typingDebounceRef.current) {
+        clearTimeout(typingDebounceRef.current)
+      }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current)
       }
     }
-  }, [localValue, user, readOnly])
+  }, [])
 
   useEffect(() => {
     setLocalValue(value)
@@ -435,30 +419,46 @@ export function CodeEditorCollaborative({
       return
     }
     
-    // Block editing if someone else is typing (prevent conflicts)
-    if (isSomeoneElseTyping) {
-      return // Don't allow editing when someone else is actively typing
-    }
-    
     // Check if locked
     if (isLocked && editLockEnabledRef.current) {
       return // Don't allow editing when locked
     }
 
     const code = newValue || ''
+    
+    // Mark that user is actively typing
+    isUserTypingRef.current = true
+    
+    // Update local state immediately (no delay)
     setLocalValue(code)
     isLocalChangeRef.current = true
     onChange(code)
     
-    // Always broadcast typing status (not just when lock is enabled)
+    // Broadcast typing status
     if (!readOnly) {
       broadcastTyping(true)
     }
     
-    // Broadcast change to other collaborators (instant updates)
-    if (!readOnly) {
-      broadcastCodeChange(code)
+    // Clear existing debounce
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current)
     }
+    
+    // Debounce the broadcast - only send when user stops typing
+    // This prevents conflicts and allows free typing
+    typingDebounceRef.current = setTimeout(() => {
+      // User has stopped typing, now broadcast the change
+      isUserTypingRef.current = false
+      
+      if (!readOnly) {
+        broadcastCodeChange(code)
+      }
+      
+      // Stop typing indicator after a short delay
+      setTimeout(() => {
+        broadcastTyping(false)
+      }, 300)
+    }, 800) // Wait 800ms after user stops typing before broadcasting
   }
 
   const toggleEditLock = async () => {
@@ -494,8 +494,8 @@ export function CodeEditorCollaborative({
   }
 
   // Calculate effective read-only state
-  // Block editing if someone else is typing OR if locked
-  const effectiveReadOnly = readOnly || isSomeoneElseTyping || (isLocked && editLockEnabled)
+  // Only block if locked (not based on remote typing - allow free typing)
+  const effectiveReadOnly = readOnly || (isLocked && editLockEnabled)
 
   // Update editor readOnly when prop changes
   useEffect(() => {
