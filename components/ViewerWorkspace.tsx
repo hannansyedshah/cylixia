@@ -199,8 +199,8 @@ export function ViewerWorkspace({ userId, projectId, onClose, onImportCode }: Vi
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 pt-16 sm:pt-20">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[calc(95vh-4rem)] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">

@@ -302,10 +302,10 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                       {isCurrentUser && (
                         <button
                           onClick={() => handleDeleteMessage(message.id)}
-                          className="ml-1 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                          className="ml-2 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
                           title="Delete message"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
@@ -319,8 +319,8 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                       {/* Check if message is a view command */}
                       {message.message.startsWith('/sendterminal ') ? (
                         <div className="space-y-2">
-                              <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200">
-                            {message.profiles?.display_name || 'User'} wants to share their workspace view
+                          <p className="text-xs whitespace-pre-wrap leading-relaxed dark:text-gray-200">
+                            {message.profiles?.display_name || 'User'} shared their workspace
                           </p>
                           <Button
                             onClick={() => {
@@ -333,7 +333,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                             className="w-full text-xs bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-sm"
                             variant="default"
                           >
-                            👁️ View {message.profiles?.display_name || 'User'}&apos;s Workspace
+                            👁️ View Workspace
                           </Button>
                         </div>
                       ) : (
@@ -427,7 +427,7 @@ export function ProjectChat({ projectId, userRole, onCodeSelectionClick, onImpor
                 }
               }}
               disabled={sending}
-              className="flex-1"
+              className="flex-1 bg-white dark:bg-black dark:text-white dark:border-gray-700 dark:placeholder:text-gray-400"
             />
             {showAutocomplete && commands.length > 0 && (
               <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-48 overflow-auto">
