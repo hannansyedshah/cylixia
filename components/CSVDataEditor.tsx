@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 interface CSVDataEditorProps {
   originalData: string
   fileName: string
+  autoRedactedColumns?: string[] // Columns that were already auto-redacted (for HIPAA)
   onConfirm: (editedData: string, removedColumns: string[]) => void
   onCancel: () => void
 }
@@ -55,6 +56,7 @@ function buildCSV(headers: string[], rows: string[][]): string {
 export function CSVDataEditor({ 
   originalData, 
   fileName, 
+  autoRedactedColumns = [],
   onConfirm, 
   onCancel 
 }: CSVDataEditorProps) {
@@ -72,7 +74,15 @@ export function CSVDataEditor({
   }, [originalData])
 
   // Track which columns and rows are removed
-  const [removedColumnIndices, setRemovedColumnIndices] = useState<Set<number>>(new Set())
+  // Pre-populate with auto-redacted columns
+  const [removedColumnIndices, setRemovedColumnIndices] = useState<Set<number>>(() => {
+    const indices = new Set<number>()
+    autoRedactedColumns.forEach(colName => {
+      const index = originalHeaders.findIndex(h => h === colName)
+      if (index !== -1) indices.add(index)
+    })
+    return indices
+  })
   const [removedRowIndices, setRemovedRowIndices] = useState<Set<number>>(new Set())
 
   // Filter data based on removals
@@ -153,11 +163,20 @@ export function CSVDataEditor({
             <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm text-blue-900 dark:text-blue-100 font-semibold">
-                Remove Unwanted Data
+                {autoRedactedColumns.length > 0 ? 'Review Auto-Redacted Data & Remove More' : 'Remove Unwanted Data'}
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                Click on column headers to remove entire columns. Click on row numbers to remove entire rows. 
-                Changes are highlighted in red and can be undone by clicking again.
+                {autoRedactedColumns.length > 0 ? (
+                  <>
+                    <strong>{autoRedactedColumns.length} sensitive column(s)</strong> were automatically redacted (shown in red). 
+                    You can review and manually remove additional columns or rows if needed. Click to toggle.
+                  </>
+                ) : (
+                  <>
+                    Click on column headers to remove entire columns. Click on row numbers to remove entire rows. 
+                    Changes are highlighted in red and can be undone by clicking again.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -174,6 +193,7 @@ export function CSVDataEditor({
                   </th>
                   {originalHeaders.map((header, i) => {
                     const isRemoved = removedColumnIndices.has(i)
+                    const wasAutoRedacted = autoRedactedColumns.includes(header)
                     return (
                       <th
                         key={i}
@@ -187,6 +207,7 @@ export function CSVDataEditor({
                         <div className="flex items-center justify-center gap-2">
                           {isRemoved && <Trash2 className="w-3 h-3" />}
                           {header}
+                          {wasAutoRedacted && isRemoved && <span className="text-xs ml-1">(auto)</span>}
                         </div>
                       </th>
                     )

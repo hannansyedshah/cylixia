@@ -78,7 +78,7 @@ export function UploadPanel({
   const [showShareConfirm, setShowShareConfirm] = useState(false)
   const [pendingShareDataset, setPendingShareDataset] = useState<DatasetItem | null>(null)
   const [dontShowShareConfirm, setDontShowShareConfirm] = useState(false)
-  const [dataEditorData, setDataEditorData] = useState<{ originalData: string; fileName: string } | null>(null)
+  const [dataEditorData, setDataEditorData] = useState<{ originalData: string; fileName: string; autoRedactedColumns?: string[] } | null>(null)
   const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string; manuallyRemovedColumns: string[] } | null>(null)
   
   // Allow sharing for project owners and collaborators with 'owner' or 'edit' role
@@ -107,7 +107,17 @@ export function UploadPanel({
 
     const text = await file.text()
     
-    // ALWAYS show data editor first for manual column/row removal
+    // If HIPAA mode: Auto-detect and redact PHI FIRST, then allow manual review
+    if (hipaaCompliant) {
+      setComplianceReviewData({ 
+        originalData: text, 
+        fileName: file.name,
+        manuallyRemovedColumns: [] 
+      })
+      return
+    }
+    
+    // Non-HIPAA mode: Go straight to data editor for manual column/row removal
     setDataEditorData({ originalData: text, fileName: file.name })
   }
   
@@ -115,18 +125,13 @@ export function UploadPanel({
   const handleDataEditorConfirm = (editedData: string, removedColumns: string[]) => {
     if (!dataEditorData) return
     
-    // If HIPAA mode, proceed to compliance review with edited data
-    if (hipaaCompliant) {
-      setComplianceReviewData({ 
-        originalData: editedData, 
-        fileName: dataEditorData.fileName,
-        manuallyRemovedColumns: removedColumns
-      })
-      setDataEditorData(null)
-      return
-    }
+    // Combine auto-redacted columns (from HIPAA) with manually removed columns
+    const allExcludedColumns = [...new Set([
+      ...(dataEditorData.autoRedactedColumns || []),
+      ...removedColumns
+    ])]
     
-    // Otherwise, add directly to datasets
+    // Add to datasets
     const item: DatasetItem = {
       id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       fileName: dataEditorData.fileName,
@@ -135,7 +140,7 @@ export function UploadPanel({
       includeChat: true,
       includeRun: true,
       csvText: editedData,
-      excludedColumns: removedColumns,
+      excludedColumns: allExcludedColumns,
     }
     
     // Check if there's a placeholder with the same file name
@@ -157,37 +162,16 @@ export function UploadPanel({
   }
 
   // Handle HIPAA compliance review confirmation (automatic PHI redaction)
+  // After this, user can manually review and remove MORE in the data editor
   const handleComplianceConfirm = (redactedData: string, autoRedactedColumns: string[]) => {
     if (!complianceReviewData) return
     
-    // Combine manually removed columns with auto-redacted columns
-    const allExcludedColumns = [...new Set([
-      ...(complianceReviewData.manuallyRemovedColumns || []),
-      ...autoRedactedColumns
-    ])]
-    
-    // Create dataset item with redacted data only
-    const item: DatasetItem = {
-      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    // After auto-redaction, show data editor for manual review/removal
+    setDataEditorData({ 
+      originalData: redactedData, 
       fileName: complianceReviewData.fileName,
-      sizeBytes: new Blob([redactedData]).size,
-      persisted: false,
-      includeChat: true,
-      includeRun: true,
-      csvText: redactedData, // Only store redacted version
-      excludedColumns: allExcludedColumns, // Store all excluded columns
-    }
-    
-    // Check if there's a placeholder with the same file name
-    const existingIndex = datasets.findIndex(d => d.fileName === complianceReviewData.fileName && d.persisted && !d.csvText)
-    if (existingIndex >= 0) {
-      // Replace the placeholder with the redacted file
-      const updated = [...datasets]
-      updated[existingIndex] = item
-      notifyChange(updated)
-    } else {
-      notifyChange([...(datasets || []), item])
-    }
+      autoRedactedColumns // Pass along which columns were auto-redacted
+    })
     
     // Clear compliance review data
     setComplianceReviewData(null)
@@ -804,6 +788,7 @@ export function UploadPanel({
         <CSVDataEditor
           originalData={dataEditorData.originalData}
           fileName={dataEditorData.fileName}
+          autoRedactedColumns={dataEditorData.autoRedactedColumns}
           onConfirm={handleDataEditorConfirm}
           onCancel={handleDataEditorCancel}
         />
