@@ -22,7 +22,6 @@ import { useSessionStore } from '@/store/useSessionStore'
 import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check, Shield, Sparkles, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { generateContextWindow } from '@/lib/airiaClient'
 
 interface Message {
   id: string
@@ -50,7 +49,7 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(false)
   const [project, setProject] = useState<any>(null)
   const [loadingProject, setLoadingProject] = useState(true)
-  type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string }
+  type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string, excludedColumns?: string[] }
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
   
   // Shared datasets state
@@ -881,8 +880,23 @@ export default function WorkspacePage() {
   // Handle context window generation
   const handleGenerateContext = async (projectName: string, csvFiles: Array<{ fileName: string; csvData: string }>) => {
     try {
-      const context = await generateContextWindow(projectName, csvFiles, user?.id || 'anonymous')
-      return context
+      const response = await fetch('/api/context/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectName,
+          csvFiles,
+          userId: user?.id || 'anonymous'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to generate context')
+      }
+
+      const data = await response.json()
+      return data.context
     } catch (error) {
       console.error('Failed to generate context:', error)
       throw error
@@ -2293,6 +2307,7 @@ export default function WorkspacePage() {
               ...sharedDatasets.map(d => ({ fileName: d.file_name, csvData: d.csv_text }))
             ]}
             initialContext={contextWindow}
+            initialExcludedFields={[...new Set(datasets.flatMap(d => d.excludedColumns || []))]} // Auto-populate excluded fields from all datasets
             onSave={handleContextSavedAndProceed}
             onCancel={() => {
               setShowContextModal(false)

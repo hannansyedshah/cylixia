@@ -8,7 +8,7 @@ import { redactPHI, getCSVColumns, isColumnPHI } from '@/lib/phiRedactor'
 interface ComplianceReviewModalProps {
   originalData: string
   fileName: string
-  onConfirm: (redactedData: string) => void
+  onConfirm: (redactedData: string, excludedColumns: string[]) => void
   onCancel: () => void
 }
 
@@ -83,7 +83,7 @@ export function ComplianceReviewModal({
   const allWarningsAcknowledged = Object.values(acknowledgedWarnings).every(v => v)
   
   const handleConfirm = () => {
-    onConfirm(redactedData)
+    onConfirm(redactedData, redactedColumns)
   }
   
   const handleProceedToPreview = () => {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { DataPreview } from '@/components/DataPreview'
 import { UserAvatar } from './UserAvatar'
 import { ComplianceReviewModal } from './ComplianceReviewModal'
+import { CSVDataEditor } from './CSVDataEditor'
 import { redactPHI } from '@/lib/phiRedactor'
 
 interface DatasetItem {
@@ -16,6 +17,7 @@ interface DatasetItem {
   includeChat: boolean
   includeRun: boolean
   csvText?: string // present for ephemeral items
+  excludedColumns?: string[] // columns that were excluded/redacted (for HIPAA)
 }
 
 interface SharedDataset {
@@ -76,7 +78,8 @@ export function UploadPanel({
   const [showShareConfirm, setShowShareConfirm] = useState(false)
   const [pendingShareDataset, setPendingShareDataset] = useState<DatasetItem | null>(null)
   const [dontShowShareConfirm, setDontShowShareConfirm] = useState(false)
-  const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string } | null>(null)
+  const [dataEditorData, setDataEditorData] = useState<{ originalData: string; fileName: string } | null>(null)
+  const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string; manuallyRemovedColumns: string[] } | null>(null)
   
   // Allow sharing for project owners and collaborators with 'owner' or 'edit' role
   const canShare = userRole === 'owner' || userRole === 'edit'
@@ -104,11 +107,9 @@ export function UploadPanel({
 
     const text = await file.text()
     
-    // If HIPAA compliant mode is enabled, show compliance review modal
-    if (hipaaCompliant) {
-      setComplianceReviewData({ originalData: text, fileName: file.name })
-      return
-    }
+    // ALWAYS show data editor first for manual column/row removal
+    setDataEditorData({ originalData: text, fileName: file.name })
+    return
     
     // Normal flow - add directly
     const item: DatasetItem = {
@@ -143,8 +144,60 @@ export function UploadPanel({
     }
   }
   
-  const handleComplianceConfirm = (redactedData: string) => {
+  // Handle data editor confirmation (manual column/row removal)
+  const handleDataEditorConfirm = (editedData: string, removedColumns: string[]) => {
+    if (!dataEditorData) return
+    
+    // If HIPAA mode, proceed to compliance review with edited data
+    if (hipaaCompliant) {
+      setComplianceReviewData({ 
+        originalData: editedData, 
+        fileName: dataEditorData.fileName,
+        manuallyRemovedColumns: removedColumns
+      })
+      setDataEditorData(null)
+      return
+    }
+    
+    // Otherwise, add directly to datasets
+    const item: DatasetItem = {
+      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fileName: dataEditorData.fileName,
+      sizeBytes: new Blob([editedData]).size,
+      persisted: false,
+      includeChat: true,
+      includeRun: true,
+      csvText: editedData,
+      excludedColumns: removedColumns,
+    }
+    
+    // Check if there's a placeholder with the same file name
+    const existingIndex = datasets.findIndex(d => d.fileName === dataEditorData.fileName && d.persisted && !d.csvText)
+    if (existingIndex >= 0) {
+      // Replace the placeholder with the actual file
+      const updated = [...datasets]
+      updated[existingIndex] = item
+      notifyChange(updated)
+    } else {
+      notifyChange([...(datasets || []), item])
+    }
+    
+    setDataEditorData(null)
+  }
+  
+  const handleDataEditorCancel = () => {
+    setDataEditorData(null)
+  }
+
+  // Handle HIPAA compliance review confirmation (automatic PHI redaction)
+  const handleComplianceConfirm = (redactedData: string, autoRedactedColumns: string[]) => {
     if (!complianceReviewData) return
+    
+    // Combine manually removed columns with auto-redacted columns
+    const allExcludedColumns = [...new Set([
+      ...(complianceReviewData.manuallyRemovedColumns || []),
+      ...autoRedactedColumns
+    ])]
     
     // Create dataset item with redacted data only
     const item: DatasetItem = {
@@ -155,6 +208,7 @@ export function UploadPanel({
       includeChat: true,
       includeRun: true,
       csvText: redactedData, // Only store redacted version
+      excludedColumns: allExcludedColumns, // Store all excluded columns
     }
     
     // Check if there's a placeholder with the same file name
@@ -778,7 +832,17 @@ export function UploadPanel({
         </div>
       )}
 
-      {/* Compliance Review Modal */}
+      {/* CSV Data Editor Modal - for manual column/row removal */}
+      {dataEditorData && (
+        <CSVDataEditor
+          originalData={dataEditorData.originalData}
+          fileName={dataEditorData.fileName}
+          onConfirm={handleDataEditorConfirm}
+          onCancel={handleDataEditorCancel}
+        />
+      )}
+
+      {/* Compliance Review Modal - for HIPAA automatic PHI redaction */}
       {complianceReviewData && (
         <ComplianceReviewModal
           originalData={complianceReviewData.originalData}

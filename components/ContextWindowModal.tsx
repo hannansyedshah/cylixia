@@ -9,6 +9,7 @@ interface ContextWindowModalProps {
   projectName: string
   csvFiles: Array<{ fileName: string; csvData: string }>
   initialContext?: string | null
+  initialExcludedFields?: string[] // Pre-populated excluded fields from HIPAA redaction
   onSave: (context: string) => void
   onCancel: () => void
   onGenerateContext: (projectName: string, csvFiles: Array<{ fileName: string; csvData: string }>) => Promise<string>
@@ -27,6 +28,7 @@ export function ContextWindowModal({
   projectName,
   csvFiles,
   initialContext,
+  initialExcludedFields = [],
   onSave,
   onCancel,
   onGenerateContext
@@ -61,7 +63,7 @@ export function ContextWindowModal({
       keyFields: csvFiles.map(f => f.fileName).join(', '),
       analysisTypes: [],
       additionalNotes: '',
-      excludedFields: []
+      excludedFields: initialExcludedFields // Auto-populate from HIPAA redaction
     }
     
     const lines = ctx.split('\n')
