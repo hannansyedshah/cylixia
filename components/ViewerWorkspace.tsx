@@ -79,7 +79,8 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
       
       // First, try to find a project with the same name as the current project (if provided)
       if (projectName) {
-        const { data: matchingProject } = await supabase
+        // Priority 1: Check if user OWNS a project with this name
+        const { data: ownedProject } = await supabase
           .from('projects')
           .select('id')
           .eq('user_id', userId)
@@ -88,13 +89,42 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
           .limit(1)
           .maybeSingle()
         
-        if (matchingProject) {
-          targetProjectId = matchingProject.id
-          console.log('[ViewerWorkspace] Found matching project by name:', targetProjectId)
+        if (ownedProject) {
+          targetProjectId = ownedProject.id
+          console.log('[ViewerWorkspace] Found owned project by name:', targetProjectId)
+        } else {
+          // Priority 2: Check if user is a COLLABORATOR on a project with this name
+          // First get all project IDs where user is a collaborator
+          const { data: collaboratorRecords } = await supabase
+            .from('project_collaborators')
+            .select('project_id')
+            .eq('user_id', userId)
+            .eq('status', 'accepted')
+          
+          if (collaboratorRecords && collaboratorRecords.length > 0) {
+            const collaboratedProjectIds = collaboratorRecords.map((c: any) => c.project_id)
+            
+            // Now check if any of those projects have the matching name
+            const { data: matchingCollaboratedProject } = await supabase
+              .from('projects')
+              .select('id')
+              .in('id', collaboratedProjectIds)
+              .eq('name', projectName)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            
+            if (matchingCollaboratedProject) {
+              // Only use collaborated project if user doesn't own one with the same name
+              // (We already checked for owned projects above, so this is safe)
+              targetProjectId = matchingCollaboratedProject.id
+              console.log('[ViewerWorkspace] Found collaborated project by name:', targetProjectId, '(user is collaborator, not owner)')
+            }
+          }
         }
       }
       
-      // If no matching name found, get their most recently updated project
+      // If no matching name found, get their most recently updated OWNED project
       if (!targetProjectId) {
         const { data: userProjects } = await supabase
           .from('projects')
@@ -106,10 +136,39 @@ export function ViewerWorkspace({ userId, projectId, projectName, onClose, onImp
         
         if (userProjects) {
           targetProjectId = userProjects.id
-          console.log('[ViewerWorkspace] Found user\'s most recent project:', targetProjectId)
+          console.log('[ViewerWorkspace] Found user\'s most recent owned project:', targetProjectId)
         } else {
-          console.warn('[ViewerWorkspace] No project found for user:', userId)
-          return
+          // Last resort: Check if they have any collaborated projects
+          const { data: collaboratorRecords } = await supabase
+            .from('project_collaborators')
+            .select('project_id')
+            .eq('user_id', userId)
+            .eq('status', 'accepted')
+            .order('created_at', { ascending: false })
+            .limit(1)
+          
+          if (collaboratorRecords && collaboratorRecords.length > 0) {
+            const collaboratedProjectId = collaboratorRecords[0].project_id
+            
+            // Get the project details to verify it exists
+            const { data: collaboratedProject } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('id', collaboratedProjectId)
+              .single()
+            
+            if (collaboratedProject) {
+              targetProjectId = collaboratedProject.id
+              console.log('[ViewerWorkspace] Found user\'s most recent collaborated project:', targetProjectId)
+            } else {
+              console.warn('[ViewerWorkspace] Collaborated project not found:', collaboratedProjectId)
+            }
+          }
+          
+          if (!targetProjectId) {
+            console.warn('[ViewerWorkspace] No project found for user:', userId)
+            return
+          }
         }
       }
       
