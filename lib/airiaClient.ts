@@ -109,7 +109,9 @@ export async function callAiriaAgent(
         asyncOutput: false,
         csvData: primaryCsvData,
         fileName: primaryFileName,
-        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {})
+        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {}),
+        // Send context_window as separate field for router detection
+        ...(contextWindow ? { context_window: contextWindow } : {})
       }
       
       console.log(`📊 Quick mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
@@ -178,7 +180,9 @@ export async function callAiriaAgent(
         asyncOutput: false,
         csvData: primaryCsvData,
         fileName: primaryFileName,
-        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {})
+        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {}),
+        // Send context_window as separate field for router detection
+        ...(contextWindow ? { context_window: contextWindow } : {})
       }
       
       console.log(`📊 Ask mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
@@ -256,7 +260,9 @@ Please return ONLY full R code with necessary library() calls.`
         asyncOutput: false,
         csvData: primaryCsvData,
         fileName: primaryFileName,
-        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {})
+        ...(csvFiles && csvFiles.length > 0 ? { csvFiles } : {}),
+        // Send context_window as separate field for router detection
+        ...(contextWindow ? { context_window: contextWindow } : {})
       }
       
       console.log(`📊 Legacy mode: Sending CSV data - Files: ${csvFiles?.length || (csvData ? 1 : 0)}, Primary: ${primaryFileName}`)
