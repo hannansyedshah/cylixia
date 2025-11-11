@@ -10,6 +10,7 @@ import { CollaborationPanel } from '@/components/CollaborationPanel'
 import { ProjectChat } from '@/components/ProjectChat'
 import { ViewerWorkspace } from '@/components/ViewerWorkspace'
 import { InviteCollaboratorModal } from '@/components/InviteCollaboratorModal'
+import { ContextWindowModal } from '@/components/ContextWindowModal'
 import { PlotViewer } from '@/components/PlotViewer'
 import { TerminalView } from '@/components/TerminalView'
 import { UploadPanel } from '@/components/UploadPanel'
@@ -18,9 +19,10 @@ import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
-import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check, Shield } from 'lucide-react'
+import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check, Shield, Sparkles, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import { generateContextWindow } from '@/lib/airiaClient'
 
 interface Message {
   id: string
@@ -96,6 +98,9 @@ export default function WorkspacePage() {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
   const [isWorkspaceBeingViewed, setIsWorkspaceBeingViewed] = useState<boolean>(false) // Track if someone is viewing our workspace
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
+  const [contextWindow, setContextWindow] = useState<string | null>(null)
+  const [showContextModal, setShowContextModal] = useState<boolean>(false)
+  const [pendingPrompt, setPendingPrompt] = useState<string>('')
   const mountedRef = useRef(true)
   const abortControllerRef = useRef<AbortController | null>(null)
   const chatAbortControllerRef = useRef<AbortController | null>(null)
@@ -192,6 +197,10 @@ export default function WorkspacePage() {
           messages: data.project.messages || []
         }
         setProject(projectWithMessages)
+        // Load context window from project
+        if (projectWithMessages.context_window) {
+          setContextWindow(projectWithMessages.context_window)
+        }
         // Load terminal output from database
         if (projectWithMessages.stdout) setStdoutText(projectWithMessages.stdout)
         if (projectWithMessages.stderr) setStderrText(projectWithMessages.stderr)
@@ -869,6 +878,58 @@ export default function WorkspacePage() {
     }
   }, []) // Empty deps - only run on unmount
 
+  // Handle context window generation
+  const handleGenerateContext = async (projectName: string, csvFiles: Array<{ fileName: string; csvData: string }>) => {
+    try {
+      const context = await generateContextWindow(projectName, csvFiles, user?.id || 'anonymous')
+      return context
+    } catch (error) {
+      console.error('Failed to generate context:', error)
+      throw error
+    }
+  }
+
+  // Save context window to database
+  const handleSaveContext = async (context: string) => {
+    try {
+      setContextWindow(context)
+      
+      // Save to database
+      await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context_window: context }),
+      })
+      
+      console.log('✅ Context window saved')
+    } catch (error) {
+      console.error('Failed to save context:', error)
+    }
+  }
+
+  // Handle contextualize button click (for HIPAA projects)
+  const handleContextualize = () => {
+    if (!prompt.trim() || !project) return
+    
+    // Store the prompt for later
+    setPendingPrompt(prompt)
+    
+    // Open context modal
+    setShowContextModal(true)
+  }
+
+  // Handle context saved and proceed with message
+  const handleContextSavedAndProceed = async (context: string) => {
+    await handleSaveContext(context)
+    setShowContextModal(false)
+    
+    // Now send the message with context
+    if (pendingPrompt.trim()) {
+      await handleSendMessageWithContext(pendingPrompt)
+      setPendingPrompt('')
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!prompt.trim() || !project) return
 
@@ -877,6 +938,19 @@ export default function WorkspacePage() {
       alert('View-only access: You cannot use the AI chat. Please use the collaboration chat instead.')
       return
     }
+    
+    // For HIPAA projects without context, open context modal first
+    if (project.hipaa_compliant && !contextWindow) {
+      handleContextualize()
+      return
+    }
+    
+    // For HIPAA projects with context, or non-HIPAA projects, send directly
+    await handleSendMessageWithContext(prompt)
+  }
+
+  const handleSendMessageWithContext = async (messagePrompt: string) => {
+    if (!messagePrompt.trim() || !project) return
 
     if (!mountedRef.current) return
     
@@ -891,7 +965,7 @@ export default function WorkspacePage() {
       const userMessageResponse = await fetch(`/api/projects/${projectId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: prompt }),
+        body: JSON.stringify({ role: 'user', content: messagePrompt }),
         signal: controller.signal,
       })
       
@@ -910,7 +984,7 @@ export default function WorkspacePage() {
         const userMessage: Message = {
           id: userMessageId,
           role: 'user' as const,
-          content: prompt,
+          content: messagePrompt,
           created_at: userMessageData.message.created_at || new Date().toISOString(),
           user_id: user?.id,
           profiles: userMessageData.message.profiles || null
@@ -933,11 +1007,12 @@ export default function WorkspacePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          prompt,
+          prompt: messagePrompt,
           existingCode: project.code,
           userId: user?.id || user?.email || 'anonymous',
           privacyMode,
           mode: airiaMode,
+          contextWindow: contextWindow || undefined, // Include context for HIPAA projects
           csvFilesForChat: [
             ...datasets
               .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
@@ -1549,9 +1624,17 @@ export default function WorkspacePage() {
                   {project.name}
                 </h1>
                 {project?.hipaa_compliant && (
-                  <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1">
-                    <Shield className="w-3 h-3" />
-                    HIPAA/NIST
+                  <div className="flex items-center gap-2">
+                    <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1">
+                      <Shield className="w-3 h-3" />
+                      HIPAA/NIST
+                    </div>
+                    {contextWindow && (
+                      <div className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Context Set
+                      </div>
+                    )}
                   </div>
                 )}
                 {datasets.length > 0 && (
@@ -1587,6 +1670,18 @@ export default function WorkspacePage() {
           
           {/* Right: Actions */}
           <div className="flex items-center gap-2 flex-1 justify-end">
+            {/* Edit Context button for HIPAA projects - hide for view-only users */}
+            {project?.hipaa_compliant && userRole !== 'view' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowContextModal(true)}
+                className="h-8 px-3 flex items-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                {contextWindow ? 'Edit Context' : 'Set Context'}
+              </Button>
+            )}
             {/* Datasets dropdown trigger - hide for view-only users */}
             {userRole !== 'view' && (
               <Button 
@@ -1925,9 +2020,20 @@ export default function WorkspacePage() {
                         disabled={loading}
                         className="border-2 border-rstudio/20 focus:border-rstudio shadow-sm text-darktext dark:text-white bg-white dark:bg-gray-800"
                       />
-                      <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
-                        <Send className="h-4 w-4" />
-                      </Button>
+                      {project?.hipaa_compliant ? (
+                        <Button 
+                          onClick={handleSendMessage} 
+                          disabled={loading} 
+                          className="shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        >
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          {contextWindow ? 'Send' : 'Contextualize'}
+                        </Button>
+                      ) : (
+                        <Button onClick={handleSendMessage} disabled={loading} className="shadow-lg">
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -2173,6 +2279,26 @@ export default function WorkspacePage() {
                 handleCodeChange(code)
               }
             }}
+          />
+        )}
+
+        {/* Context Window Modal - for HIPAA projects */}
+        {showContextModal && project?.hipaa_compliant && (
+          <ContextWindowModal
+            projectName={project.name}
+            csvFiles={[
+              ...datasets
+                .filter(d => d.csvText)
+                .map(d => ({ fileName: d.fileName, csvData: d.csvText! })),
+              ...sharedDatasets.map(d => ({ fileName: d.file_name, csvData: d.csv_text }))
+            ]}
+            initialContext={contextWindow}
+            onSave={handleContextSavedAndProceed}
+            onCancel={() => {
+              setShowContextModal(false)
+              setPendingPrompt('')
+            }}
+            onGenerateContext={handleGenerateContext}
           />
         )}
         </div>

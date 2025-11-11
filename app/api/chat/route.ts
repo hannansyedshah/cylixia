@@ -4,7 +4,7 @@ import { randomizeCSVData } from '@/lib/dataRandomizer'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true, mode = 'legacy', conversationHistory, preferences, csvFilesForChat } = await request.json()
+    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true, mode = 'legacy', conversationHistory, preferences, csvFilesForChat, contextWindow } = await request.json()
 
     console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
 
@@ -66,7 +66,8 @@ Please generate complete, executable R code that applies the user's requested ch
       conversationHistory,
       preferences,
       csvFilesPayload, // Pass all CSV files
-      privacyMode // Pass privacy mode so models know if data is randomized
+      privacyMode, // Pass privacy mode so models know if data is randomized
+      contextWindow // Pass context window for HIPAA projects
     )
     
     const parsed = parseAiriaResponse(airiaResponse)

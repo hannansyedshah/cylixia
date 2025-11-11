@@ -23,6 +23,7 @@ interface AiriaResponse {
 const AIRIA_API_URL_LEGACY = 'https://api.airia.ai/v2/PipelineExecution/3b015c24-44cf-400c-aac7-437fb5963f63'
 const AIRIA_API_URL_QUICK = 'https://api.airia.ai/v2/PipelineExecution/3679b604-284a-40fc-9ebc-e77362d144f6'
 const AIRIA_API_URL_ASK = 'https://api.airia.ai/v2/PipelineExecution/c91515d7-b957-4ada-b94d-5bf1470be7da'
+const AIRIA_API_URL_CONTEXT = 'https://api.airia.ai/v2/PipelineExecution/f6015c53-afc1-4dff-bcfd-f9facce101cd'
 
 export async function callAiriaAgent(
   userInput: string,
@@ -34,7 +35,8 @@ export async function callAiriaAgent(
   conversationHistory?: string,
   preferences?: { style?: string; libraries?: string[] },
   csvFiles?: Array<{ fileName: string, csvData: string }>,
-  privacyMode: boolean = true
+  privacyMode: boolean = true,
+  contextWindow?: string
 ): Promise<AiriaResponse> {
   try {
     const apiKey = process.env.AIRIA_API_KEY
@@ -97,7 +99,8 @@ export async function callAiriaAgent(
           libraries: preferences?.libraries || [
             'ggplot2', 'dplyr', 'readr', 'tidyr', 'stringr', 'purrr', 'tibble', 'forcats'
           ]
-        }
+        },
+        context_window: contextWindow || ''
       }
       
       payload = {
@@ -165,7 +168,8 @@ export async function callAiriaAgent(
           libraries: preferences?.libraries || [
             'ggplot2', 'dplyr', 'readr', 'tidyr', 'stringr', 'purrr', 'tibble', 'forcats'
           ]
-        }
+        },
+        context_window: contextWindow || ''
       }
       
       payload = {
@@ -223,6 +227,8 @@ Current R Code:\n\n${existingCode || ''}
 
 ${csvDataSection}
 
+${contextWindow ? `\n\nResearch Context:\n${contextWindow}\n` : ''}
+
 Please return ONLY full R code with necessary library() calls.`
       } else if (primaryCsvData && primaryFileName) {
         const dataPrivacyNote = privacyMode 
@@ -238,6 +244,8 @@ ${dataPrivacyNote}
 Dataset: ${primaryFileName}
 CSV Data (first 1000 chars):
 ${primaryCsvData.substring(0, 1000)}${primaryCsvData.length > 1000 ? '...' : ''}
+
+${contextWindow ? `\n\nResearch Context:\n${contextWindow}\n` : ''}
 
 Please return ONLY full R code with necessary library() calls.`
       }
@@ -328,5 +336,119 @@ export function parseAiriaResponse(airiaData: AiriaResponse): { code: string, me
     code: responseText.trim(),
     message: 'Response from Airia:'
   }
+}
+
+/**
+ * Generate research context window using AI
+ * For HIPAA-compliant projects
+ */
+export async function generateContextWindow(
+  projectName: string,
+  csvFiles: Array<{ fileName: string, csvData: string }>,
+  userId: string = 'default-user'
+): Promise<string> {
+  try {
+    // Use dedicated context API key if available, otherwise fall back to main key
+    const apiKey = process.env.AIRIA_CONTEXT_API_KEY || process.env.AIRIA_API_KEY
+
+    if (!apiKey) {
+      throw new Error('AIRIA_CONTEXT_API_KEY or AIRIA_API_KEY not configured in environment variables')
+    }
+
+    // Build dataset summary with column names
+    let datasetSummary = ''
+    if (csvFiles && csvFiles.length > 0) {
+      datasetSummary = csvFiles.map(file => {
+        // Extract column headers (first line of CSV)
+        const lines = file.csvData.split('\n')
+        const headers = lines[0] || ''
+        return `- ${file.fileName}: ${headers}`
+      }).join('\n')
+    }
+
+    // Build the context generation request
+    const contextInput = {
+      project_name: projectName,
+      dataset_files: datasetSummary || 'No datasets uploaded yet',
+      csv_preview: csvFiles && csvFiles.length > 0 
+        ? csvFiles[0].csvData.substring(0, 1000) 
+        : ''
+    }
+
+    const payload = {
+      userId,
+      userInput: JSON.stringify(contextInput),
+      asyncOutput: false
+    }
+
+    console.log('🔍 Generating context window via Airia...')
+
+    const response = await fetch(AIRIA_API_URL_CONTEXT, {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Context generation API Response:', errorText)
+      throw new Error(`Context API error: ${response.status} ${response.statusText}`)
+    }
+
+    const data: AiriaResponse = await response.json()
+    const contextText = data.output || data.result || ''
+
+    // If response is a string, return it
+    if (typeof contextText === 'string') {
+      return contextText
+    }
+
+    // Otherwise try to extract from structured response
+    return JSON.stringify(contextText, null, 2)
+  } catch (error: any) {
+    console.error('Context generation error:', error)
+    // Return a default template on error
+    return generateDefaultContextTemplate(projectName, csvFiles)
+  }
+}
+
+/**
+ * Generate a default context template
+ */
+function generateDefaultContextTemplate(
+  projectName: string,
+  csvFiles: Array<{ fileName: string, csvData: string }>
+): string {
+  const fileNames = csvFiles.map(f => f.fileName).join(', ')
+  
+  // Extract column headers from CSV files
+  let keyFields = 'Not specified'
+  if (csvFiles && csvFiles.length > 0) {
+    const headers = csvFiles.map(file => {
+      const lines = file.csvData.split('\n')
+      return lines[0] || ''
+    }).filter(Boolean)
+    if (headers.length > 0) {
+      keyFields = headers.join(' | ')
+    }
+  }
+
+  return `Study Type: [e.g., Clinical trial, Observational study, Epidemiological research]
+
+Objective: [e.g., Analyze the relationship between treatment and patient outcomes]
+
+Dataset Key Fields: ${keyFields}
+
+Dataset Files: ${fileNames || 'No files uploaded'}
+
+Privacy Setting: HIPAA-compliant mode ✅
+All PHI fields are treated as de-identified tokens. No raw identifiers are logged or exported.
+
+Preferred Analysis Types: [e.g., Linear regression, Logistic regression, Survival analysis, ANOVA, Descriptive statistics]
+
+Additional Notes: [Any specific requirements, constraints, or context about this research project]`
 }
 

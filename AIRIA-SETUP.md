@@ -16,16 +16,25 @@ Your cReate app is now configured to use Airia AI for intelligent R code generat
 Add to your `.env.local` file:
 
 ```env
+# Main Airia API Key (for code generation)
 AIRIA_API_KEY=your_airia_api_key_here
+
+# Context Window API Key (for HIPAA context generation)
+# Optional: If not set, will use AIRIA_API_KEY
+AIRIA_CONTEXT_API_KEY=your_context_pipeline_api_key_here
 ```
 
 ### **For Vercel Deployment:**
 
 1. Go to your Vercel project: https://vercel.com/shayan-shahs-projects/c-reate
 2. Click **Settings** → **Environment Variables**
-3. Add new variable:
+3. Add new variables:
    - **Key**: `AIRIA_API_KEY`
    - **Value**: Your Airia API key
+   - **Environments**: Check all (Production, Preview, Development)
+   
+   - **Key**: `AIRIA_CONTEXT_API_KEY` (optional)
+   - **Value**: Your context pipeline API key
    - **Environments**: Check all (Production, Preview, Development)
 4. Click **"Save"**
 5. **Redeploy** your app
@@ -67,9 +76,23 @@ When a user sends a message, the app:
 - → Airia receives: Current code + "improve legend"
 - → Returns enhanced code
 
-## 📊 Your Airia Agent Configuration
+## 📊 Your Airia Agent Configurations
 
-- **Agent ID**: `3b015c24-44cf-400c-aac7-437fb5963f63`
+### Code Generation Agents:
+
+- **Legacy Agent**: `3b015c24-44cf-400c-aac7-437fb5963f63`
+- **Quick Agent**: `3679b604-284a-40fc-9ebc-e77362d144f6`
+- **Ask Data Agent**: `c91515d7-b957-4ada-b94d-5bf1470be7da`
+
+### HIPAA Context Window Agent:
+
+- **Context Agent**: `f6015c53-afc1-4dff-bcfd-f9facce101cd`
+  - Used for generating research context from CSV data
+  - Analyzes dataset structure and suggests study parameters
+  - HIPAA-compliant projects only
+
+### API Details:
+
 - **Endpoint**: `https://api.airia.ai/v2/PipelineExecution/[agent-id]`
 - **Method**: POST
 - **Headers**: 
