@@ -368,7 +368,20 @@ export async function generateContextWindow(
       csv_files: csvFiles.map(file => ({
         file_name: file.fileName,
         csv_data: file.csvData // Send full CSV data, not just preview
-      }))
+      })),
+      format_instructions: `Analyze the provided CSV data and generate a research context in EXACTLY this format:
+
+Study Type: [Infer the study type - e.g., Clinical trial, Observational study, Cross-sectional study, Longitudinal study]
+
+Objective: [Infer the main research objective based on the data structure and variables - be specific about what relationships or outcomes are being studied]
+
+Dataset Key Fields: [List the most important column names from the CSV files, comma-separated]
+
+Preferred Analysis Types: [Suggest 3-5 appropriate statistical analyses based on the data - e.g., Linear regression, Logistic regression, Survival analysis, ANOVA, t-test, Chi-square, Descriptive statistics]
+
+Additional Notes: [Include any important observations about the dataset structure, potential confounders, data quality issues, or analysis considerations]
+
+IMPORTANT: Return ONLY the template above with values filled in. Do NOT include markdown formatting, headers, code blocks, or extra explanations. Just return the plain text template.`
     }
 
     const payload = {

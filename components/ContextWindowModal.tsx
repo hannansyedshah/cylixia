@@ -76,20 +76,42 @@ export function ContextWindowModal({
       excludedFields: []
     }
     
+    // Try to extract from simple format first
     lines.forEach(line => {
-      if (line.startsWith('Study Type:')) parsed.studyType = line.replace('Study Type:', '').trim()
-      if (line.startsWith('Objective:')) parsed.objective = line.replace('Objective:', '').trim()
-      if (line.startsWith('Dataset Key Fields:')) parsed.keyFields = line.replace('Dataset Key Fields:', '').trim()
-      if (line.startsWith('Preferred Analysis Types:')) {
-        const types = line.replace('Preferred Analysis Types:', '').trim()
-        parsed.analysisTypes = types.split(',').map(t => t.trim()).filter(Boolean)
+      const trimmed = line.trim()
+      
+      // Handle markdown bold formatting **Title:** or plain Title:
+      if (trimmed.match(/^\*?\*?Study Type:?\*?\*?/i)) {
+        parsed.studyType = trimmed.replace(/^\*?\*?Study Type:?\*?\*?/i, '').replace(/^[:\s]+/, '').replace(/["'\[\]]/g, '').trim()
       }
-      if (line.startsWith('Additional Notes:')) parsed.additionalNotes = line.replace('Additional Notes:', '').trim()
-      if (line.startsWith('Excluded Fields (Not Shared):')) {
-        const fields = line.replace('Excluded Fields (Not Shared):', '').trim()
-        parsed.excludedFields = fields.split(',').map(t => t.trim()).filter(Boolean)
+      if (trimmed.match(/^\*?\*?Objective:?\*?\*?/i) || trimmed.match(/^\*?\*?Title:?\*?\*?/i)) {
+        const value = trimmed.replace(/^\*?\*?(Objective|Title):?\*?\*?/i, '').replace(/^[:\s]+/, '').replace(/["'\[\]]/g, '').trim()
+        if (value && !parsed.objective) parsed.objective = value
+      }
+      if (trimmed.match(/^\*?\*?Dataset Key Fields:?\*?\*?/i)) {
+        parsed.keyFields = trimmed.replace(/^\*?\*?Dataset Key Fields:?\*?\*?/i, '').replace(/^[:\s]+/, '').replace(/["'\[\]]/g, '').trim()
+      }
+      if (trimmed.match(/^\*?\*?Preferred Analysis Types:?\*?\*?/i)) {
+        const types = trimmed.replace(/^\*?\*?Preferred Analysis Types:?\*?\*?/i, '').replace(/^[:\s]+/, '').replace(/["'\[\]]/g, '').trim()
+        parsed.analysisTypes = types.split(/[,;]/).map(t => t.trim()).filter(Boolean)
+      }
+      if (trimmed.match(/^\*?\*?Additional Notes:?\*?\*?/i)) {
+        parsed.additionalNotes = trimmed.replace(/^\*?\*?Additional Notes:?\*?\*?/i, '').replace(/^[:\s]+/, '').replace(/["'\[\]]/g, '').trim()
+      }
+      if (trimmed.match(/^\*?\*?Excluded Fields.*:?\*?\*?/i)) {
+        const fields = trimmed.replace(/^\*?\*?Excluded Fields.*:?\*?\*?/i, '').replace(/^[:\s]+/, '').replace(/["'\[\]]/g, '').trim()
+        parsed.excludedFields = fields.split(/[,;]/).map(t => t.trim()).filter(Boolean)
       }
     })
+    
+    // If still empty, try extracting from markdown sections
+    if (!parsed.studyType && ctx.includes('Study Type:')) {
+      const match = ctx.match(/Study Type:?\s*["\[]?([^\n\]"]+)["\]]?/i)
+      if (match) parsed.studyType = match[1].trim()
+    }
+    if (!parsed.studyType && ctx.includes('Cross-sectional')) {
+      parsed.studyType = 'Cross-sectional study'
+    }
     
     return parsed
   }
@@ -206,8 +228,8 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
           </Button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900">
+        {/* Content - Fixed height scrollable area */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900 min-h-0">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
@@ -296,8 +318,8 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     </div>
                   </div>
                   
-                  {/* Column/Field Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                  {/* Column/Field Grid - Fixed height to prevent layout shift */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 h-64 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
                     {availableColumns.map((column, index) => {
                       const isExcluded = fields.excludedFields.includes(column)
                       return (
@@ -306,7 +328,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                           type="button"
                           onClick={() => toggleExcludeField(column)}
                           className={`
-                            px-3 py-2 rounded border-2 text-sm font-medium transition-all
+                            px-3 py-2 rounded border-2 text-sm font-medium transition-all h-fit
                             ${isExcluded
                               ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 shadow-md'
                               : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400'
