@@ -109,39 +109,6 @@ export function UploadPanel({
     
     // ALWAYS show data editor first for manual column/row removal
     setDataEditorData({ originalData: text, fileName: file.name })
-    return
-    
-    // Normal flow - add directly
-    const item: DatasetItem = {
-      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      fileName: file.name,
-      sizeBytes: file.size,
-      persisted: false,
-      includeChat: true,
-      includeRun: true,
-      csvText: text,
-    }
-    
-    // Check if there's a placeholder with the same file name
-    const existingIndex = datasets.findIndex(d => d.fileName === file.name && d.persisted && !d.csvText)
-    if (existingIndex >= 0) {
-      // Replace the placeholder with the actual file
-      const updated = [...datasets]
-      updated[existingIndex] = item
-      notifyChange(updated)
-    } else {
-      notifyChange([...(datasets || []), item])
-    }
-    
-    // If share checkbox is checked and user can share, share the dataset
-    if (shouldShare && canShare && onShareDataset && projectId) {
-      try {
-        await onShareDataset(item)
-      } catch (error) {
-        console.error('Failed to share dataset:', error)
-        alert('Failed to share dataset with collaborators')
-      }
-    }
   }
   
   // Handle data editor confirmation (manual column/row removal)
