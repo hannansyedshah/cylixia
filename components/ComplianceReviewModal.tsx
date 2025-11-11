@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { X, Shield, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { useMemo } from 'react'
+import { X, Shield, Check, AlertTriangle, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { redactPHI, getCSVColumns, isColumnPHI } from '@/lib/phiRedactor'
 
@@ -40,299 +40,248 @@ function parseCSVLine(line: string): string[] {
   return result
 }
 
-// Escape CSV field
-function escapeCSVField(field: string): string {
-  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-    return `"${field.replace(/"/g, '""')}"`
-  }
-  return field
-}
-
 export function ComplianceReviewModal({ 
   originalData, 
   fileName, 
   onConfirm, 
   onCancel 
 }: ComplianceReviewModalProps) {
-  // Parse original CSV
-  const parsedData = useMemo(() => {
-    const lines = originalData.split('\n').filter(line => line.trim())
-    if (lines.length === 0) return { headers: [], rows: [] }
-    
-    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''))
-    const rows = lines.slice(1).map(line => 
-      parseCSVLine(line).map(cell => cell.replace(/^"|"$/g, ''))
-    )
-    
-    return { headers, rows }
-  }, [originalData])
+  // Get all columns
+  const allColumns = useMemo(() => getCSVColumns(originalData), [originalData])
   
   // Auto-detect PHI columns
   const autoDetectedColumns = useMemo(() => {
-    return parsedData.headers.filter(col => isColumnPHI(col))
-  }, [parsedData.headers])
+    return allColumns.filter(col => isColumnPHI(col))
+  }, [allColumns])
   
-  // Track redacted state: Set of "row,column" keys
-  const [redactedCells, setRedactedCells] = useState<Set<string>>(() => {
-    // Initialize with auto-detected columns (all rows for those columns)
-    const initial = new Set<string>()
-    parsedData.rows.forEach((_, rowIndex) => {
-      autoDetectedColumns.forEach(col => {
-        const colIndex = parsedData.headers.indexOf(col)
-        if (colIndex >= 0) {
-          initial.add(`${rowIndex},${colIndex}`)
-        }
-      })
-    })
-    return initial
-  })
+  // Generate redacted data with auto-detected columns
+  const { redactedData, redactedColumns } = useMemo(() => {
+    return redactPHI(originalData, autoDetectedColumns)
+  }, [originalData, autoDetectedColumns])
   
-  // Track redacted columns (for header highlighting)
-  const redactedColumns = useMemo(() => {
-    const cols = new Set<number>()
-    redactedCells.forEach(key => {
-      const [, colIndex] = key.split(',').map(Number)
-      cols.add(colIndex)
-    })
-    return cols
-  }, [redactedCells])
-  
-  // Track redacted rows (for row number highlighting)
-  const redactedRows = useMemo(() => {
-    const rows = new Set<number>()
-    redactedCells.forEach(key => {
-      const [rowIndex] = key.split(',').map(Number)
-      rows.add(rowIndex)
-    })
-    return rows
-  }, [redactedCells])
-  
-  // Toggle single cell
-  const toggleCell = (rowIndex: number, colIndex: number) => {
-    const key = `${rowIndex},${colIndex}`
-    setRedactedCells(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
-  }
-  
-  // Toggle entire column
-  const toggleColumn = (colIndex: number) => {
-    const allCellsInColumn = parsedData.rows.map((_, rowIndex) => `${rowIndex},${colIndex}`)
-    const allRedacted = allCellsInColumn.every(key => redactedCells.has(key))
+  // Parse redacted CSV for display
+  const parsedData = useMemo(() => {
+    const lines = redactedData.split('\n').filter(line => line.trim())
+    if (lines.length === 0) return { headers: [], rows: [] }
     
-    setRedactedCells(prev => {
-      const next = new Set(prev)
-      if (allRedacted) {
-        // Remove all cells in column
-        allCellsInColumn.forEach(key => next.delete(key))
-      } else {
-        // Add all cells in column
-        allCellsInColumn.forEach(key => next.add(key))
-      }
-      return next
-    })
-  }
-  
-  // Toggle entire row
-  const toggleRow = (rowIndex: number) => {
-    const allCellsInRow = parsedData.headers.map((_, colIndex) => `${rowIndex},${colIndex}`)
-    const allRedacted = allCellsInRow.every(key => redactedCells.has(key))
-    
-    setRedactedCells(prev => {
-      const next = new Set(prev)
-      if (allRedacted) {
-        // Remove all cells in row
-        allCellsInRow.forEach(key => next.delete(key))
-      } else {
-        // Add all cells in row
-        allCellsInRow.forEach(key => next.add(key))
-      }
-      return next
-    })
-  }
-  
-  // Check if cell is redacted
-  const isCellRedacted = (rowIndex: number, colIndex: number) => {
-    return redactedCells.has(`${rowIndex},${colIndex}`)
-  }
-  
-  // Generate final redacted CSV
-  const generateRedactedCSV = () => {
-    const redactedRows = parsedData.rows.map((row, rowIndex) =>
-      row.map((cell, colIndex) => 
-        isCellRedacted(rowIndex, colIndex) ? 'XXXX' : cell
-      )
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim())
+    const rows = lines.slice(1).map(line => 
+      parseCSVLine(line).map(cell => cell.replace(/^"|"$/g, '').trim())
     )
     
-    const headerLine = parsedData.headers.map(escapeCSVField).join(',')
-    const dataLines = redactedRows.map(row => row.map(escapeCSVField).join(','))
-    return [headerLine, ...dataLines].join('\n')
-  }
+    return { headers, rows }
+  }, [redactedData])
   
   const handleConfirm = () => {
-    const finalRedactedData = generateRedactedCSV()
-    onConfirm(finalRedactedData)
+    onConfirm(redactedData)
   }
-  
-  const totalRedactedCells = redactedCells.size
-  const totalCells = parsedData.headers.length * parsedData.rows.length
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel}></div>
-      <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[95vw] max-w-7xl h-[90vh] flex flex-col">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel}></div>
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[96vw] max-w-[1400px] h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center justify-between px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-850 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 flex items-center justify-center shadow-lg">
+              <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 HIPAA/NIST Compliance Review
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{fileName}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                {fileName}
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onCancel}
+            className="rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
         
         {/* Warning Banner */}
-        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+        <div className="px-8 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-b border-amber-200 dark:border-amber-800">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                Interactive Redaction Editor
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                Final Compliance Verification
               </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-                Click any cell to redact/unredact it. Click column headers to redact entire columns. Click row numbers to redact entire rows. 
-                Only the redacted version will be stored - original data is never saved.
+              <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+                This preview shows the redacted version that will be stored. Protected Health Information (PHI) columns have been automatically identified and redacted. 
+                <span className="font-semibold"> Original data will NOT be stored.</span> Please verify compliance before confirming.
               </p>
             </div>
           </div>
         </div>
         
-        {/* Data Table */}
-        <div className="flex-1 overflow-auto p-6">
-          {parsedData.headers.length > 0 ? (
-            <div className="border rounded-lg bg-white dark:bg-gray-800 overflow-auto">
-              <div className="w-full min-w-max">
-                {/* Header Row */}
-                <div className="sticky top-0 bg-gray-100 dark:bg-gray-700 border-b z-20">
-                  <div className="flex">
-                    {/* Row number header */}
-                    <div className="w-12 p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-r border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-800">
-                      #
-                    </div>
-                    {/* Column headers */}
-                    {parsedData.headers.map((header, colIndex) => {
-                      const isRedacted = redactedColumns.has(colIndex)
-                      const isAutoDetected = autoDetectedColumns.includes(header)
-                      return (
-                        <div
-                          key={colIndex}
-                          onClick={() => toggleColumn(colIndex)}
-                          className={`flex-1 p-2 text-xs font-semibold border-r border-gray-300 dark:border-gray-600 min-w-[120px] cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 ${
-                            isRedacted 
-                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
-                              : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                          title={`Click to ${isRedacted ? 'unredact' : 'redact'} entire column`}
+        {/* Legal Disclaimer */}
+        <div className="px-8 py-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-b border-red-200 dark:border-red-800">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-red-900 dark:text-red-200 uppercase tracking-wide mb-1">
+                Important Disclaimer & Liability Notice
+              </p>
+              <p className="text-xs text-red-800 dark:text-red-300 leading-relaxed">
+                <span className="font-semibold">By confirming, you acknowledge and agree that:</span> (1) You are solely responsible for ensuring HIPAA/NIST compliance of the redacted data; 
+                (2) This platform provides automated redaction tools but makes no guarantees regarding compliance; 
+                (3) <span className="font-semibold">Redacted data, although randomized, will be shared with AI models</span> for code generation purposes; 
+                (4) We assume no liability for any compliance violations, data breaches, or regulatory issues arising from your use of this service; 
+                (5) You have reviewed and verified the redacted data meets all applicable compliance requirements before proceeding.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Data Table Container */}
+        <div className="flex-1 overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900/50">
+          <div className="flex-1 overflow-auto p-6">
+            {parsedData.headers.length > 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+                <div className="overflow-auto max-h-full">
+                  <table className="w-full border-collapse">
+                    {/* Header */}
+                    <thead className="sticky top-0 z-20">
+                      <tr>
+                        {parsedData.headers.map((header, colIndex) => {
+                          const isRedacted = redactedColumns.includes(header)
+                          return (
+                            <th
+                              key={colIndex}
+                              className={`px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 border-b-2 border-r border-gray-200 dark:border-gray-600 whitespace-nowrap min-w-[140px] ${
+                                isRedacted 
+                                  ? 'bg-gradient-to-b from-red-100 to-red-50 dark:from-red-900/40 dark:to-red-900/20 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700' 
+                                  : 'bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 border-gray-300 dark:border-gray-600'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="truncate">{header}</span>
+                                {isRedacted && (
+                                  <Lock className="w-3.5 h-3.5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                )}
+                              </div>
+                            </th>
+                          )
+                        })}
+                      </tr>
+                    </thead>
+                    
+                    {/* Body */}
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {parsedData.rows.map((row, rowIndex) => (
+                        <tr 
+                          key={rowIndex} 
+                          className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors duration-150"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="truncate">{header}</span>
-                            {isRedacted && (
-                              <EyeOff className="w-3 h-3 ml-1 flex-shrink-0" />
-                            )}
-                            {!isRedacted && isAutoDetected && (
-                              <span className="ml-1 text-blue-500 text-[10px]">(auto)</span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                          {row.map((cell, colIndex) => {
+                            const header = parsedData.headers[colIndex]
+                            const isRedacted = redactedColumns.includes(header)
+                            return (
+                              <td
+                                key={colIndex}
+                                className={`px-5 py-3.5 text-sm border-r border-gray-100 dark:border-gray-700 whitespace-nowrap ${
+                                  isRedacted 
+                                    ? 'bg-red-50/50 dark:bg-red-900/10 font-mono text-red-700 dark:text-red-400 font-semibold' 
+                                    : 'text-gray-700 dark:text-gray-300'
+                                }`}
+                              >
+                                <div className="truncate max-w-[200px]" title={isRedacted ? 'Redacted PHI' : cell}>
+                                  {isRedacted ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <span className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-400"></span>
+                                      <span>XXXX</span>
+                                    </span>
+                                  ) : (
+                                    cell
+                                  )}
+                                </div>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                
-                {/* Data Rows */}
-                {parsedData.rows.map((row, rowIndex) => {
-                  const isRowRedacted = redactedRows.has(rowIndex)
-                  return (
-                    <div 
-                      key={rowIndex} 
-                      className={`flex border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                        isRowRedacted ? 'bg-red-50/30 dark:bg-red-900/10' : ''
-                      }`}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-8 h-8 text-gray-400 dark:text-gray-600" />
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">No data to display</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Redacted Columns Summary */}
+          <div className="px-6 py-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <Lock className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Protected Health Information (PHI) - {redactedColumns.length} Column{redactedColumns.length !== 1 ? 's' : ''} Redacted
+                  </h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {redactedColumns.map(columnName => (
+                    <span
+                      key={columnName}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-red-100 to-red-50 text-red-800 dark:from-red-900/30 dark:to-red-900/20 dark:text-red-300 border border-red-200 dark:border-red-800 shadow-sm"
                     >
-                      {/* Row number */}
-                      <div
-                        onClick={() => toggleRow(rowIndex)}
-                        className={`w-12 p-2 text-xs font-medium border-r border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 ${
-                          isRowRedacted 
-                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
-                            : 'text-gray-500 dark:text-gray-400'
-                        }`}
-                        title={`Click to ${isRowRedacted ? 'unredact' : 'redact'} entire row`}
-                      >
-                        {rowIndex + 1}
-                      </div>
-                      
-                      {/* Data cells */}
-                      {row.map((cell, colIndex) => {
-                        const isRedacted = isCellRedacted(rowIndex, colIndex)
-                        return (
-                          <div
-                            key={colIndex}
-                            onClick={() => toggleCell(rowIndex, colIndex)}
-                            className={`flex-1 p-2 text-xs border-r border-gray-200 dark:border-gray-600 min-w-[120px] cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 ${
-                              isRedacted 
-                                ? 'bg-red-50 dark:bg-red-900/10 font-mono text-red-600 dark:text-red-400' 
-                                : 'text-gray-800 dark:text-gray-200'
-                            }`}
-                            title={`Click to ${isRedacted ? 'unredact' : 'redact'} this cell`}
-                          >
-                            <span className="block truncate">
-                              {isRedacted ? 'XXXX' : cell}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })}
+                      <Lock className="w-3 h-3" />
+                      {columnName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="ml-6 text-right">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dataset Summary</div>
+                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <span className="text-blue-600 dark:text-blue-400">{parsedData.rows.length}</span> rows
+                </div>
+                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  <span className="text-blue-600 dark:text-blue-400">{parsedData.headers.length}</span> columns
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              No data to display
-            </div>
-          )}
+          </div>
         </div>
         
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <span className="font-medium">{totalRedactedCells}</span> of <span className="font-medium">{totalCells}</span> cells redacted
-            {redactedColumns.size > 0 && (
-              <span className="ml-2">
-                • <span className="font-medium">{redactedColumns.size}</span> column{redactedColumns.size !== 1 ? 's' : ''} fully redacted
-              </span>
-            )}
+        <div className="flex items-center justify-between px-8 py-5 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-850 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{redactedColumns.length}</span> PHI column{redactedColumns.length !== 1 ? 's' : ''} automatically protected
+            </span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={onCancel}>
+            <Button 
+              variant="outline" 
+              onClick={onCancel}
+              className="px-6 py-2.5 rounded-lg border-2 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
+            >
               Cancel
             </Button>
-            <Button onClick={handleConfirm} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button 
+              onClick={handleConfirm} 
+              className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            >
               <Check className="w-4 h-4 mr-2" />
               Confirm Compliance
             </Button>
