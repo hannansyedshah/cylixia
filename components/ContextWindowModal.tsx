@@ -92,7 +92,7 @@ export function ContextWindowModal({
     return parsed
   }
   
-  const [fields, setFields] = useState<ContextFields>(parseInitialContext(initialContext))
+  const [fields, setFields] = useState<ContextFields>(parseInitialContext(initialContext || null))
 
   const generateContext = async () => {
     setIsGenerating(true)
