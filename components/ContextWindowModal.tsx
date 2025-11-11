@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { X, Loader2, Shield, Plus, Trash2, FileText, Maximize2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { X, Loader2, Shield, Plus, Trash2, FileText } from 'lucide-react'
 
 interface ContextWindowModalProps {
   projectName: string
@@ -23,8 +23,6 @@ interface ContextFields {
   excludedFields: string[] // Fields fully excluded from analysis (will not be shared)
 }
 
-type ModalStep = 'form' | 'compliance-warning' | 'final-confirmation'
-
 export function ContextWindowModal({
   projectName,
   csvFiles,
@@ -35,8 +33,6 @@ export function ContextWindowModal({
 }: ContextWindowModalProps) {
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [hasGenerated, setHasGenerated] = useState<boolean>(!!initialContext)
-  const [currentStep, setCurrentStep] = useState<ModalStep>('form')
-  const [showColumnViewer, setShowColumnViewer] = useState<boolean>(false)
   
   // Extract column names from CSV files
   const extractColumns = (): string[] => {
@@ -102,12 +98,20 @@ export function ContextWindowModal({
     setIsGenerating(true)
     try {
       const generatedContext = await onGenerateContext(projectName, csvFiles)
+      // Parse and auto-populate all fields from AI response
       const parsed = parseInitialContext(generatedContext)
       setFields(parsed)
       setHasGenerated(true)
+      console.log('✅ Context auto-generated and fields populated:', parsed)
     } catch (error) {
       console.error('Failed to generate context:', error)
-      // Keep current fields on error
+      // Set default values if generation fails
+      setFields(prev => ({
+        ...prev,
+        studyType: prev.studyType || '',
+        objective: prev.objective || '',
+        keyFields: prev.keyFields || csvFiles.map(f => f.fileName).join(', ')
+      }))
       setHasGenerated(true)
     } finally {
       setIsGenerating(false)
@@ -144,14 +148,6 @@ export function ContextWindowModal({
     }))
   }
 
-  const handleConfirmCompliance = () => {
-    setCurrentStep('compliance-warning')
-  }
-
-  const handleFinalConfirmation = () => {
-    setCurrentStep('final-confirmation')
-  }
-
   const handleSave = () => {
     // Build context string from fields
     const contextString = `Study Type: ${fields.studyType || '[Not specified]'}
@@ -180,114 +176,6 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Full-screen Column Viewer
-  if (showColumnViewer) {
-    return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-white" />
-            <div>
-              <h2 className="text-2xl font-bold text-white">Column/Field Manager</h2>
-              <p className="text-sm text-blue-100">Click fields to exclude from analysis (Red = Not Shared)</p>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowColumnViewer(false)}
-            className="bg-white/10 hover:bg-white/20 text-white"
-          >
-            <X className="w-5 h-5 mr-2" />
-            Close Viewer
-          </Button>
-        </div>
-
-        {/* Column Grid */}
-        <div className="flex-1 overflow-y-auto p-8 bg-gray-800">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="text-white text-lg font-semibold">
-                  Total Fields: {availableColumns.length}
-                </div>
-                <div className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold">
-                  Excluded: {fields.excludedFields.length}
-                </div>
-                <div className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold">
-                  Included: {availableColumns.length - fields.excludedFields.length}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {availableColumns.map((column, index) => {
-                const isExcluded = fields.excludedFields.includes(column)
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => toggleExcludeField(column)}
-                    className={`
-                      group relative p-6 rounded-xl border-4 text-lg font-bold transition-all transform hover:scale-105
-                      ${isExcluded
-                        ? 'bg-red-600 border-red-800 text-white shadow-2xl shadow-red-900/50'
-                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:border-blue-400'
-                      }
-                    `}
-                  >
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      {isExcluded ? (
-                        <>
-                          <X className="w-12 h-12 text-white" />
-                          <div className="text-center">
-                            <div className="text-sm font-normal text-red-100">EXCLUDED</div>
-                            <div className="text-lg font-bold mt-1">{column}</div>
-                            <div className="text-xs mt-2 text-red-200">NOT SHARED</div>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-12 h-12 text-green-500" />
-                          <div className="text-center">
-                            <div className="text-sm font-normal text-gray-600 dark:text-gray-400">INCLUDED</div>
-                            <div className="text-lg font-bold mt-1">{column}</div>
-                            <div className="text-xs mt-2 text-gray-500 dark:text-gray-400">Will be shared</div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            {fields.excludedFields.length > 0 && (
-              <div className="mt-8 p-6 bg-red-900/30 rounded-xl border-2 border-red-600">
-                <h3 className="text-xl font-bold text-red-300 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-6 h-6" />
-                  Excluded Fields Summary
-                </h3>
-                <p className="text-red-200 text-sm mb-3">
-                  The following fields will NOT be included in any analysis or shared with the AI:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {fields.excludedFields.map((field, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 bg-red-600 text-white rounded-full text-sm font-semibold"
-                    >
-                      {field}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border-4 border-blue-600 dark:border-blue-500">
@@ -298,13 +186,8 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               <Shield className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white">
                 NIST/HIPAA Research Context
-                {currentStep !== 'form' && (
-                  <span className="text-sm font-normal text-blue-200">
-                    • Step {currentStep === 'compliance-warning' ? '2' : '3'} of 3
-                  </span>
-                )}
               </h2>
               <p className="text-sm text-blue-100">
                 Project: {projectName}
@@ -331,111 +214,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                   Analyzing Dataset Structure...
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  AI is generating NIST-compliant research context
-                </p>
-              </div>
-            </div>
-          ) : currentStep === 'compliance-warning' ? (
-            <div className="space-y-6">
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-xl border-2 border-yellow-400 dark:border-yellow-600">
-                <div className="flex items-start gap-4">
-                  <AlertTriangle className="w-12 h-12 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 mb-3">
-                      NIST SP 800-53 Compliance Warning
-                    </h3>
-                    <p className="text-yellow-800 dark:text-yellow-200 mb-4">
-                      Before proceeding, please review and acknowledge the following security requirements:
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border-l-4 border-red-500">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-red-500" />
-                    1. Protected Health Information (PHI) Requirements
-                  </h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    All PHI fields must be de-identified or excluded. You have marked <strong>{fields.excludedFields.length} field(s)</strong> for exclusion.
-                    These fields will NOT be shared with any AI systems.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border-l-4 border-blue-500">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-500" />
-                    2. Access Control & Audit
-                  </h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    All AI interactions are logged for HIPAA compliance. Only authorized personnel with proper clearance
-                    should access this system.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border-l-4 border-green-500">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    3. Data Encryption & Transmission Security
-                  </h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    All data transmission occurs over encrypted channels (TLS 1.3+). No data is stored on
-                    third-party servers without proper encryption.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border-l-4 border-purple-500">
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-purple-500" />
-                    4. Researcher Responsibility
-                  </h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    You are responsible for ensuring that your research complies with all applicable regulations,
-                    including HIPAA, NIST SP 800-53, and your institution&apos;s IRB requirements.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border-2 border-red-400 dark:border-red-600">
-                <p className="text-sm text-red-800 dark:text-red-200 font-semibold">
-                  ⚠️ By proceeding, you acknowledge that you have read and understand these compliance requirements
-                  and that you are authorized to use this system with the provided data.
-                </p>
-              </div>
-            </div>
-          ) : currentStep === 'final-confirmation' ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
-                <Shield className="w-12 h-12 text-white" />
-              </div>
-              <div className="text-center max-w-2xl">
-                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                  Final Confirmation Required
-                </h3>
-                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6">
-                  You are about to establish a NIST/HIPAA-compliant research context for:
-                </p>
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border-2 border-blue-400 text-left">
-                  <div className="space-y-3">
-                    <div>
-                      <span className="font-semibold text-gray-900 dark:text-white">Study Type:</span>
-                      <span className="ml-2 text-gray-700 dark:text-gray-300">{fields.studyType || 'Not specified'}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-900 dark:text-white">Objective:</span>
-                      <span className="ml-2 text-gray-700 dark:text-gray-300">{fields.objective || 'Not specified'}</span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-900 dark:text-white">Excluded Fields:</span>
-                      <span className="ml-2 text-red-600 dark:text-red-400 font-semibold">
-                        {fields.excludedFields.length > 0 ? fields.excludedFields.join(', ') : 'None'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-6 font-semibold">
-                  This action cannot be undone. Are you sure you want to proceed?
+                  AI is generating NIST-compliant research context and auto-filling fields
                 </p>
               </div>
             </div>
@@ -499,7 +278,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               </div>
 
               {/* Field Exclusion Manager */}
-              {availableColumns.length > 0 && currentStep === 'form' && (
+              {availableColumns.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-red-200 dark:border-red-700">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -515,19 +294,9 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     </div>
                   </div>
                   
-                  {/* Open Full Viewer Button */}
-                  <Button
-                    type="button"
-                    onClick={() => setShowColumnViewer(true)}
-                    className="w-full mb-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-6"
-                  >
-                    <Maximize2 className="w-5 h-5 mr-2" />
-                    Open Full-Screen Field Manager
-                  </Button>
-
-                  {/* Quick Preview */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                    {availableColumns.slice(0, 12).map((column, index) => {
+                  {/* Column/Field Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                    {availableColumns.map((column, index) => {
                       const isExcluded = fields.excludedFields.includes(column)
                       return (
                         <button
@@ -553,11 +322,6 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                         </button>
                       )
                     })}
-                    {availableColumns.length > 12 && (
-                      <div className="col-span-full text-center text-xs text-gray-500 dark:text-gray-400 py-2">
-                        +{availableColumns.length - 12} more fields (open full viewer)
-                      </div>
-                    )}
                   </div>
                   
                   {fields.excludedFields.length > 0 && (
@@ -633,89 +397,33 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
 
         {/* Footer */}
         <div className="px-6 py-4 bg-gray-100 dark:bg-gray-800 border-t-2 border-blue-600 dark:border-blue-500 flex items-center justify-between">
-          {currentStep === 'form' ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={generateContext}
-                disabled={isGenerating}
-                className="flex items-center gap-2 border-2"
-              >
-                <Loader2 className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                <span>AI Auto-Generate</span>
-              </Button>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={onCancel}
-                  disabled={isGenerating}
-                  className="hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleConfirmCompliance}
-                  disabled={isGenerating || !fields.studyType.trim() || !fields.objective.trim()}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-6"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Confirm Compliance
-                </Button>
-              </div>
-            </>
-          ) : currentStep === 'compliance-warning' ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep('form')}
-                className="flex items-center gap-2 border-2"
-              >
-                Go Back to Form
-              </Button>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={onCancel}
-                  className="hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleFinalConfirmation}
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  I Acknowledge & Continue
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep('compliance-warning')}
-                className="flex items-center gap-2 border-2"
-              >
-                Go Back
-              </Button>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  onClick={onCancel}
-                  className="hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  className="bg-gradient-to-r from-blue-700 to-green-700 hover:from-blue-800 hover:to-green-800 text-white font-bold px-8"
-                >
-                  <Shield className="w-5 h-5 mr-2" />
-                  {initialContext ? 'Update Context' : 'Confirm & Save'}
-                </Button>
-              </div>
-            </>
-          )}
+          <Button
+            variant="outline"
+            onClick={generateContext}
+            disabled={isGenerating}
+            className="flex items-center gap-2 border-2"
+          >
+            <Loader2 className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+            <span>{hasGenerated ? 'Regenerate' : 'AI Auto-Generate'}</span>
+          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              onClick={onCancel}
+              disabled={isGenerating}
+              className="hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isGenerating || !fields.studyType.trim() || !fields.objective.trim()}
+              className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              {initialContext ? 'Update Context' : 'Save & Continue'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
