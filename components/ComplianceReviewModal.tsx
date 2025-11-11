@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { X, Shield, Check, AlertTriangle } from 'lucide-react'
+import { X, Shield, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { redactPHI, getCSVColumns, isColumnPHI } from '@/lib/phiRedactor'
 
@@ -12,62 +12,176 @@ interface ComplianceReviewModalProps {
   onCancel: () => void
 }
 
+// Proper CSV line parser (handles quoted fields with commas)
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  result.push(current.trim())
+  return result
+}
+
+// Escape CSV field
+function escapeCSVField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`
+  }
+  return field
+}
+
 export function ComplianceReviewModal({ 
   originalData, 
   fileName, 
   onConfirm, 
   onCancel 
 }: ComplianceReviewModalProps) {
-  const [manuallySelectedColumns, setManuallySelectedColumns] = useState<Set<string>>(new Set())
-  
-  // Get all columns
-  const allColumns = useMemo(() => getCSVColumns(originalData), [originalData])
-  
-  // Auto-detect PHI columns
-  const autoDetectedColumns = useMemo(() => {
-    return allColumns.filter(col => isColumnPHI(col))
-  }, [allColumns])
-  
-  // Combine auto-detected and manually selected columns
-  const columnsToRedact = useMemo(() => {
-    const combined = new Set([...autoDetectedColumns, ...Array.from(manuallySelectedColumns)])
-    return Array.from(combined)
-  }, [autoDetectedColumns, manuallySelectedColumns])
-  
-  // Generate redacted data
-  const { redactedData, redactedColumns } = useMemo(() => {
-    return redactPHI(originalData, columnsToRedact)
-  }, [originalData, columnsToRedact])
-  
-  // Parse data for display
-  const parseCSVForDisplay = (data: string) => {
-    const lines = data.split('\n').filter(line => line.trim())
+  // Parse original CSV
+  const parsedData = useMemo(() => {
+    const lines = originalData.split('\n').filter(line => line.trim())
     if (lines.length === 0) return { headers: [], rows: [] }
     
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-    const rows = lines.slice(1, 11).map(line => // Show first 10 rows
-      line.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''))
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''))
+    const rows = lines.slice(1).map(line => 
+      parseCSVLine(line).map(cell => cell.replace(/^"|"$/g, ''))
     )
     
     return { headers, rows }
+  }, [originalData])
+  
+  // Auto-detect PHI columns
+  const autoDetectedColumns = useMemo(() => {
+    return parsedData.headers.filter(col => isColumnPHI(col))
+  }, [parsedData.headers])
+  
+  // Track redacted state: Set of "row,column" keys
+  const [redactedCells, setRedactedCells] = useState<Set<string>>(() => {
+    // Initialize with auto-detected columns (all rows for those columns)
+    const initial = new Set<string>()
+    parsedData.rows.forEach((_, rowIndex) => {
+      autoDetectedColumns.forEach(col => {
+        const colIndex = parsedData.headers.indexOf(col)
+        if (colIndex >= 0) {
+          initial.add(`${rowIndex},${colIndex}`)
+        }
+      })
+    })
+    return initial
+  })
+  
+  // Track redacted columns (for header highlighting)
+  const redactedColumns = useMemo(() => {
+    const cols = new Set<number>()
+    redactedCells.forEach(key => {
+      const [, colIndex] = key.split(',').map(Number)
+      cols.add(colIndex)
+    })
+    return cols
+  }, [redactedCells])
+  
+  // Track redacted rows (for row number highlighting)
+  const redactedRows = useMemo(() => {
+    const rows = new Set<number>()
+    redactedCells.forEach(key => {
+      const [rowIndex] = key.split(',').map(Number)
+      rows.add(rowIndex)
+    })
+    return rows
+  }, [redactedCells])
+  
+  // Toggle single cell
+  const toggleCell = (rowIndex: number, colIndex: number) => {
+    const key = `${rowIndex},${colIndex}`
+    setRedactedCells(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
   }
   
-  const originalParsed = parseCSVForDisplay(originalData)
-  const redactedParsed = parseCSVForDisplay(redactedData)
+  // Toggle entire column
+  const toggleColumn = (colIndex: number) => {
+    const allCellsInColumn = parsedData.rows.map((_, rowIndex) => `${rowIndex},${colIndex}`)
+    const allRedacted = allCellsInColumn.every(key => redactedCells.has(key))
+    
+    setRedactedCells(prev => {
+      const next = new Set(prev)
+      if (allRedacted) {
+        // Remove all cells in column
+        allCellsInColumn.forEach(key => next.delete(key))
+      } else {
+        // Add all cells in column
+        allCellsInColumn.forEach(key => next.add(key))
+      }
+      return next
+    })
+  }
   
-  const toggleColumn = (columnName: string) => {
-    const newSet = new Set(manuallySelectedColumns)
-    if (newSet.has(columnName)) {
-      newSet.delete(columnName)
-    } else {
-      newSet.add(columnName)
-    }
-    setManuallySelectedColumns(newSet)
+  // Toggle entire row
+  const toggleRow = (rowIndex: number) => {
+    const allCellsInRow = parsedData.headers.map((_, colIndex) => `${rowIndex},${colIndex}`)
+    const allRedacted = allCellsInRow.every(key => redactedCells.has(key))
+    
+    setRedactedCells(prev => {
+      const next = new Set(prev)
+      if (allRedacted) {
+        // Remove all cells in row
+        allCellsInRow.forEach(key => next.delete(key))
+      } else {
+        // Add all cells in row
+        allCellsInRow.forEach(key => next.add(key))
+      }
+      return next
+    })
+  }
+  
+  // Check if cell is redacted
+  const isCellRedacted = (rowIndex: number, colIndex: number) => {
+    return redactedCells.has(`${rowIndex},${colIndex}`)
+  }
+  
+  // Generate final redacted CSV
+  const generateRedactedCSV = () => {
+    const redactedRows = parsedData.rows.map((row, rowIndex) =>
+      row.map((cell, colIndex) => 
+        isCellRedacted(rowIndex, colIndex) ? 'XXXX' : cell
+      )
+    )
+    
+    const headerLine = parsedData.headers.map(escapeCSVField).join(',')
+    const dataLines = redactedRows.map(row => row.map(escapeCSVField).join(','))
+    return [headerLine, ...dataLines].join('\n')
   }
   
   const handleConfirm = () => {
-    onConfirm(redactedData)
+    const finalRedactedData = generateRedactedCSV()
+    onConfirm(finalRedactedData)
   }
+  
+  const totalRedactedCells = redactedCells.size
+  const totalCells = parsedData.headers.length * parsedData.rows.length
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -97,190 +211,122 @@ export function ComplianceReviewModal({
             <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-                Compliance Responsibility
+                Interactive Redaction Editor
               </p>
               <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-                You are responsible for ensuring HIPAA/NIST compliance. Original data will NOT be stored - only the redacted version will be saved. 
-                Please review the redacted data carefully before confirming.
+                Click any cell to redact/unredact it. Click column headers to redact entire columns. Click row numbers to redact entire rows. 
+                Only the redacted version will be stored - original data is never saved.
               </p>
             </div>
           </div>
         </div>
         
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 grid grid-cols-2 gap-4 p-6 overflow-auto">
-            {/* Original Data */}
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Original Data (Preview Only)
-                </h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {originalParsed.rows.length} rows shown
-                </span>
-              </div>
-              <div className="flex-1 border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-800">
-                {originalParsed.headers.length > 0 ? (
-                  <div className="w-full min-w-max">
-                    {/* Headers */}
-                    <div className="sticky top-0 bg-gray-200 dark:bg-gray-700 border-b z-10">
-                      <div className="flex">
-                        {originalParsed.headers.map((header, index) => {
-                          const isRedacted = redactedColumns.includes(header)
-                          return (
-                            <div
-                              key={index}
-                              className={`flex-1 p-2 text-xs font-semibold border-r border-gray-300 dark:border-gray-600 min-w-[120px] ${
-                                isRedacted ? 'bg-red-100 dark:bg-red-900/30' : ''
-                              }`}
-                            >
-                              {header}
-                              {isRedacted && (
-                                <span className="ml-1 text-red-600 dark:text-red-400">🔒</span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
+        {/* Data Table */}
+        <div className="flex-1 overflow-auto p-6">
+          {parsedData.headers.length > 0 ? (
+            <div className="border rounded-lg bg-white dark:bg-gray-800 overflow-auto">
+              <div className="w-full min-w-max">
+                {/* Header Row */}
+                <div className="sticky top-0 bg-gray-100 dark:bg-gray-700 border-b z-20">
+                  <div className="flex">
+                    {/* Row number header */}
+                    <div className="w-12 p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-r border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-800">
+                      #
                     </div>
-                    {/* Rows */}
-                    {originalParsed.rows.map((row, rowIndex) => (
-                      <div key={rowIndex} className="flex border-b border-gray-200 dark:border-gray-600">
-                        {row.map((cell, cellIndex) => {
-                          const header = originalParsed.headers[cellIndex]
-                          const isRedacted = header && redactedColumns.includes(header)
-                          return (
-                            <div
-                              key={cellIndex}
-                              className={`flex-1 p-2 text-xs border-r border-gray-200 dark:border-gray-600 min-w-[120px] ${
-                                isRedacted ? 'bg-red-50 dark:bg-red-900/10' : ''
-                              }`}
-                            >
-                              <span className="block truncate">{cell}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ))}
+                    {/* Column headers */}
+                    {parsedData.headers.map((header, colIndex) => {
+                      const isRedacted = redactedColumns.has(colIndex)
+                      const isAutoDetected = autoDetectedColumns.includes(header)
+                      return (
+                        <div
+                          key={colIndex}
+                          onClick={() => toggleColumn(colIndex)}
+                          className={`flex-1 p-2 text-xs font-semibold border-r border-gray-300 dark:border-gray-600 min-w-[120px] cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 ${
+                            isRedacted 
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                          title={`Click to ${isRedacted ? 'unredact' : 'redact'} entire column`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="truncate">{header}</span>
+                            {isRedacted && (
+                              <EyeOff className="w-3 h-3 ml-1 flex-shrink-0" />
+                            )}
+                            {!isRedacted && isAutoDetected && (
+                              <span className="ml-1 text-blue-500 text-[10px]">(auto)</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                ) : (
-                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    No data to display
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Redacted Data */}
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Redacted Data (Will Be Stored)
-                </h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {redactedParsed.rows.length} rows shown
-                </span>
-              </div>
-              <div className="flex-1 border rounded-lg overflow-auto bg-gray-50 dark:bg-gray-800">
-                {redactedParsed.headers.length > 0 ? (
-                  <div className="w-full min-w-max">
-                    {/* Headers */}
-                    <div className="sticky top-0 bg-gray-200 dark:bg-gray-700 border-b z-10">
-                      <div className="flex">
-                        {redactedParsed.headers.map((header, index) => {
-                          const isRedacted = redactedColumns.includes(header)
-                          return (
-                            <div
-                              key={index}
-                              className={`flex-1 p-2 text-xs font-semibold border-r border-gray-300 dark:border-gray-600 min-w-[120px] ${
-                                isRedacted ? 'bg-green-100 dark:bg-green-900/30' : ''
-                              }`}
-                            >
-                              {header}
-                              {isRedacted && (
-                                <span className="ml-1 text-green-600 dark:text-green-400">✓</span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    {/* Rows */}
-                    {redactedParsed.rows.map((row, rowIndex) => (
-                      <div key={rowIndex} className="flex border-b border-gray-200 dark:border-gray-600">
-                        {row.map((cell, cellIndex) => {
-                          const header = redactedParsed.headers[cellIndex]
-                          const isRedacted = header && redactedColumns.includes(header)
-                          return (
-                            <div
-                              key={cellIndex}
-                              className={`flex-1 p-2 text-xs border-r border-gray-200 dark:border-gray-600 min-w-[120px] ${
-                                isRedacted ? 'bg-green-50 dark:bg-green-900/10 font-mono' : ''
-                              }`}
-                            >
-                              <span className="block truncate">{cell}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    No data to display
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Column Selection */}
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Columns to Redact
-            </h4>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-auto">
-              {allColumns.map(column => {
-                const isAutoDetected = autoDetectedColumns.includes(column)
-                const isManuallySelected = manuallySelectedColumns.has(column)
-                const isSelected = isAutoDetected || isManuallySelected
+                </div>
                 
-                return (
-                  <label
-                    key={column}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700'
-                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleColumn(column)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {column}
-                    </span>
-                    {isAutoDetected && (
-                      <span className="text-xs text-blue-600 dark:text-blue-400">(auto)</span>
-                    )}
-                  </label>
-                )
-              })}
+                {/* Data Rows */}
+                {parsedData.rows.map((row, rowIndex) => {
+                  const isRowRedacted = redactedRows.has(rowIndex)
+                  return (
+                    <div 
+                      key={rowIndex} 
+                      className={`flex border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                        isRowRedacted ? 'bg-red-50/30 dark:bg-red-900/10' : ''
+                      }`}
+                    >
+                      {/* Row number */}
+                      <div
+                        onClick={() => toggleRow(rowIndex)}
+                        className={`w-12 p-2 text-xs font-medium border-r border-gray-200 dark:border-gray-600 cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-600 ${
+                          isRowRedacted 
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' 
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                        title={`Click to ${isRowRedacted ? 'unredact' : 'redact'} entire row`}
+                      >
+                        {rowIndex + 1}
+                      </div>
+                      
+                      {/* Data cells */}
+                      {row.map((cell, colIndex) => {
+                        const isRedacted = isCellRedacted(rowIndex, colIndex)
+                        return (
+                          <div
+                            key={colIndex}
+                            onClick={() => toggleCell(rowIndex, colIndex)}
+                            className={`flex-1 p-2 text-xs border-r border-gray-200 dark:border-gray-600 min-w-[120px] cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 ${
+                              isRedacted 
+                                ? 'bg-red-50 dark:bg-red-900/10 font-mono text-red-600 dark:text-red-400' 
+                                : 'text-gray-800 dark:text-gray-200'
+                            }`}
+                            title={`Click to ${isRedacted ? 'unredact' : 'redact'} this cell`}
+                          >
+                            <span className="block truncate">
+                              {isRedacted ? 'XXXX' : cell}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {redactedColumns.length} column{redactedColumns.length !== 1 ? 's' : ''} will be redacted
-            </p>
-          </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              No data to display
+            </div>
+          )}
         </div>
         
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            <span className="font-medium">{redactedColumns.length}</span> column{redactedColumns.length !== 1 ? 's' : ''} redacted
+            <span className="font-medium">{totalRedactedCells}</span> of <span className="font-medium">{totalCells}</span> cells redacted
+            {redactedColumns.size > 0 && (
+              <span className="ml-2">
+                • <span className="font-medium">{redactedColumns.size}</span> column{redactedColumns.size !== 1 ? 's' : ''} fully redacted
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={onCancel}>
@@ -296,4 +342,3 @@ export function ComplianceReviewModal({
     </div>
   )
 }
-

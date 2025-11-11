@@ -15,29 +15,30 @@ interface RedactionResult {
  * Case-insensitive matching
  */
 const PHI_PATTERNS = {
-  // Names
-  names: /^(first|last|full|given|middle|patient|person|subject|participant|patient_|person_|subject_|participant_)?(name|names|firstname|lastname|fullname|givenname|middlename)$/i,
+  // Names - matches name, names, firstname, lastname, fullname, patient_name, clinician_name, doctor_name, etc.
+  // Pattern: matches "name" standalone, or any prefix ending with underscore + "name", or common name variations
+  names: /^(name|names|firstname|lastname|fullname|givenname|middlename|first_name|last_name|full_name|given_name|middle_name|patient_name|person_name|subject_name|participant_name|clinician_name|doctor_name|physician_name|provider_name|staff_name|user_name|patientname|personname|subjectname|participantname|clinicianname|doctorname|physicianname|providername|staffname|username)$/i,
   
   // Social Security Number
-  ssn: /^(ssn|social_security|social_security_number|socialsecurity|ss#|ss_number)$/i,
+  ssn: /^(ssn|social_security|social_security_number|socialsecurity|ss#|ss_number|social_security_num)$/i,
   
   // Date of Birth
-  dob: /^(dob|date_of_birth|birthdate|birth_date|birthday|bdate|dateofbirth)$/i,
+  dob: /^(dob|date_of_birth|birthdate|birth_date|birthday|bdate|dateofbirth|birth|date_birth)$/i,
   
   // Address
-  address: /^(address|street_address|mailing_address|home_address|physical_address|addr|street|streetaddress|mailingaddress)$/i,
+  address: /^(address|street_address|mailing_address|home_address|physical_address|addr|street|streetaddress|mailingaddress|residence|residential_address)$/i,
   
   // Zip Code
   zip: /^(zip|zipcode|zip_code|postal_code|postcode|postalcode)$/i,
   
   // Phone
-  phone: /^(phone|phone_number|telephone|tel|mobile|cell|cellphone|cell_phone|contact_number)$/i,
+  phone: /^(phone|phone_number|telephone|tel|mobile|cell|cellphone|cell_phone|contact_number|phone_num|telephone_number)$/i,
   
   // Email
-  email: /^(email|email_address|e_mail|e-mail|mail)$/i,
+  email: /^(email|email_address|e_mail|e-mail|mail|email_addr)$/i,
   
-  // Medical Record Number
-  mrn: /^(mrn|medical_record_number|medicalrecordnumber|record_number|recordnumber|patient_id|patientid)$/i,
+  // Medical Record Number / Patient ID
+  mrn: /^(mrn|medical_record_number|medicalrecordnumber|record_number|recordnumber|patient_id|patientid|patient_num|medical_record_id)$/i,
   
   // IP Address
   ip: /^(ip_address|ipaddress|ip)$/i,
@@ -65,12 +66,25 @@ const PHI_PATTERNS = {
  * Checks if a column name matches any PHI pattern
  */
 function isPHIColumn(columnName: string): boolean {
-  const normalized = columnName.trim()
+  const normalized = columnName.trim().toLowerCase()
   
+  // Check explicit patterns
   for (const pattern of Object.values(PHI_PATTERNS)) {
     if (pattern.test(normalized)) {
       return true
     }
+  }
+  
+  // Additional flexible checks for common PHI patterns
+  // Any column ending with "_name" or "_names" (e.g., clinician_name, doctor_name)
+  if (/_(name|names)$/i.test(normalized)) {
+    return true
+  }
+  
+  // Exact match for common standalone PHI fields
+  const standalonePHI = ['name', 'names', 'dob', 'ssn', 'address', 'phone', 'email', 'zip', 'zipcode']
+  if (standalonePHI.includes(normalized)) {
+    return true
   }
   
   return false
@@ -87,6 +101,42 @@ function redactValue(value: string): string {
 }
 
 /**
+ * Properly parses CSV line handling quoted fields with commas
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote
+        current += '"'
+        i++ // Skip next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes
+      }
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  
+  // Add last field
+  result.push(current.trim())
+  
+  return result
+}
+
+/**
  * Parses CSV data into headers and rows
  */
 function parseCSV(csvData: string): { headers: string[], rows: string[][] } {
@@ -95,13 +145,13 @@ function parseCSV(csvData: string): { headers: string[], rows: string[][] } {
     return { headers: [], rows: [] }
   }
   
-  // Parse headers
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+  // Parse headers using proper CSV parsing
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ''))
   
   // Parse data rows
   const rows: string[][] = []
   for (let i = 1; i < lines.length; i++) {
-    const row = lines[i].split(',').map(cell => cell.trim().replace(/^"|"$/g, ''))
+    const row = parseCSVLine(lines[i]).map(cell => cell.replace(/^"|"$/g, ''))
     rows.push(row)
   }
   
@@ -109,11 +159,21 @@ function parseCSV(csvData: string): { headers: string[], rows: string[][] } {
 }
 
 /**
+ * Escapes CSV field if it contains comma, quote, or newline
+ */
+function escapeCSVField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`
+  }
+  return field
+}
+
+/**
  * Reconstructs CSV from headers and rows
  */
 function reconstructCSV(headers: string[], rows: string[][]): string {
-  const headerLine = headers.join(',')
-  const dataLines = rows.map(row => row.join(','))
+  const headerLine = headers.map(escapeCSVField).join(',')
+  const dataLines = rows.map(row => row.map(escapeCSVField).join(','))
   return [headerLine, ...dataLines].join('\n')
 }
 
@@ -205,7 +265,7 @@ export function getCSVColumns(csvData: string): string[] {
       return []
     }
     
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''))
     return headers
   } catch (error) {
     console.error('Error parsing CSV columns:', error)
