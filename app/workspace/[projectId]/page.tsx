@@ -1318,12 +1318,12 @@ export default function WorkspacePage() {
 
         if (!mountedRef.current) return
 
-        // Persist the first image URL for version/history continuity
-        const firstUrl = urls[0]
+        // Save all plot URLs (as JSON array if multiple, single string if one)
+        const plotUrlsToSave = urls.length > 1 ? JSON.stringify(urls) : urls[0]
         await fetch(`/api/projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plot_url: firstUrl }),
+          body: JSON.stringify({ plot_url: plotUrlsToSave }),
         })
 
         if (!mountedRef.current) return
@@ -1331,7 +1331,7 @@ export default function WorkspacePage() {
         if (mountedRef.current) {
           setProject((prev: any) => ({
             ...prev,
-            plot_url: firstUrl
+            plot_url: plotUrlsToSave
           }))
         }
 
