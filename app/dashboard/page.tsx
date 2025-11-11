@@ -113,12 +113,12 @@ export default function DashboardPage() {
 
   // Auto-refresh will be set up after refreshProjects is defined
 
-  const handleCreateProject = async (name: string, description: string) => {
+  const handleCreateProject = async (name: string, description: string, hipaaCompliant: boolean = false) => {
     try {
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, hipaaCompliant }),
       })
       if (response.status === 409) {
         alert('A project with that name already exists. Please choose a different name.')

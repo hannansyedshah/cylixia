@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description } = body
+    const { name, description, hipaaCompliant } = body
 
     // Basic validation
     const trimmedName = (name || '').trim()
@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
         name: trimmedName,
         description,
         code: '# Your R code will appear here\n',
+        hipaa_compliant: hipaaCompliant || false,
       })
       .select()
       .single()

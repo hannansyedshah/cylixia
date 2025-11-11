@@ -18,7 +18,7 @@ import { DataPreview } from '@/components/DataPreview'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSessionStore } from '@/store/useSessionStore'
-import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check } from 'lucide-react'
+import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -1548,6 +1548,12 @@ export default function WorkspacePage() {
                 <h1 className="text-lg font-semibold text-darktext dark:text-white">
                   {project.name}
                 </h1>
+                {project?.hipaa_compliant && (
+                  <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    HIPAA/NIST
+                  </div>
+                )}
                 {datasets.length > 0 && (
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                     privacyMode 
@@ -1689,6 +1695,7 @@ export default function WorkspacePage() {
               <UploadPanel 
                 key={`upload-panel-${userRole}`}
                 privacyMode={privacyMode}
+                hipaaCompliant={project?.hipaa_compliant || false}
                 datasets={datasets}
                 sharedDatasets={sharedDatasets}
                 onDatasetsChange={(list) => setDatasets(list)}

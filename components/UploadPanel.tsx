@@ -1,10 +1,12 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import { Upload, X, Eye, Share2, Users, Plus } from 'lucide-react'
+import { Upload, X, Eye, Share2, Users, Plus, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataPreview } from '@/components/DataPreview'
 import { UserAvatar } from './UserAvatar'
+import { ComplianceReviewModal } from './ComplianceReviewModal'
+import { redactPHI } from '@/lib/phiRedactor'
 
 interface DatasetItem {
   id: string
@@ -39,6 +41,7 @@ interface UploadPanelProps {
   onDatasetsChange?: (datasets: DatasetItem[]) => void
   onSharedDatasetsChange?: (datasets: SharedDataset[]) => void
   privacyMode?: boolean
+  hipaaCompliant?: boolean
   projectId?: string
   userRole?: 'owner' | 'edit' | 'view'
   currentUserId?: string
@@ -54,6 +57,7 @@ export function UploadPanel({
   onDatasetsChange, 
   onSharedDatasetsChange,
   privacyMode = true,
+  hipaaCompliant = false,
   projectId,
   userRole,
   currentUserId,
@@ -72,6 +76,7 @@ export function UploadPanel({
   const [showShareConfirm, setShowShareConfirm] = useState(false)
   const [pendingShareDataset, setPendingShareDataset] = useState<DatasetItem | null>(null)
   const [dontShowShareConfirm, setDontShowShareConfirm] = useState(false)
+  const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string } | null>(null)
   
   // Allow sharing for project owners and collaborators with 'owner' or 'edit' role
   const canShare = userRole === 'owner' || userRole === 'edit'
@@ -98,6 +103,14 @@ export function UploadPanel({
     if (file.size > 10 * 1024 * 1024) return alert('File too large (max 10MB)')
 
     const text = await file.text()
+    
+    // If HIPAA compliant mode is enabled, show compliance review modal
+    if (hipaaCompliant) {
+      setComplianceReviewData({ originalData: text, fileName: file.name })
+      return
+    }
+    
+    // Normal flow - add directly
     const item: DatasetItem = {
       id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       fileName: file.name,
@@ -129,11 +142,52 @@ export function UploadPanel({
       }
     }
   }
+  
+  const handleComplianceConfirm = (redactedData: string) => {
+    if (!complianceReviewData) return
+    
+    // Create dataset item with redacted data only
+    const item: DatasetItem = {
+      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fileName: complianceReviewData.fileName,
+      sizeBytes: new Blob([redactedData]).size,
+      persisted: false,
+      includeChat: true,
+      includeRun: true,
+      csvText: redactedData, // Only store redacted version
+    }
+    
+    // Check if there's a placeholder with the same file name
+    const existingIndex = datasets.findIndex(d => d.fileName === complianceReviewData.fileName && d.persisted && !d.csvText)
+    if (existingIndex >= 0) {
+      // Replace the placeholder with the redacted file
+      const updated = [...datasets]
+      updated[existingIndex] = item
+      notifyChange(updated)
+    } else {
+      notifyChange([...(datasets || []), item])
+    }
+    
+    // Clear compliance review data
+    setComplianceReviewData(null)
+  }
+  
+  const handleComplianceCancel = () => {
+    setComplianceReviewData(null)
+  }
 
   const fileToItem = async (file: File): Promise<DatasetItem | null> => {
     if (!file.name.toLowerCase().endsWith('.csv')) { alert('Only .csv files are allowed'); return null }
     if (file.size > 10 * 1024 * 1024) { alert('File too large (max 10MB)'); return null }
     const text = await file.text()
+    
+    // If HIPAA compliant mode, we'll handle it in handleSelectFiles
+    // This function is used for batch processing, so we'll let handleLocalAdd handle compliance
+    if (hipaaCompliant) {
+      // For batch files, we'll process them one by one through handleLocalAdd
+      return null
+    }
+    
     return {
       id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       fileName: file.name,
@@ -157,6 +211,23 @@ export function UploadPanel({
     const all = Array.from(e.target.files || [])
     if (all.length === 0) return
     
+    // If HIPAA compliant mode, process files one by one through handleLocalAdd
+    // This ensures each file goes through compliance review
+    if (hipaaCompliant) {
+      // Process first file (others will be queued)
+      if (all.length > 0) {
+        await handleLocalAdd(all[0])
+        // Note: Additional files will need to be processed after compliance review
+        // For now, we'll process one at a time
+        if (all.length > 1) {
+          alert(`In compliance mode, files are processed one at a time. Please upload the remaining ${all.length - 1} file(s) separately after completing the review.`)
+        }
+      }
+      if (inputRef.current) inputRef.current.value = ''
+      return
+    }
+    
+    // Normal flow for non-compliance mode
     // Check how many placeholders exist
     const placeholderCount = datasets.filter(d => d.persisted && !d.csvText).length
     const activeCount = datasets.filter(d => d.csvText).length
@@ -373,6 +444,20 @@ export function UploadPanel({
 
   return (
     <div className="p-3 border-b bg-gradient-to-r from-white to-blue-50/30 dark:from-gray-800 dark:to-blue-950/30">
+      {/* Compliance Mode Indicator */}
+      {hipaaCompliant && (
+        <div className="mb-3 p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+              HIPAA/NIST Compliance Mode Active
+            </span>
+            <span className="text-xs text-blue-600 dark:text-blue-400">
+              - PHI will be automatically redacted
+            </span>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-1">
           <input
@@ -691,6 +776,16 @@ export function UploadPanel({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Compliance Review Modal */}
+      {complianceReviewData && (
+        <ComplianceReviewModal
+          originalData={complianceReviewData.originalData}
+          fileName={complianceReviewData.fileName}
+          onConfirm={handleComplianceConfirm}
+          onCancel={handleComplianceCancel}
+        />
       )}
     </div>
   )
