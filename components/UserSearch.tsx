@@ -77,7 +77,7 @@ export function UserSearch({ onSelect, excludeUserIds = [], className = '' }: Us
         placeholder="Search users by name..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="h-11"
+        className="h-11 bg-white dark:bg-gray-800 text-darktext dark:text-white border-2 border-gray-300 dark:border-gray-600"
       />
       {loading && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">

@@ -355,24 +355,14 @@ export async function generateContextWindow(
       throw new Error('AIRIA_CONTEXT_API_KEY or AIRIA_API_KEY not configured in environment variables')
     }
 
-    // Build dataset summary with column names
-    let datasetSummary = ''
-    if (csvFiles && csvFiles.length > 0) {
-      datasetSummary = csvFiles.map(file => {
-        // Extract column headers (first line of CSV)
-        const lines = file.csvData.split('\n')
-        const headers = lines[0] || ''
-        return `- ${file.fileName}: ${headers}`
-      }).join('\n')
-    }
-
-    // Build the context generation request
+    // Build the context generation request with full CSV data
+    // The API expects CSV file(s) with name and data, and returns a template
     const contextInput = {
       project_name: projectName,
-      dataset_files: datasetSummary || 'No datasets uploaded yet',
-      csv_preview: csvFiles && csvFiles.length > 0 
-        ? csvFiles[0].csvData.substring(0, 1000) 
-        : ''
+      csv_files: csvFiles.map(file => ({
+        file_name: file.fileName,
+        csv_data: file.csvData // Send full CSV data, not just preview
+      }))
     }
 
     const payload = {
@@ -382,6 +372,7 @@ export async function generateContextWindow(
     }
 
     console.log('🔍 Generating context window via Airia...')
+    console.log(`📂 Sending ${csvFiles.length} CSV file(s) for context generation`)
 
     const response = await fetch(AIRIA_API_URL_CONTEXT, {
       method: 'POST',
@@ -403,6 +394,7 @@ export async function generateContextWindow(
 
     // If response is a string, return it
     if (typeof contextText === 'string') {
+      console.log('✅ Context template received from API')
       return contextText
     }
 

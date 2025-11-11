@@ -243,7 +243,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                   value={fields.studyType}
                   onChange={(e) => setFields(prev => ({ ...prev, studyType: e.target.value }))}
                   placeholder="e.g., Clinical trial, Observational study, Epidemiological research"
-                  className="w-full border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500"
+                  className="w-full border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                 />
               </div>
 
@@ -270,7 +270,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                   value={fields.keyFields}
                   onChange={(e) => setFields(prev => ({ ...prev, keyFields: e.target.value }))}
                   placeholder="e.g., Patient_ID, Age, Treatment, Outcome"
-                  className="w-full border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500"
+                  className="w-full border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Detected files: {csvFiles.map(f => f.fileName).join(', ')}
@@ -344,7 +344,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                         value={type}
                         onChange={(e) => updateAnalysisType(index, e.target.value)}
                         placeholder="e.g., Linear regression, ANOVA, Survival analysis"
-                        className="flex-1 border-2 border-gray-300 dark:border-gray-600"
+                        className="flex-1 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                       />
                       <Button
                         type="button"

@@ -862,7 +862,7 @@ export function CodeEditorCollaborative({
                   value={shareMessage}
                   onChange={(e) => setShareMessage(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleShareSelection()}
-                  className="w-full"
+                  className="w-full bg-white dark:bg-gray-900 text-darktext dark:text-white border-2 border-gray-300 dark:border-gray-600"
                 />
               </div>
               <div>

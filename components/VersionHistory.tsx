@@ -314,7 +314,7 @@ export function VersionHistory({
             placeholder="Enter a description for this version..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mb-2"
+            className="mb-2 bg-white dark:bg-gray-900 text-darktext dark:text-white border-2 border-gray-300 dark:border-gray-600"
           />
           <div className="flex space-x-2">
             <Button size="sm" onClick={saveCurrentVersion} disabled={saving}>
