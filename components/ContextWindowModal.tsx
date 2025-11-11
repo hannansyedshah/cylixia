@@ -30,6 +30,7 @@ export function ContextWindowModal({
     if (!initialContext && !hasGenerated) {
       generateContext()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const generateContext = async () => {
@@ -138,7 +139,7 @@ Additional Notes: [Any specific requirements or constraints]`
                 <span className="flex-shrink-0">💡</span>
                 <p>
                   This context helps the AI understand your research goals, dataset structure, 
-                  and preferred analysis methods. You can edit this anytime by clicking "Edit Context" 
+                  and preferred analysis methods. You can edit this anytime by clicking &quot;Edit Context&quot; 
                   in the project header.
                 </p>
               </div>
