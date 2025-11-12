@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { X, Shield, Check, AlertTriangle, Lock, FileText, CheckCircle, Eye } from 'lucide-react'
+import { X, Shield, Check, AlertTriangle, Lock, FileText, CheckCircle, Eye, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { redactPHI, getCSVColumns, isColumnPHI } from '@/lib/phiRedactor'
 
@@ -77,6 +77,15 @@ export function ComplianceReviewModal({
     return { headers, rows }
   }, [redactedData])
   
+  // Pagination state - show 20 rows initially
+  const [displayedRowCount, setDisplayedRowCount] = useState(20)
+  const visibleRows = parsedData.rows.slice(0, displayedRowCount)
+  const hasMoreRows = displayedRowCount < parsedData.rows.length
+  
+  const loadMoreRows = () => {
+    setDisplayedRowCount(prev => Math.min(prev + 50, parsedData.rows.length))
+  }
+  
   const handleConfirm = () => {
     onConfirm(redactedData, redactedColumns)
   }
@@ -136,10 +145,10 @@ export function ComplianceReviewModal({
         
         {/* Data Table Container */}
         <div className="flex-1 overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900/50">
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-x-auto overflow-y-auto p-6">
             {parsedData.headers.length > 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-                <div className="overflow-auto max-h-full">
+                <div className="overflow-x-auto overflow-y-auto max-h-full">
                   <table className="w-full border-collapse">
                     {/* Header */}
                     <thead className="sticky top-0 z-20">
@@ -169,7 +178,7 @@ export function ComplianceReviewModal({
                     
                     {/* Body */}
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {parsedData.rows.map((row, rowIndex) => (
+                      {visibleRows.map((row, rowIndex) => (
                         <tr 
                           key={rowIndex} 
                           className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors duration-150"
@@ -204,6 +213,20 @@ export function ComplianceReviewModal({
                     </tbody>
                   </table>
                 </div>
+                
+                {/* Load More Button */}
+                {hasMoreRows && (
+                  <div className="flex justify-center mt-4 pb-4">
+                    <Button
+                      onClick={loadMoreRows}
+                      variant="outline"
+                      className="border-2 border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200"
+                    >
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                      Load More Rows ({displayedRowCount} of {parsedData.rows.length} shown)
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">

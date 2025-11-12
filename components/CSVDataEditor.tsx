@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { X, Trash2, Check, AlertCircle } from 'lucide-react'
+import { X, Trash2, Check, AlertCircle, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface CSVDataEditorProps {
@@ -84,6 +84,9 @@ export function CSVDataEditor({
     return indices
   })
   const [removedRowIndices, setRemovedRowIndices] = useState<Set<number>>(new Set())
+  
+  // Pagination state - show 20 rows initially
+  const [displayedRowCount, setDisplayedRowCount] = useState(20)
 
   // Filter data based on removals
   const { headers, rows } = useMemo(() => {
@@ -127,6 +130,14 @@ export function CSVDataEditor({
   }
 
   const hasChanges = removedColumnIndices.size > 0 || removedRowIndices.size > 0
+  
+  // Calculate visible rows
+  const visibleRows = originalRows.slice(0, displayedRowCount)
+  const hasMoreRows = displayedRowCount < originalRows.length
+  
+  const loadMoreRows = () => {
+    setDisplayedRowCount(prev => Math.min(prev + 50, originalRows.length))
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -197,9 +208,9 @@ export function CSVDataEditor({
         </div>
 
         {/* Data Table */}
-        <div className="flex-1 overflow-auto px-8 py-6 bg-gray-50 dark:bg-gray-900/50">
+        <div className="flex-1 overflow-x-auto overflow-y-auto px-8 py-6 bg-gray-50 dark:bg-gray-900/50">
           <div className="inline-block min-w-full">
-            <table className="border-collapse shadow-lg rounded-lg overflow-hidden">
+            <table className="border-collapse shadow-lg rounded-lg overflow-hidden w-full">
               <thead>
                 <tr>
                   <th className="sticky left-0 z-20 bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-800 border-2 border-gray-300 dark:border-gray-600 px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider shadow-sm">
@@ -233,7 +244,7 @@ export function CSVDataEditor({
                 </tr>
               </thead>
               <tbody>
-                {originalRows.map((row, rowIndex) => {
+                {visibleRows.map((row, rowIndex) => {
                   const isRowRemoved = removedRowIndices.has(rowIndex)
                   return (
                     <tr key={rowIndex} className={isRowRemoved ? '' : 'hover:bg-purple-50/50 dark:hover:bg-purple-900/10'}>
@@ -271,6 +282,20 @@ export function CSVDataEditor({
               </tbody>
             </table>
           </div>
+          
+          {/* Load More Button */}
+          {hasMoreRows && (
+            <div className="flex justify-center mt-6 mb-2">
+              <Button
+                onClick={loadMoreRows}
+                variant="outline"
+                className="border-2 border-purple-300 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-semibold px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <ChevronDown className="w-4 h-4 mr-2" />
+                Load More Rows ({displayedRowCount} of {originalRows.length} shown)
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Footer with Stats and Actions */}

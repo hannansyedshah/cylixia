@@ -60,6 +60,21 @@ const PHI_PATTERNS = {
   
   // Geographic subdivisions smaller than state
   location: /^(city|county|precinct|neighborhood|locality)$/i,
+  
+  // Healthcare encounter and admission identifiers
+  encounter: /^(encounter|encounter_id|encounterid|encounter_num|encounter_number)$/i,
+  
+  // Patient number/identifier
+  patientNumber: /^(patient_nbr|patient_number|patientnumber|patient_no|pt_nbr)$/i,
+  
+  // Admission-related identifiers
+  admission: /^(admission_type_id|admission_id|admissionid|admission_source_id|admission_source|admissionsource|discharge_disposition_id|discharge_disposition|dischargedisposition)$/i,
+  
+  // Time in hospital (potentially identifiable when combined with other data)
+  timeInHospital: /^(time_in_hospital|timeinhospital|hospital_time|length_of_stay|los)$/i,
+  
+  // Payer/insurance codes (can be identifying)
+  payerCode: /^(payer_code|payercode|payer|insurance_code|insurancecode|payor_code)$/i,
 }
 
 /**
