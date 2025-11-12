@@ -23,6 +23,8 @@ interface AiriaResponse {
 const AIRIA_API_URL_LEGACY = 'https://api.airia.ai/v2/PipelineExecution/3b015c24-44cf-400c-aac7-437fb5963f63'
 const AIRIA_API_URL_QUICK = 'https://api.airia.ai/v2/PipelineExecution/3679b604-284a-40fc-9ebc-e77362d144f6'
 const AIRIA_API_URL_ASK = 'https://api.airia.ai/v2/PipelineExecution/c91515d7-b957-4ada-b94d-5bf1470be7da'
+// Same agent for NIST ask mode - the agent routes internally based on context_window presence
+const AIRIA_API_URL_ASK_NIST = 'https://api.airia.ai/v2/PipelineExecution/c91515d7-b957-4ada-b94d-5bf1470be7da'
 const AIRIA_API_URL_CONTEXT = 'https://api.airia.ai/v2/PipelineExecution/f6015c53-afc1-4dff-bcfd-f9facce101cd'
 
 export async function callAiriaAgent(
@@ -36,7 +38,8 @@ export async function callAiriaAgent(
   preferences?: { style?: string; libraries?: string[] },
   csvFiles?: Array<{ fileName: string, csvData: string }>,
   privacyMode: boolean = true,
-  contextWindow?: string
+  contextWindow?: string,
+  isNistProject: boolean = false
 ): Promise<AiriaResponse> {
   try {
     const apiKey = process.env.AIRIA_API_KEY
@@ -121,7 +124,9 @@ export async function callAiriaAgent(
         })
       }
     } else if (mode === 'ask') {
+      // Use same ask agent for both - it routes internally based on context_window
       targetUrl = AIRIA_API_URL_ASK
+      console.log(`🔀 Ask mode: ${isNistProject ? 'Route 2 (NIST with context)' : 'Route 1 (Regular)'}`)
       // Use first CSV file for backward compatibility, or combine all CSV files
       const primaryCsvData = csvFiles && csvFiles.length > 0 
         ? csvFiles[0].csvData 

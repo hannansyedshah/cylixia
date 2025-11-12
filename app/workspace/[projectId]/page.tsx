@@ -1038,6 +1038,7 @@ export default function WorkspacePage() {
           privacyMode,
           mode: airiaMode,
           contextWindow: contextWindow || undefined, // Include context for NIST projects
+          isNistProject: !!project?.hipaa_compliant, // Pass NIST flag for conditional routing
           csvFilesForChat: [
             ...datasets
               .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally

@@ -39,6 +39,24 @@ AIRIA_CONTEXT_API_KEY=your_context_pipeline_api_key_here
 4. Click **"Save"**
 5. **Redeploy** your app
 
+## 📋 Airia Agent Pipeline GUIDs
+
+Your app uses multiple Airia agents for different purposes:
+
+### Code Generation Agents
+- **Legacy Agent**: `3b015c24-44cf-400c-aac7-437fb5963f63`
+- **Quick Mode (Regular)**: `3679b604-284a-40fc-9ebc-e77362d144f6`
+- **Quick Mode (NIST)**: Set via routing when `isNistProject = true`
+
+### Data Question Agents ("Ask Data" Mode)
+- **Ask Mode (Both Routes)**: `c91515d7-b957-4ada-b94d-5bf1470be7da`
+  - Route 1: Regular projects (no context)
+  - Route 2: NIST projects (with context window)
+  - Same agent with internal routing
+
+### Context Generation Agent
+- **Context Window**: `f6015c53-afc1-4dff-bcfd-f9facce101cd`
+
 ## 🧠 How the Integration Works
 
 ### Intelligent Routing:
@@ -59,7 +77,7 @@ When a user sends a message, the app:
 
 5. **Returns to user** with proper formatting
 
-### Example Flows:
+### Code Generation Mode:
 
 **User says:** *"Create a scatter plot of my data"*
 - → Route 2 (Generate)
@@ -76,20 +94,62 @@ When a user sends a message, the app:
 - → Airia receives: Current code + "improve legend"
 - → Returns enhanced code
 
-## 📊 Your Airia Agent Configurations
+### Ask Data Mode (NIST-Aware Routing):
+
+The "Ask Data" mode intelligently routes questions based on project type:
+
+**Regular Project:**
+- User switches to "Ask Data" mode
+- Asks: *"What is the average age in this dataset?"*
+- → Routes to: **Ask Mode (Regular)** agent
+- → Returns text answer (no code)
+
+**NIST Project:**
+- User switches to "Ask Data" mode
+- Context window is automatically included
+- Asks: *"What patterns do you see in treatment outcomes?"*
+- → Routes to: **Ask Mode (NIST)** agent
+- → Agent understands de-identification requirements
+- → Includes research context for better analysis
+- → Returns contextually-aware answer
+
+**Benefits of NIST Routing:**
+- Privacy-aware responses
+- Uses research context (study type, objectives, key fields)
+- Understands de-identified data structure
+- Provides more relevant statistical suggestions
+
+## 📊 Complete Agent Configuration Reference
+
+All agents are configured in `lib/airiaClient.ts`:
 
 ### Code Generation Agents:
 
 - **Legacy Agent**: `3b015c24-44cf-400c-aac7-437fb5963f63`
-- **Quick Agent**: `3679b604-284a-40fc-9ebc-e77362d144f6`
-- **Ask Data Agent**: `c91515d7-b957-4ada-b94d-5bf1470be7da`
+  - Used for legacy mode
+  - Basic code generation
 
-### HIPAA Context Window Agent:
+- **Quick Agent (Regular)**: `3679b604-284a-40fc-9ebc-e77362d144f6`
+  - Used for non-NIST projects
+  - Fast code generation with structured prompts
+
+- **Quick Agent (NIST)**: Set via conditional routing
+  - Used for NIST-compliant projects
+  - Includes context window automatically
+
+### Ask Data Agents:
+
+- **Ask Agent (Both Routes)**: `c91515d7-b957-4ada-b94d-5bf1470be7da`
+  - **Route 1 (Regular)**: No context window → Standard data questions
+  - **Route 2 (NIST)**: With context window → Privacy-aware responses with research context
+  - Same agent, internal routing based on payload
+
+### NIST Context Window Agent:
 
 - **Context Agent**: `f6015c53-afc1-4dff-bcfd-f9facce101cd`
-  - Used for generating research context from CSV data
+  - Generates research context from CSV data
   - Analyzes dataset structure and suggests study parameters
-  - HIPAA-compliant projects only
+  - NIST-compliant projects only
 
 ### API Details:
 
