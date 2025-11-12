@@ -313,6 +313,8 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
 } {
   const responseText = airiaData.output || airiaData.result || ''
   
+  console.log('🔍 Parsing Airia response, responseText type:', typeof responseText)
+  
   // If Airia returns structured data
   if (airiaData.rCode) {
     return {
@@ -324,8 +326,15 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
   // Try to parse structured JSON in output/result for quick mode
   try {
     const parsed = typeof responseText === 'string' ? JSON.parse(responseText) : responseText
+    console.log('🔍 Parsed object keys:', parsed ? Object.keys(parsed) : 'null')
+    
     if (parsed && parsed.r_code) {
       // Extract all metadata from Airia's response
+      console.log('✅ Successfully parsed Airia JSON response with metadata:', {
+        hasExplanation: !!parsed.explanation,
+        hasPlotDescription: !!parsed.plot_description,
+        hasSuggestions: !!parsed.next_suggestions
+      })
       return {
         code: parsed.r_code,
         message: 'Here\'s the R code for your request:',
@@ -333,8 +342,12 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
         plotDescription: parsed.plot_description,
         nextSuggestions: parsed.next_suggestions
       }
+    } else {
+      console.warn('⚠️ Parsed JSON but no r_code field found')
     }
-  } catch {}
+  } catch (parseError) {
+    console.warn('⚠️ Failed to parse Airia response as JSON:', parseError)
+  }
   
   // Extract code from response text
   const codeBlockMatch = responseText.match(/```r?\n([\s\S]*?)```/)

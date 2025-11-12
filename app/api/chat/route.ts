@@ -72,6 +72,13 @@ Please generate complete, executable R code that applies the user's requested ch
     )
     
     const parsed = parseAiriaResponse(airiaResponse)
+    
+    // Debug: Log what we parsed from Airia
+    console.log('📊 Parsed Airia Response:', {
+      hasExplanation: !!parsed.explanation,
+      hasPlotDescription: !!parsed.plotDescription,
+      hasSuggestions: !!(parsed.nextSuggestions && parsed.nextSuggestions.length > 0)
+    })
 
     // For ask mode, if response is plain text (no code), use the entire response as message
     if (mode === 'ask' && (!parsed.code || parsed.code === parsed.message || !parsed.code.includes('library(') && !parsed.code.includes('<-'))) {
@@ -80,6 +87,9 @@ Please generate complete, executable R code that applies the user's requested ch
       return NextResponse.json({
         message: responseText.trim() || parsed.message || 'Here\'s the answer to your question:',
         code: undefined, // Don't return code for ask mode text responses
+        explanation: parsed.explanation,
+        plotDescription: parsed.plotDescription,
+        nextSuggestions: parsed.nextSuggestions,
         rawResponse: airiaResponse, // For debugging
       })
     }
