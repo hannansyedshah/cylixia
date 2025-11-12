@@ -301,10 +301,10 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                 </p>
               </div>
 
-              {/* Field Exclusion Manager */}
+              {/* Field Exclusion Manager - Fixed height container to prevent layout shift */}
               {availableColumns.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-red-200 dark:border-red-700">
-                  <div className="flex items-start justify-between mb-3">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-red-200 dark:border-red-700 h-[400px] flex flex-col">
+                  <div className="flex items-start justify-between mb-3 flex-shrink-0">
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">
                         3b. Exclude Sensitive Fields
@@ -318,41 +318,50 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     </div>
                   </div>
                   
-                  {/* Column/Field Grid - Fixed height to prevent layout shift */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 h-64 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
-                    {availableColumns.map((column, index) => {
-                      const isExcluded = fields.excludedFields.includes(column)
-                      return (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => toggleExcludeField(column)}
-                          className={`
-                            px-3 py-2 rounded border-2 text-sm font-medium transition-all h-fit
-                            ${isExcluded
-                              ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 shadow-md'
-                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400'
-                            }
-                          `}
-                        >
-                          {isExcluded ? (
-                            <span className="flex items-center justify-center gap-1">
-                              <X className="w-3 h-3" />
-                              EXCLUDED
-                            </span>
-                          ) : (
-                            column
-                          )}
-                        </button>
-                      )
-                    })}
+                  {/* Column/Field Grid - Scrollable area */}
+                  <div className="flex-1 min-h-0 mb-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 h-full overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                      {availableColumns.map((column, index) => {
+                        const isExcluded = fields.excludedFields.includes(column)
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => toggleExcludeField(column)}
+                            className={`
+                              px-3 py-2 rounded border-2 text-sm font-medium transition-all h-fit
+                              ${isExcluded
+                                ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 shadow-md'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400'
+                              }
+                            `}
+                          >
+                            {isExcluded ? (
+                              <span className="flex items-center justify-center gap-1">
+                                <X className="w-3 h-3" />
+                                EXCLUDED
+                              </span>
+                            ) : (
+                              column
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                   
-                  {fields.excludedFields.length > 0 && (
-                    <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-800 dark:text-red-200">
-                      <strong>⚠️ Excluded Fields:</strong> {fields.excludedFields.join(', ')}
-                    </div>
-                  )}
+                  {/* Fixed height footer for excluded fields display */}
+                  <div className="flex-shrink-0 h-16 flex items-center">
+                    {fields.excludedFields.length > 0 ? (
+                      <div className="w-full p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-800 dark:text-red-200 overflow-y-auto">
+                        <strong>⚠️ Excluded Fields:</strong> {fields.excludedFields.join(', ')}
+                      </div>
+                    ) : (
+                      <div className="w-full p-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                        No fields excluded yet. Click any field above to exclude it.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

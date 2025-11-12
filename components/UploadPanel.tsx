@@ -80,6 +80,7 @@ export function UploadPanel({
   const [dontShowShareConfirm, setDontShowShareConfirm] = useState(false)
   const [dataEditorData, setDataEditorData] = useState<{ originalData: string; fileName: string; autoRedactedColumns?: string[] } | null>(null)
   const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string; manuallyRemovedColumns: string[] } | null>(null)
+  const [uploadChoiceData, setUploadChoiceData] = useState<{ originalData: string; fileName: string } | null>(null)
   
   // Allow sharing for project owners and collaborators with 'owner' or 'edit' role
   const canShare = userRole === 'owner' || userRole === 'edit'
@@ -107,18 +108,8 @@ export function UploadPanel({
 
     const text = await file.text()
     
-    // If HIPAA mode: Auto-detect and redact PHI FIRST, then allow manual review
-    if (hipaaCompliant) {
-      setComplianceReviewData({ 
-        originalData: text, 
-        fileName: file.name,
-        manuallyRemovedColumns: [] 
-      })
-      return
-    }
-    
-    // Non-HIPAA mode: Go straight to data editor for manual column/row removal
-    setDataEditorData({ originalData: text, fileName: file.name })
+    // Show choice modal: user can choose compliance review, manual editor, or direct upload
+    setUploadChoiceData({ originalData: text, fileName: file.name })
   }
   
   // Handle data editor confirmation (manual column/row removal)
@@ -180,6 +171,54 @@ export function UploadPanel({
   const handleComplianceCancel = () => {
     setComplianceReviewData(null)
   }
+  
+  // Handle user's choice for upload processing
+  const handleUploadChoice = (choice: 'compliance' | 'editor' | 'direct') => {
+    if (!uploadChoiceData) return
+    
+    if (choice === 'compliance') {
+      // Go to compliance review for auto PHI redaction
+      setComplianceReviewData({
+        originalData: uploadChoiceData.originalData,
+        fileName: uploadChoiceData.fileName,
+        manuallyRemovedColumns: []
+      })
+    } else if (choice === 'editor') {
+      // Go to manual data editor
+      setDataEditorData({
+        originalData: uploadChoiceData.originalData,
+        fileName: uploadChoiceData.fileName
+      })
+    } else {
+      // Direct upload - skip both
+      const item: DatasetItem = {
+        id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        fileName: uploadChoiceData.fileName,
+        sizeBytes: new Blob([uploadChoiceData.originalData]).size,
+        persisted: false,
+        includeChat: true,
+        includeRun: true,
+        csvText: uploadChoiceData.originalData,
+        excludedColumns: []
+      }
+      
+      // Check if there's a placeholder with the same file name
+      const existingIndex = datasets.findIndex(d => d.fileName === uploadChoiceData.fileName && d.persisted && !d.csvText)
+      if (existingIndex >= 0) {
+        const updated = [...datasets]
+        updated[existingIndex] = item
+        notifyChange(updated)
+      } else {
+        notifyChange([...(datasets || []), item])
+      }
+    }
+    
+    setUploadChoiceData(null)
+  }
+  
+  const handleUploadChoiceCancel = () => {
+    setUploadChoiceData(null)
+  }
 
   const fileToItem = async (file: File): Promise<DatasetItem | null> => {
     if (!file.name.toLowerCase().endsWith('.csv')) { alert('Only .csv files are allowed'); return null }
@@ -216,55 +255,14 @@ export function UploadPanel({
     const all = Array.from(e.target.files || [])
     if (all.length === 0) return
     
-    // If HIPAA compliant mode, process files one by one through handleLocalAdd
-    // This ensures each file goes through compliance review
-    if (hipaaCompliant) {
-      // Process first file (others will be queued)
-      if (all.length > 0) {
-        await handleLocalAdd(all[0])
-        // Note: Additional files will need to be processed after compliance review
-        // For now, we'll process one at a time
-        if (all.length > 1) {
-          alert(`In compliance mode, files are processed one at a time. Please upload the remaining ${all.length - 1} file(s) separately after completing the review.`)
-        }
+    // Process files one by one through handleLocalAdd
+    // This ensures each file goes through the choice modal
+    if (all.length > 0) {
+      await handleLocalAdd(all[0])
+      // Note: Additional files will need to be processed after completing the choice
+      if (all.length > 1) {
+        alert(`Files are processed one at a time. Please upload the remaining ${all.length - 1} file(s) separately after completing your choice.`)
       }
-      if (inputRef.current) inputRef.current.value = ''
-      return
-    }
-    
-    // Normal flow for non-compliance mode
-    // Check how many placeholders exist
-    const placeholderCount = datasets.filter(d => d.persisted && !d.csvText).length
-    const activeCount = datasets.filter(d => d.csvText).length
-    const remaining = Math.max(0, 5 - activeCount)
-    
-    const items = (await Promise.all(all.map(fileToItem))).filter(Boolean) as DatasetItem[]
-    
-    // Process items: replace placeholders if file name matches, otherwise add new
-    let updatedDatasets = [...datasets]
-    let addedCount = 0
-    
-    for (const item of items) {
-      // Check if there's a placeholder with the same file name
-      const placeholderIndex = updatedDatasets.findIndex(
-        d => d.fileName === item.fileName && d.persisted && !d.csvText
-      )
-      
-      if (placeholderIndex >= 0) {
-        // Replace placeholder with actual file
-        updatedDatasets[placeholderIndex] = item
-      } else if (activeCount + addedCount < 5) {
-        // Add new item if under limit
-        updatedDatasets.push(item)
-        addedCount++
-      }
-    }
-    
-    if (items.length > 0) {
-      if (addedCount < items.length && placeholderCount === 0) {
-        alert(`Only ${remaining} more dataset(s) can be added (max 5). ${items.length - addedCount} file(s) skipped.`)
-      }
-      notifyChange(updatedDatasets)
     }
     
     if (inputRef.current) inputRef.current.value = ''
@@ -458,7 +456,7 @@ export function UploadPanel({
               HIPAA/NIST Compliance Mode Active
             </span>
             <span className="text-xs text-blue-600 dark:text-blue-400">
-              - PHI will be automatically redacted
+              - Compliance review available for uploaded files
             </span>
           </div>
         </div>
@@ -802,6 +800,96 @@ export function UploadPanel({
           onConfirm={handleComplianceConfirm}
           onCancel={handleComplianceCancel}
         />
+      )}
+
+      {/* Upload Choice Modal - choose processing method */}
+      {uploadChoiceData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={handleUploadChoiceCancel}></div>
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[90vw] max-w-2xl p-6">
+            <div className="flex items-start gap-3 mb-6">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  How would you like to process this file?
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <strong>{uploadChoiceData.fileName}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {/* Option 1: Compliance Review */}
+              {hipaaCompliant && (
+                <button
+                  onClick={() => handleUploadChoice('compliance')}
+                  className="w-full p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+                >
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                        Compliance Review (Recommended for HIPAA)
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Automatically detect and redact PHI (names, SSNs, DOBs, etc.), then manually review if needed.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {/* Option 2: Manual Editor */}
+              <button
+                onClick={() => handleUploadChoice('editor')}
+                className="w-full p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left group"
+              >
+                <div className="flex items-start gap-3">
+                  <Eye className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      Manual Editor
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Manually select which columns or rows to remove before uploading.
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Option 3: Direct Upload */}
+              <button
+                onClick={() => handleUploadChoice('direct')}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-left group"
+              >
+                <div className="flex items-start gap-3">
+                  <Upload className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-1 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                      Upload As-Is
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Upload the file without any modifications or reviews.
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <Button 
+                variant="outline" 
+                onClick={handleUploadChoiceCancel}
+                className="px-4"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
