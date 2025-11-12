@@ -20,6 +20,7 @@ interface Project {
   updated_at: string
   is_shared?: boolean
   user_id?: string
+  hipaa_compliant?: boolean
 }
 
 export default function DashboardPage() {
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const { user, setUser } = useSessionStore()
   const [projects, setProjects] = useState<Project[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<'all' | 'nist' | 'regular'>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
@@ -351,6 +353,35 @@ export default function DashboardPage() {
                 <RefreshCw className={isRefreshing ? 'h-5 w-5 mr-2 animate-spin' : 'h-5 w-5 mr-2'} />
                 {isRefreshing ? 'Refreshing' : 'Refresh'}
               </Button>
+              
+              {/* Filter Buttons */}
+              <div className="flex gap-2 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
+                <Button
+                  onClick={() => setFilterType('all')}
+                  size="sm"
+                  variant={filterType === 'all' ? 'default' : 'outline'}
+                  className={filterType === 'all' ? '' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}
+                >
+                  All
+                </Button>
+                <Button
+                  onClick={() => setFilterType('nist')}
+                  size="sm"
+                  variant={filterType === 'nist' ? 'default' : 'outline'}
+                  className={filterType === 'nist' ? 'bg-emerald-600 hover:bg-emerald-700' : 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700'}
+                >
+                  NIST Only
+                </Button>
+                <Button
+                  onClick={() => setFilterType('regular')}
+                  size="sm"
+                  variant={filterType === 'regular' ? 'default' : 'outline'}
+                  className={filterType === 'regular' ? '' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}
+                >
+                  Regular Only
+                </Button>
+              </div>
+              
               <div className="ml-auto w-full md:w-80">
                 <input
                   type="text"
@@ -388,6 +419,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up animation-delay-400 min-h-[200px]">
               {projects
                 .filter(p => {
+                  // Apply type filter first
+                  if (filterType === 'nist' && !p.hipaa_compliant) return false
+                  if (filterType === 'regular' && p.hipaa_compliant) return false
+                  
+                  // Then apply search filter
                   const q = searchQuery.trim().toLowerCase()
                   if (!q) return true
                   const name = (p.name || '').toLowerCase()
@@ -407,6 +443,7 @@ export default function DashboardPage() {
                     createdAt={new Date(project.created_at).getTime()}
                     updatedAt={new Date(project.updated_at).getTime()}
                     isShared={project.is_shared || project.user_id !== user?.id}
+                    isNistCompliant={project.hipaa_compliant}
                     onDelete={handleDeleteProject}
                     onEdit={handleEditProject}
                   />

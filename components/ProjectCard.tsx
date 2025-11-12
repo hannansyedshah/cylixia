@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, FolderOpen, Edit2, Calendar, Users } from 'lucide-react'
+import { Trash2, FolderOpen, Edit2, Calendar, Users, Shield } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface ProjectCardProps {
@@ -13,11 +13,12 @@ interface ProjectCardProps {
   createdAt: number
   updatedAt: number
   isShared?: boolean
+  isNistCompliant?: boolean
   onDelete: (id: string) => void
   onEdit: (id: string) => void
 }
 
-export function ProjectCard({ id, name, description, createdAt, updatedAt, isShared, onDelete, onEdit }: ProjectCardProps) {
+export function ProjectCard({ id, name, description, createdAt, updatedAt, isShared, isNistCompliant, onDelete, onEdit }: ProjectCardProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -77,14 +78,22 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
             </Button>
           </div>
         </div>
-        <CardTitle className="text-xl group-hover:text-rstudio transition-colors flex items-center space-x-2">
+        <CardTitle className="text-xl group-hover:text-rstudio transition-colors flex items-center flex-wrap gap-2">
           <span>{name}</span>
-          {isShared && (
-            <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 rounded-full flex items-center space-x-1">
-              <Users className="w-3 h-3" />
-              <span>Shared</span>
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isShared && (
+              <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                <Users className="w-3 h-3" />
+                <span>Shared</span>
+              </span>
+            )}
+            {isNistCompliant && (
+              <span className="text-xs bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 dark:from-emerald-900 dark:to-teal-900 dark:text-emerald-200 px-2 py-0.5 rounded-full flex items-center space-x-1 border border-emerald-300 dark:border-emerald-700">
+                <Shield className="w-3 h-3" />
+                <span>NIST</span>
+              </span>
+            )}
+          </div>
         </CardTitle>
         <CardDescription className="line-clamp-2">
           {description || 'No description'}

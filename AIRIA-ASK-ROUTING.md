@@ -139,4 +139,6 @@ The Airia Ask agent should return responses in this JSON structure:
 - **Consistent**: Same routing approach as code generation mode
 - **Transparent**: Console logs show which route (1 or 2) is being used
 - **Smart Parsing**: Frontend cleans up formatting issues automatically
+- **Visual Indicators**: Dashboard displays NIST badge with shield icon for easy identification
+- **Filtering**: Users can filter dashboard to show only NIST or regular projects
 

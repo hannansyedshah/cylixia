@@ -250,6 +250,23 @@ export function getSystemPrompt(route: RouteType, existingCode?: string): string
 
 Edit the keyword lists in `lib/routerLogic.ts` to fine-tune intent detection.
 
+## 🏷️ Dashboard Visual Indicators
+
+The dashboard now includes visual indicators to help distinguish between project types:
+
+### NIST Badge
+- **Appearance**: Green gradient badge with shield icon
+- **Location**: Next to project name on project cards
+- **Purpose**: Instantly identify NIST-compliant projects with privacy features
+
+### Filter Options
+Users can filter projects by type:
+- **All**: Show all projects (default)
+- **NIST Only**: Show only NIST-compliant projects
+- **Regular Only**: Show only standard projects
+
+This makes it easy to quickly find and organize projects based on compliance requirements.
+
 ## ✅ You're All Set!
 
 Your app now uses:
@@ -257,6 +274,7 @@ Your app now uses:
 - ✅ Airia AI agent for R code
 - ✅ Context-aware prompts
 - ✅ Clean code extraction
+- ✅ Visual NIST indicators on dashboard
 
 Just add your `AIRIA_API_KEY` and you're ready to go! 🚀
 
