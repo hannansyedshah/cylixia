@@ -482,7 +482,7 @@ export function UploadPanel({
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-              HIPAA/NIST Compliance Mode Active
+              NIST Compliance Mode Active
             </span>
             <span className="text-xs text-blue-600 dark:text-blue-400">
               - Compliance review available for uploaded files
@@ -862,7 +862,7 @@ export function UploadPanel({
                     <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                        Compliance Review (Recommended for HIPAA)
+                        Compliance Review (Recommended for NIST)
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Automatically detect and redact PHI (names, SSNs, DOBs, etc.), then manually review if needed.

@@ -180,7 +180,7 @@ Objective: ${fields.objective || '[Not specified]'}
 
 Dataset Key Fields: ${fields.keyFields || '[Not specified]'}
 
-Privacy Setting: HIPAA-compliant mode ✅
+Privacy Setting: NIST-compliant mode ✅
 All PHI fields are treated as de-identified tokens. No raw identifiers are logged or exported.
 
 Excluded Fields (Not Shared): ${fields.excludedFields.join(', ') || '[None excluded]'}
@@ -211,7 +211,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">
-                NIST/HIPAA Research Context
+                NIST Research Context
               </h2>
               <p className="text-sm text-blue-100">
                 Project: {projectName}
@@ -301,16 +301,16 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                 </p>
               </div>
 
-              {/* Field Exclusion Manager - Fixed height container to prevent layout shift */}
+              {/* Field Exclusion Manager - Compact view without scrolling */}
               {availableColumns.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-red-200 dark:border-red-700 h-[400px] flex flex-col">
-                  <div className="flex items-start justify-between mb-3 flex-shrink-0">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-red-200 dark:border-red-700">
+                  <div className="flex items-start justify-between mb-3">
                     <div>
                       <label className="block text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">
                         3b. Exclude Sensitive Fields
                       </label>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Mark fields that should NOT be shared or analyzed (HIPAA/NIST requirement)
+                        Mark fields that should NOT be shared or analyzed (NIST requirement)
                       </p>
                     </div>
                     <div className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-1 rounded font-semibold">
@@ -318,50 +318,42 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     </div>
                   </div>
                   
-                  {/* Column/Field Grid - Scrollable area with 4 columns (2x2 grid) */}
-                  <div className="flex-1 min-h-0 mb-3">
-                    <div className="grid grid-cols-4 gap-2 h-full overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
-                      {availableColumns.map((column, index) => {
-                        const isExcluded = fields.excludedFields.includes(column)
-                        return (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => toggleExcludeField(column)}
-                            className={`
-                              px-3 py-2 rounded border-2 text-sm font-medium transition-all h-fit
-                              ${isExcluded
-                                ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 shadow-md'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400'
-                              }
-                            `}
-                          >
-                            {isExcluded ? (
-                              <span className="flex items-center justify-center gap-1">
-                                <X className="w-3 h-3" />
-                                EXCLUDED
-                              </span>
-                            ) : (
-                              column
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
+                  {/* Column/Field Grid - Compact 4 columns, no scrolling */}
+                  <div className="grid grid-cols-4 gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                    {availableColumns.map((column, index) => {
+                      const isExcluded = fields.excludedFields.includes(column)
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => toggleExcludeField(column)}
+                          className={`
+                            px-2 py-1.5 rounded border-2 text-xs font-medium transition-all
+                            ${isExcluded
+                              ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 shadow-md'
+                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400'
+                            }
+                          `}
+                        >
+                          {isExcluded ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <X className="w-3 h-3" />
+                              <span className="text-[10px]">EXCLUDED</span>
+                            </span>
+                          ) : (
+                            <span className="truncate block">{column}</span>
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
                   
-                  {/* Fixed height footer for excluded fields display */}
-                  <div className="flex-shrink-0 h-16 flex items-center">
-                    {fields.excludedFields.length > 0 ? (
-                      <div className="w-full p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-800 dark:text-red-200 overflow-y-auto">
-                        <strong>⚠️ Excluded Fields:</strong> {fields.excludedFields.join(', ')}
-                      </div>
-                    ) : (
-                      <div className="w-full p-2 text-xs text-gray-500 dark:text-gray-400 italic">
-                        No fields excluded yet. Click any field above to exclude it.
-                      </div>
-                    )}
-                  </div>
+                  {/* Excluded fields summary */}
+                  {fields.excludedFields.length > 0 && (
+                    <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-800 dark:text-red-200">
+                      <strong>⚠️ Excluded:</strong> {fields.excludedFields.join(', ')}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -420,7 +412,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border-l-4 border-green-500 flex items-start gap-2">
                 <Shield className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-green-800 dark:text-green-200">
-                  <strong>HIPAA Compliance:</strong> All PHI fields are automatically de-identified. 
+                  <strong>NIST Compliance:</strong> All PHI fields are automatically de-identified. 
                   No raw identifiers (names, DOBs, SSNs) are logged or exported.
                 </p>
               </div>

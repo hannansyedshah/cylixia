@@ -11,6 +11,7 @@ import { ProjectChat } from '@/components/ProjectChat'
 import { ViewerWorkspace } from '@/components/ViewerWorkspace'
 import { InviteCollaboratorModal } from '@/components/InviteCollaboratorModal'
 import { ContextWindowModal } from '@/components/ContextWindowModal'
+import { NistComplianceModal } from '@/components/NistComplianceModal'
 import { PlotViewer } from '@/components/PlotViewer'
 import { TerminalView } from '@/components/TerminalView'
 import { UploadPanel } from '@/components/UploadPanel'
@@ -93,6 +94,7 @@ export default function WorkspacePage() {
   const [userRole, setUserRole] = useState<'owner' | 'edit' | 'view' | null>(null)
   const [showCollaborationSidebar, setShowCollaborationSidebar] = useState<boolean>(false)
   const [showInviteModal, setShowInviteModal] = useState<boolean>(false)
+  const [showNistComplianceModal, setShowNistComplianceModal] = useState<boolean>(false)
   const [codeSelection, setCodeSelection] = useState<{ code: string; startLine: number; endLine: number } | null>(null)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null) // Track if we're viewing someone's workspace
   const [isWorkspaceBeingViewed, setIsWorkspaceBeingViewed] = useState<boolean>(false) // Track if someone is viewing our workspace
@@ -202,6 +204,14 @@ export default function WorkspacePage() {
         }
         // Load terminal output from database
         if (projectWithMessages.stdout) setStdoutText(projectWithMessages.stdout)
+        
+        // Check if NIST compliance modal should be shown
+        if (projectWithMessages.hipaa_compliant) {
+          const acknowledged = localStorage.getItem(`nist-acknowledged-${projectWithMessages.name}`)
+          if (!acknowledged) {
+            setShowNistComplianceModal(true)
+          }
+        }
         if (projectWithMessages.stderr) setStderrText(projectWithMessages.stderr)
         
         // Load plots from project.plot_url or latest version
@@ -2296,7 +2306,15 @@ export default function WorkspacePage() {
           />
         )}
 
-        {/* Context Window Modal - for HIPAA projects */}
+        {/* NIST Compliance Modal - shown once when opening NIST project */}
+        {showNistComplianceModal && project && (
+          <NistComplianceModal
+            projectName={project.name}
+            onAcknowledge={() => setShowNistComplianceModal(false)}
+          />
+        )}
+
+        {/* Context Window Modal - for NIST projects */}
         {showContextModal && project?.hipaa_compliant && (
           <ContextWindowModal
             projectName={project.name}
