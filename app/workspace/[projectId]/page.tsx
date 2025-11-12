@@ -1947,13 +1947,24 @@ export default function WorkspacePage() {
                             {message.content.split('\n').map((line: string, lineIndex: number) => {
                               const trimmedLine = line.trim()
                               
+                              // Helper function to render text with markdown bold (**text**)
+                              const renderWithBold = (text: string) => {
+                                const parts = text.split(/(\*\*.*?\*\*)/g)
+                                return parts.map((part, idx) => {
+                                  if (part.startsWith('**') && part.endsWith('**')) {
+                                    return <strong key={idx} className="font-semibold">{part.slice(2, -2)}</strong>
+                                  }
+                                  return <span key={idx}>{part}</span>
+                                })
+                              }
+                              
                               // Check if line is a bullet point (-, *, •)
                               const bulletMatch = line.match(/^[\s]*[-•*]\s*(.+)$/)
                               if (bulletMatch) {
                                 return (
                                   <div key={lineIndex} className="flex items-start gap-3 mb-2 ml-1">
                                     <span className="text-current mt-0.5 flex-shrink-0">•</span>
-                                    <span className="flex-1 leading-relaxed">{bulletMatch[1]}</span>
+                                    <span className="flex-1 leading-relaxed">{renderWithBold(bulletMatch[1])}</span>
                                   </div>
                                 )
                               }
@@ -1965,7 +1976,7 @@ export default function WorkspacePage() {
                                     <span className="font-medium flex-shrink-0 text-gray-600 dark:text-gray-400 mr-2.5 min-w-[28px]">
                                       {numberedMatch[1]}.
                                     </span>
-                                    <span className="flex-1 leading-relaxed">{numberedMatch[2]}</span>
+                                    <span className="flex-1 leading-relaxed">{renderWithBold(numberedMatch[2])}</span>
                                   </div>
                                 )
                               }
@@ -1974,7 +1985,7 @@ export default function WorkspacePage() {
                               if (indentMatch && lineIndex > 0) {
                                 return (
                                   <div key={lineIndex} className="ml-6 mb-1 text-gray-600 dark:text-gray-300">
-                                    • {indentMatch[1]}
+                                    • {renderWithBold(indentMatch[1])}
                                   </div>
                                 )
                               }
@@ -1982,7 +1993,7 @@ export default function WorkspacePage() {
                               if (trimmedLine) {
                                 return (
                                   <div key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
-                                    {trimmedLine}
+                                    {renderWithBold(trimmedLine)}
                                   </div>
                                 )
                               }
