@@ -184,7 +184,14 @@ The agent should return JSON with this structure:
 **Important:**
 - Return clean JSON without bullet points (`•`) or markdown wrappers
 - `r_code` should be empty (`""`) for ask mode
-- Frontend automatically parses and displays the content nicely
+- Don't include prefix messages like "Here's the R code for your request:"
+- Frontend automatically:
+  - Extracts JSON from markdown code blocks (even if wrapped in ````json)
+  - Removes formatting artifacts and bullet points
+  - Displays with clean section headings:
+    - **Analysis:** (from explanation)
+    - **Visualization:** (from plot_description)
+    - **Suggested Next Steps:** (from next_suggestions)
 - Suggestions can include emojis and test recommendations
 
 ## 🧪 Testing

@@ -1117,27 +1117,35 @@ export default function WorkspacePage() {
       if (!mountedRef.current) return
 
       // Add assistant message
-      // For ask mode, don't include code - just show text response
-      // Ensure we have content even if message is empty
-      let messageContent = data.message
-      if (isAskMode && (!messageContent || messageContent.trim() === '')) {
-        // For ask mode, if no message but there's a response, use the code as message (it's actually text response)
-        messageContent = data.code || 'Here\'s the answer to your question:'
-      }
-      if (!messageContent || messageContent.trim() === '') {
-        messageContent = isAskMode ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:'
-      }
-      
       // Build enhanced message content with metadata
-      let enhancedContent = messageContent
-      if (data.explanation) {
-        enhancedContent += `\n\n**Explanation:**\n${data.explanation}`
-      }
-      if (data.plotDescription) {
-        enhancedContent += `\n\n**Plot Description:**\n${data.plotDescription}`
-      }
-      if (data.nextSuggestions && data.nextSuggestions.length > 0) {
-        enhancedContent += `\n\n**Next Steps:**\n${data.nextSuggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`
+      // If we have structured data (explanation, etc.), use that instead of default messages
+      let enhancedContent = ''
+      
+      // Check if we have structured metadata
+      const hasStructuredData = data.explanation || data.plotDescription || (data.nextSuggestions && data.nextSuggestions.length > 0)
+      
+      if (hasStructuredData) {
+        // For structured responses, start with explanation or build from metadata
+        if (data.explanation) {
+          enhancedContent = `**Analysis:**\n${data.explanation}`
+        }
+        if (data.plotDescription) {
+          enhancedContent += `${enhancedContent ? '\n\n' : ''}**Visualization:**\n${data.plotDescription}`
+        }
+        if (data.nextSuggestions && data.nextSuggestions.length > 0) {
+          enhancedContent += `${enhancedContent ? '\n\n' : ''}**Suggested Next Steps:**\n${data.nextSuggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`
+        }
+      } else {
+        // Fallback to message content if no structured data
+        let messageContent = data.message
+        if (isAskMode && (!messageContent || messageContent.trim() === '')) {
+          // For ask mode, if no message but there's a response, use the code as message (it's actually text response)
+          messageContent = data.code || 'Here\'s the answer to your question:'
+        }
+        if (!messageContent || messageContent.trim() === '') {
+          messageContent = isAskMode ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:'
+        }
+        enhancedContent = messageContent
       }
       
       const newMessage = {

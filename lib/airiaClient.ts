@@ -328,10 +328,18 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
     // Clean up response text before parsing (remove bullet points, extra whitespace)
     let cleanedText = responseText
     if (typeof responseText === 'string') {
-      cleanedText = responseText
+      // First, try to extract JSON from markdown code blocks
+      const jsonBlockMatch = responseText.match(/```json\s*\n?([\s\S]*?)```/)
+      if (jsonBlockMatch) {
+        cleanedText = jsonBlockMatch[1].trim()
+      }
+      
+      // Clean up any remaining artifacts
+      cleanedText = cleanedText
         .replace(/•\s*/g, '') // Remove bullet points
         .replace(/```json\s*/g, '') // Remove json code block markers
         .replace(/```\s*/g, '') // Remove code block markers
+        .replace(/^Here's the R code.*?:\s*/i, '') // Remove "Here's the R code" prefix
         .trim()
     }
     
@@ -364,7 +372,7 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
       
       return {
         code: parsed.r_code || '',
-        message: parsed.r_code ? 'Here\'s the R code for your request:' : '',
+        message: '', // Don't add default message - let frontend handle it
         explanation: cleanExplanation,
         plotDescription: cleanPlotDescription,
         nextSuggestions: cleanSuggestions

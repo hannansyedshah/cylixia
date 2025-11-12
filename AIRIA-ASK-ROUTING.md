@@ -122,8 +122,15 @@ The Airia Ask agent should return responses in this JSON structure:
 ### Response Formatting:
 - **NO bullet points** (`•`) in JSON keys or values
 - **NO markdown code blocks** wrapping the JSON (no ````json)
+- **NO prefix messages** like "Here's the R code for your request:"
 - Return **clean, valid JSON** only
-- Frontend will automatically format and display the content
+- Frontend will automatically:
+  - Extract JSON from markdown code blocks if present
+  - Remove bullet points and formatting artifacts
+  - Display content with proper headings:
+    - **Analysis:** (for explanation)
+    - **Visualization:** (for plot_description)
+    - **Suggested Next Steps:** (for next_suggestions)
 
 ## Benefits
 - **Single Agent Architecture**: Uses one agent with internal routing for simplicity
