@@ -86,6 +86,9 @@ Please generate complete, executable R code that applies the user's requested ch
     return NextResponse.json({
       message: parsed.message,
       code: parsed.code,
+      explanation: parsed.explanation,
+      plotDescription: parsed.plotDescription,
+      nextSuggestions: parsed.nextSuggestions,
       rawResponse: airiaResponse, // For debugging
     })
   } catch (error: any) {

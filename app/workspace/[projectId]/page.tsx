@@ -1127,10 +1127,22 @@ export default function WorkspacePage() {
         messageContent = isAskMode ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:'
       }
       
+      // Build enhanced message content with metadata
+      let enhancedContent = messageContent
+      if (data.explanation) {
+        enhancedContent += `\n\n**Explanation:**\n${data.explanation}`
+      }
+      if (data.plotDescription) {
+        enhancedContent += `\n\n**Plot Description:**\n${data.plotDescription}`
+      }
+      if (data.nextSuggestions && data.nextSuggestions.length > 0) {
+        enhancedContent += `\n\n**Next Steps:**\n${data.nextSuggestions.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`
+      }
+      
       const newMessage = {
         id: Math.random().toString(36).substring(7),
         role: 'assistant',
-        content: messageContent,
+        content: enhancedContent,
         code: isAskMode ? undefined : data.code, // Don't include code for ask mode
         created_at: new Date().toISOString()
       }

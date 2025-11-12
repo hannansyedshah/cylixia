@@ -299,7 +299,13 @@ Please return ONLY full R code with necessary library() calls.`
 /**
  * Parse R code and message from Airia response
  */
-export function parseAiriaResponse(airiaData: AiriaResponse): { code: string, message: string } {
+export function parseAiriaResponse(airiaData: AiriaResponse): { 
+  code: string, 
+  message: string,
+  explanation?: string,
+  plotDescription?: string,
+  nextSuggestions?: string[]
+} {
   const responseText = airiaData.output || airiaData.result || ''
   
   // If Airia returns structured data
@@ -314,10 +320,13 @@ export function parseAiriaResponse(airiaData: AiriaResponse): { code: string, me
   try {
     const parsed = typeof responseText === 'string' ? JSON.parse(responseText) : responseText
     if (parsed && parsed.r_code) {
-      // Only extract r_code, ignore explanation, plot_description, next_suggestions, etc.
+      // Extract all metadata from Airia's response
       return {
         code: parsed.r_code,
-        message: 'Here\'s the R code for your request:'
+        message: 'Here\'s the R code for your request:',
+        explanation: parsed.explanation,
+        plotDescription: parsed.plot_description,
+        nextSuggestions: parsed.next_suggestions
       }
     }
   } catch {}
