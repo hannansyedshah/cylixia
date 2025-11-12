@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 interface CSVDataEditorProps {
   originalData: string
   fileName: string
-  autoRedactedColumns?: string[] // Columns that were already auto-redacted (for HIPAA)
+  autoRedactedColumns?: string[] // Columns that were already auto-redacted (for NIST compliance)
   onConfirm: (editedData: string, removedColumns: string[]) => void
   onCancel: () => void
 }

@@ -3,6 +3,8 @@
  * Handles communication with the Hugging Face R execution service
  */
 
+import { arrayBufferToBase64 } from './base64'
+
 export interface RExecutionResult {
   success: boolean
   plot_base64?: string
@@ -46,11 +48,11 @@ export async function runRCode(code: string, csvData?: string): Promise<RExecuti
 }
 
 /**
- * Convert a File object to base64 string
+ * Convert a File object to base64 string (UTF-8 safe)
  */
 export async function fileToBase64(file: File): Promise<string> {
   const buffer = await file.arrayBuffer()
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+  return arrayBufferToBase64(buffer)
 }
 
 /**

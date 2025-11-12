@@ -17,7 +17,7 @@ interface DatasetItem {
   includeChat: boolean
   includeRun: boolean
   csvText?: string // present for ephemeral items
-  excludedColumns?: string[] // columns that were excluded/redacted (for HIPAA)
+  excludedColumns?: string[] // columns that were excluded/redacted (for NIST compliance)
 }
 
 interface SharedDataset {
@@ -116,7 +116,7 @@ export function UploadPanel({
   const handleDataEditorConfirm = (editedData: string, removedColumns: string[]) => {
     if (!dataEditorData) return
     
-    // Combine auto-redacted columns (from HIPAA) with manually removed columns
+    // Combine auto-redacted columns (from NIST compliance) with manually removed columns
     const allExcludedColumns = [...new Set([
       ...(dataEditorData.autoRedactedColumns || []),
       ...removedColumns
@@ -152,7 +152,7 @@ export function UploadPanel({
     setDataEditorData(null)
   }
 
-  // Handle HIPAA compliance review confirmation (automatic PHI redaction)
+  // Handle NIST compliance review confirmation (automatic PHI redaction)
   // User clicked "Upload" - upload directly without going to editor
   const handleComplianceConfirm = (redactedData: string, autoRedactedColumns: string[]) => {
     if (!complianceReviewData) return
@@ -254,7 +254,7 @@ export function UploadPanel({
     if (file.size > 10 * 1024 * 1024) { alert('File too large (max 10MB)'); return null }
     const text = await file.text()
     
-    // If HIPAA compliant mode, we'll handle it in handleSelectFiles
+    // If NIST compliant mode, we'll handle it in handleSelectFiles
     // This function is used for batch processing, so we'll let handleLocalAdd handle compliance
     if (hipaaCompliant) {
       // For batch files, we'll process them one by one through handleLocalAdd
@@ -821,7 +821,7 @@ export function UploadPanel({
         />
       )}
 
-      {/* Compliance Review Modal - for HIPAA automatic PHI redaction */}
+      {/* Compliance Review Modal - for NIST automatic PHI redaction */}
       {complianceReviewData && (
         <ComplianceReviewModal
           originalData={complianceReviewData.originalData}

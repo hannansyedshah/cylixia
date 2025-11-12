@@ -314,9 +314,10 @@ export function parseAiriaResponse(airiaData: AiriaResponse): { code: string, me
   try {
     const parsed = typeof responseText === 'string' ? JSON.parse(responseText) : responseText
     if (parsed && parsed.r_code) {
+      // Only extract r_code, ignore explanation, plot_description, next_suggestions, etc.
       return {
         code: parsed.r_code,
-        message: parsed.explanation || 'Here\'s the R code for your request:'
+        message: 'Here\'s the R code for your request:'
       }
     }
   } catch {}
@@ -346,7 +347,7 @@ export function parseAiriaResponse(airiaData: AiriaResponse): { code: string, me
 
 /**
  * Generate research context window using AI
- * For HIPAA-compliant projects
+ * For NIST-compliant projects
  */
 export async function generateContextWindow(
   projectName: string,
@@ -455,7 +456,7 @@ Dataset Key Fields: ${keyFields}
 
 Dataset Files: ${fileNames || 'No files uploaded'}
 
-Privacy Setting: HIPAA-compliant mode ✅
+Privacy Setting: NIST-compliant mode ✅
 All PHI fields are treated as de-identified tokens. No raw identifiers are logged or exported.
 
 Preferred Analysis Types: [e.g., Linear regression, Logistic regression, Survival analysis, ANOVA, Descriptive statistics]

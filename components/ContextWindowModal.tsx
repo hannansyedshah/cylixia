@@ -9,7 +9,7 @@ interface ContextWindowModalProps {
   projectName: string
   csvFiles: Array<{ fileName: string; csvData: string }>
   initialContext?: string | null
-  initialExcludedFields?: string[] // Pre-populated excluded fields from HIPAA redaction
+  initialExcludedFields?: string[] // Pre-populated excluded fields from NIST redaction
   onSave: (context: string) => void
   onCancel: () => void
   onGenerateContext: (projectName: string, csvFiles: Array<{ fileName: string; csvData: string }>) => Promise<string>
@@ -63,7 +63,7 @@ export function ContextWindowModal({
       keyFields: csvFiles.map(f => f.fileName).join(', '),
       analysisTypes: [],
       additionalNotes: '',
-      excludedFields: initialExcludedFields // Auto-populate from HIPAA redaction
+      excludedFields: initialExcludedFields // Auto-populate from NIST redaction
     }
     
     const lines = ctx.split('\n')
@@ -252,7 +252,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     <p className="font-semibold text-sm">NIST SP 800-53 Compliance Notice</p>
                     <p className="text-xs mt-1 text-blue-50">
                       Complete all required fields to establish a secure research context. 
-                      This ensures AI-generated code meets HIPAA and NIST security standards.
+                      This ensures AI-generated code meets NIST security standards.
                     </p>
                   </div>
                 </div>

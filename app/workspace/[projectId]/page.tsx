@@ -23,6 +23,7 @@ import { useSessionStore } from '@/store/useSessionStore'
 import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check, Shield, Sparkles, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
+import { encodeBase64 } from '@/lib/base64'
 
 interface Message {
   id: string
@@ -931,7 +932,7 @@ export default function WorkspacePage() {
     }
   }
 
-  // Handle contextualize button click (for HIPAA projects)
+  // Handle contextualize button click (for NIST projects)
   const handleContextualize = () => {
     if (!prompt.trim() || !project) return
     
@@ -963,13 +964,13 @@ export default function WorkspacePage() {
       return
     }
     
-    // For HIPAA projects without context, open context modal first
+    // For NIST projects without context, open context modal first
     if (project.hipaa_compliant && !contextWindow) {
       handleContextualize()
       return
     }
     
-    // For HIPAA projects with context, or non-HIPAA projects, send directly
+    // For NIST projects with context, or non-NIST projects, send directly
     await handleSendMessageWithContext(prompt)
   }
 
@@ -1036,7 +1037,7 @@ export default function WorkspacePage() {
           userId: user?.id || user?.email || 'anonymous',
           privacyMode,
           mode: airiaMode,
-          contextWindow: contextWindow || undefined, // Include context for HIPAA projects
+          contextWindow: contextWindow || undefined, // Include context for NIST projects
           csvFilesForChat: [
             ...datasets
               .filter(d => d.includeChat && d.csvText) // only ephemeral have csvText locally
@@ -1221,17 +1222,17 @@ export default function WorkspacePage() {
         return prefs ? prefs.includeRun : d.include_run
       })
       const allRunFiles = [
-        ...runFiles.map(d => ({ filename: d.fileName, data_base64: btoa(d.csvText!) })),
-        ...sharedRunFiles.map(d => ({ filename: d.file_name, data_base64: btoa(d.csv_text) }))
+        ...runFiles.map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) })),
+        ...sharedRunFiles.map(d => ({ filename: d.file_name, data_base64: encodeBase64(d.csv_text) }))
       ]
       const csv_files = allRunFiles
       // Backward compatibility: also send the first CSV as single fields expected by backend
       const primary = runFiles[0] || sharedRunFiles[0]
       const csv_base64 = primary 
         ? ('csvText' in primary && primary.csvText 
-            ? btoa(primary.csvText) 
+            ? encodeBase64(primary.csvText) 
             : 'csv_text' in primary 
-              ? btoa((primary as unknown as SharedDataset).csv_text) 
+              ? encodeBase64((primary as unknown as SharedDataset).csv_text) 
               : undefined)
         : undefined
       const file_name = primary 
@@ -1651,7 +1652,7 @@ export default function WorkspacePage() {
                   <div className="flex items-center gap-2">
                     <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1">
                       <Shield className="w-3 h-3" />
-                      HIPAA/NIST
+                      NIST
                     </div>
                     {contextWindow && (
                       <div className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1">
@@ -1694,7 +1695,7 @@ export default function WorkspacePage() {
           
           {/* Right: Actions */}
           <div className="flex items-center gap-2 flex-1 justify-end">
-            {/* Edit Context button for HIPAA projects - hide for view-only users */}
+            {/* Edit Context button for NIST projects - hide for view-only users */}
             {project?.hipaa_compliant && userRole !== 'view' && (
               <Button
                 size="sm"

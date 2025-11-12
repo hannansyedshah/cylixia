@@ -72,7 +72,7 @@ export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProp
                 <div className="flex-1">
                   <Label htmlFor="hipaaCompliant" className="flex items-center gap-2 text-sm font-semibold text-darktext dark:text-white cursor-pointer">
                     <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    HIPAA/NIST Compliant Mode
+                    NIST Compliant Mode
                   </Label>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                     Automatically redacts PHI (names, SSN, DOB, addresses, etc.) from uploaded datasets. 
