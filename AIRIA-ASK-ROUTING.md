@@ -68,9 +68,9 @@ Airia client sends to: AIRIA_API_URL_ASK (same agent for both)
     ↓
 Agent internally routes based on context_window presence
     ↓
-Response includes: message + explanation + plotDescription + nextSuggestions
+Response includes: r_code (empty for ask mode) + explanation + plotDescription + nextSuggestions
     ↓
-Frontend displays all metadata to user
+Frontend parses JSON, cleans formatting, and displays metadata to user
 ```
 
 ## Testing
@@ -94,10 +94,42 @@ The implementation includes helpful console logs:
 - `🔀 Ask mode: Route 2 (NIST with context)` - Context window included
 - `📊 Ask mode: Sending CSV data` - Shows CSV files being sent
 
+## Expected Response Format
+
+The Airia Ask agent should return responses in this JSON structure:
+
+```json
+{
+  "r_code": "",
+  "explanation": "Detailed explanation of the analysis or answer",
+  "plot_description": "Description of potential visualizations (optional)",
+  "next_suggestions": [
+    "First suggested follow-up analysis",
+    "Second suggested follow-up analysis",
+    "Third suggested follow-up analysis"
+  ]
+}
+```
+
+### Field Guidelines:
+- **`r_code`**: Should be empty string (`""`) for Ask mode (no code generation)
+- **`explanation`**: Main answer to user's question - detailed analysis or insights
+- **`plot_description`**: (Optional) Describe what visualizations would show
+- **`next_suggestions`**: Array of 3-10 follow-up questions or analyses
+  - Can include emojis (🔹) and suggested tests/graphs
+  - Format: "Description 🔹 Suggested test: [test name] | Suggested graph: [graph type]"
+
+### Response Formatting:
+- **NO bullet points** (`•`) in JSON keys or values
+- **NO markdown code blocks** wrapping the JSON (no ````json)
+- Return **clean, valid JSON** only
+- Frontend will automatically format and display the content
+
 ## Benefits
 - **Single Agent Architecture**: Uses one agent with internal routing for simplicity
 - **Privacy-Aware**: Agent routes to NIST logic when context window is present
 - **Contextual**: NIST projects automatically include research context for better responses
 - **Consistent**: Same routing approach as code generation mode
 - **Transparent**: Console logs show which route (1 or 2) is being used
+- **Smart Parsing**: Frontend cleans up formatting issues automatically
 

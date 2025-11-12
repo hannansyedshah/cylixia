@@ -325,25 +325,52 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
 
   // Try to parse structured JSON in output/result for quick mode
   try {
-    const parsed = typeof responseText === 'string' ? JSON.parse(responseText) : responseText
+    // Clean up response text before parsing (remove bullet points, extra whitespace)
+    let cleanedText = responseText
+    if (typeof responseText === 'string') {
+      cleanedText = responseText
+        .replace(/•\s*/g, '') // Remove bullet points
+        .replace(/```json\s*/g, '') // Remove json code block markers
+        .replace(/```\s*/g, '') // Remove code block markers
+        .trim()
+    }
+    
+    const parsed = typeof cleanedText === 'string' ? JSON.parse(cleanedText) : cleanedText
     console.log('🔍 Parsed object keys:', parsed ? Object.keys(parsed) : 'null')
     
-    if (parsed && parsed.r_code) {
+    if (parsed && ('r_code' in parsed || 'explanation' in parsed)) {
       // Extract all metadata from Airia's response
       console.log('✅ Successfully parsed Airia JSON response with metadata:', {
+        hasRCode: !!parsed.r_code,
         hasExplanation: !!parsed.explanation,
         hasPlotDescription: !!parsed.plot_description,
         hasSuggestions: !!parsed.next_suggestions
       })
+      
+      // Clean up explanation text
+      const cleanExplanation = parsed.explanation 
+        ? parsed.explanation.replace(/•\s*/g, '').trim() 
+        : undefined
+      
+      // Clean up plot description
+      const cleanPlotDescription = parsed.plot_description 
+        ? parsed.plot_description.replace(/•\s*/g, '').trim() 
+        : undefined
+      
+      // Clean up suggestions (remove bullet points and emojis if needed)
+      const cleanSuggestions = parsed.next_suggestions 
+        ? parsed.next_suggestions.map((s: string) => s.replace(/•\s*/g, '').trim())
+        : undefined
+      
       return {
-        code: parsed.r_code,
-        message: 'Here\'s the R code for your request:',
-        explanation: parsed.explanation,
-        plotDescription: parsed.plot_description,
-        nextSuggestions: parsed.next_suggestions
+        code: parsed.r_code || '',
+        message: parsed.r_code ? 'Here\'s the R code for your request:' : '',
+        explanation: cleanExplanation,
+        plotDescription: cleanPlotDescription,
+        nextSuggestions: cleanSuggestions
       }
     } else {
-      console.warn('⚠️ Parsed JSON but no r_code field found')
+      console.warn('⚠️ Parsed JSON but no r_code or explanation field found')
     }
   } catch (parseError) {
     console.warn('⚠️ Failed to parse Airia response as JSON:', parseError)

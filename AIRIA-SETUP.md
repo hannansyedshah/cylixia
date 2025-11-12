@@ -161,11 +161,31 @@ All agents are configured in `lib/airiaClient.ts`:
 
 ## 🔍 Response Format
 
+### Code Generation Mode:
 The app automatically handles Airia's response format:
-
 - Extracts R code from code blocks (```r ... ```)
 - Detects inline R code patterns
 - Returns clean, executable R code to the editor
+
+### Ask Data Mode:
+The agent should return JSON with this structure:
+```json
+{
+  "r_code": "",
+  "explanation": "Main answer to the user's question",
+  "plot_description": "Optional: Description of potential visualizations",
+  "next_suggestions": [
+    "Suggested follow-up analysis 1",
+    "Suggested follow-up analysis 2"
+  ]
+}
+```
+
+**Important:**
+- Return clean JSON without bullet points (`•`) or markdown wrappers
+- `r_code` should be empty (`""`) for ask mode
+- Frontend automatically parses and displays the content nicely
+- Suggestions can include emojis and test recommendations
 
 ## 🧪 Testing
 
