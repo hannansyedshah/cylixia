@@ -153,11 +153,40 @@ export function UploadPanel({
   }
 
   // Handle HIPAA compliance review confirmation (automatic PHI redaction)
-  // After this, user can manually review and remove MORE in the data editor
+  // User clicked "Upload" - upload directly without going to editor
   const handleComplianceConfirm = (redactedData: string, autoRedactedColumns: string[]) => {
     if (!complianceReviewData) return
     
-    // After auto-redaction, show data editor for manual review/removal
+    // Upload directly
+    const item: DatasetItem = {
+      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      fileName: complianceReviewData.fileName,
+      sizeBytes: new Blob([redactedData]).size,
+      persisted: false,
+      includeChat: true,
+      includeRun: true,
+      csvText: redactedData,
+      excludedColumns: autoRedactedColumns,
+    }
+    
+    // Check if there's a placeholder with the same file name
+    const existingIndex = datasets.findIndex(d => d.fileName === complianceReviewData.fileName && d.persisted && !d.csvText)
+    if (existingIndex >= 0) {
+      const updated = [...datasets]
+      updated[existingIndex] = item
+      notifyChange(updated)
+    } else {
+      notifyChange([...(datasets || []), item])
+    }
+    
+    setComplianceReviewData(null)
+  }
+  
+  // User clicked "Edit Data" - go to data editor for manual review
+  const handleComplianceEdit = (redactedData: string, autoRedactedColumns: string[]) => {
+    if (!complianceReviewData) return
+    
+    // Show data editor for manual review/removal
     setDataEditorData({ 
       originalData: redactedData, 
       fileName: complianceReviewData.fileName,
@@ -798,15 +827,16 @@ export function UploadPanel({
           originalData={complianceReviewData.originalData}
           fileName={complianceReviewData.fileName}
           onConfirm={handleComplianceConfirm}
+          onEdit={handleComplianceEdit}
           onCancel={handleComplianceCancel}
         />
       )}
 
       {/* Upload Choice Modal - choose processing method */}
       {uploadChoiceData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={handleUploadChoiceCancel}></div>
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[90vw] max-w-2xl p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleUploadChoiceCancel}></div>
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 w-[90vw] max-w-2xl p-6">
             <div className="flex items-start gap-3 mb-6">
               <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                 <Upload className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -816,7 +846,7 @@ export function UploadPanel({
                   How would you like to process this file?
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  <strong>{uploadChoiceData.fileName}</strong>
+                  <strong className="text-gray-900 dark:text-white">{uploadChoiceData.fileName}</strong>
                 </p>
               </div>
             </div>
@@ -826,7 +856,7 @@ export function UploadPanel({
               {hipaaCompliant && (
                 <button
                   onClick={() => handleUploadChoice('compliance')}
-                  className="w-full p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+                  className="w-full p-4 rounded-lg border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-900 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
                 >
                   <div className="flex items-start gap-3">
                     <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
@@ -845,7 +875,7 @@ export function UploadPanel({
               {/* Option 2: Manual Editor */}
               <button
                 onClick={() => handleUploadChoice('editor')}
-                className="w-full p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left group"
+                className="w-full p-4 rounded-lg border-2 border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-900 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left group"
               >
                 <div className="flex items-start gap-3">
                   <Eye className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-1 flex-shrink-0" />
@@ -863,7 +893,7 @@ export function UploadPanel({
               {/* Option 3: Direct Upload */}
               <button
                 onClick={() => handleUploadChoice('direct')}
-                className="w-full p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-left group"
+                className="w-full p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-left group"
               >
                 <div className="flex items-start gap-3">
                   <Upload className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-1 flex-shrink-0" />
@@ -883,7 +913,7 @@ export function UploadPanel({
               <Button 
                 variant="outline" 
                 onClick={handleUploadChoiceCancel}
-                className="px-4"
+                className="px-4 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-300 dark:border-gray-600"
               >
                 Cancel
               </Button>

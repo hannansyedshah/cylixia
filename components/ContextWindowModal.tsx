@@ -318,9 +318,9 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     </div>
                   </div>
                   
-                  {/* Column/Field Grid - Scrollable area */}
+                  {/* Column/Field Grid - Scrollable area with 4 columns (2x2 grid) */}
                   <div className="flex-1 min-h-0 mb-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 h-full overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-4 gap-2 h-full overflow-y-auto p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
                       {availableColumns.map((column, index) => {
                         const isExcluded = fields.excludedFields.includes(column)
                         return (

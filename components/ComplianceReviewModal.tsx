@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { X, Shield, Check, AlertTriangle, Lock, FileText, CheckCircle } from 'lucide-react'
+import { X, Shield, Check, AlertTriangle, Lock, FileText, CheckCircle, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { redactPHI, getCSVColumns, isColumnPHI } from '@/lib/phiRedactor'
 
@@ -9,6 +9,7 @@ interface ComplianceReviewModalProps {
   originalData: string
   fileName: string
   onConfirm: (redactedData: string, excludedColumns: string[]) => void
+  onEdit: (redactedData: string, excludedColumns: string[]) => void
   onCancel: () => void
 }
 
@@ -43,7 +44,8 @@ function parseCSVLine(line: string): string[] {
 export function ComplianceReviewModal({ 
   originalData, 
   fileName, 
-  onConfirm, 
+  onConfirm,
+  onEdit,
   onCancel 
 }: ComplianceReviewModalProps) {
   const [step, setStep] = useState<'warnings' | 'preview'>('warnings')
@@ -84,6 +86,10 @@ export function ComplianceReviewModal({
   
   const handleConfirm = () => {
     onConfirm(redactedData, redactedColumns)
+  }
+  
+  const handleEdit = () => {
+    onEdit(redactedData, redactedColumns)
   }
   
   const handleProceedToPreview = () => {
@@ -481,11 +487,19 @@ export function ComplianceReviewModal({
                   Cancel
                 </Button>
                 <Button 
+                  variant="outline"
+                  onClick={handleEdit} 
+                  className="px-6 py-2.5 rounded-lg border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 font-medium"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Edit Data
+                </Button>
+                <Button 
                   onClick={handleConfirm} 
                   className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   <Check className="w-4 h-4 mr-2" />
-                  Confirm Compliance
+                  Upload
                 </Button>
               </div>
             </div>
