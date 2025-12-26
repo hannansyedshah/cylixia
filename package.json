@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "migrate:generate": "node scripts/migrate-supabase.js",
-    "migrate:generate:safe": "node scripts/migrate-supabase.js --skip-realtime"
+    "lint": "next lint"
   },
   "dependencies": {
     "react": "^19.0.0",
