@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { Layout } from '@/components/Layout'
-import { ChatBox } from '@/components/ChatBox'
 import { CodeEditor } from '@/components/CodeEditor'
 import { CodeEditorCollaborative } from '@/components/CodeEditorCollaborative'
 import { CollaborationPanel } from '@/components/CollaborationPanel'
