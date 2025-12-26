@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useSessionStore } from '@/store/useSessionStore'
+import { useSessionStore } from '@/lib/useSessionStore'
 
 interface ProjectUpdate {
   id: string
