@@ -7,7 +7,7 @@ import { CollaboratorList } from './CollaboratorList'
 import { InviteCollaboratorModal } from './InviteCollaboratorModal'
 import { UserProfileModal } from './UserProfileModal'
 import { UserPlus, Loader2 } from 'lucide-react'
-import { useSessionStore } from '@/store/useSessionStore'
+import { useSessionStore } from '@/lib/useSessionStore'
 import { supabase } from '@/lib/supabaseClient'
 
 interface Collaborator {
