@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { UserAvatar } from './UserAvatar'
 import { Send, Loader2, Trash2, Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
-import { useSessionStore } from '@/store/useSessionStore'
+import { useSessionStore } from '@/lib/useSessionStore'
 import { playChatSound } from '@/lib/soundNotifications'
 import { ViewerWorkspace } from './ViewerWorkspace'
 
