@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ProfilePage } from '@/components/ProfilePage'
-import { useSessionStore } from '@/store/useSessionStore'
+import { useSessionStore } from '@/lib/useSessionStore'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function ProfilePageRoute() {
