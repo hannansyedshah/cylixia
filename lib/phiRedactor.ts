@@ -38,7 +38,7 @@ const PHI_PATTERNS = {
   email: /^(email|email_address|e_mail|e-mail|mail|email_addr)$/i,
   
   // Medical Record Number / Patient ID
-  mrn: /^(mrn|medical_record_number|medicalrecordnumber|record_number|recordnumber|patient_id|patientid|patient_num|medical_record_id)$/i,
+  mrn: /^(mrn|medical_record_number|medicalrecordnumber|record_number|recordnumber|record_id|recordid|patient_id|patientid|patient_num|medical_record_id)$/i,
   
   // IP Address
   ip: /^(ip_address|ipaddress|ip)$/i,
@@ -62,10 +62,10 @@ const PHI_PATTERNS = {
   location: /^(city|county|precinct|neighborhood|locality)$/i,
   
   // Healthcare encounter and admission identifiers
-  encounter: /^(encounter|encounter_id|encounterid|encounter_num|encounter_number)$/i,
+  encounter: /^(encounter|encounter_id|encounterid|encounter_num|encounter_number|enrolment_id|enrolmentid|enrollment_id|enrollmentid)$/i,
   
   // Patient number/identifier
-  patientNumber: /^(patient_nbr|patient_number|patientnumber|patient_no|pt_nbr)$/i,
+  patientNumber: /^(patient_nbr|patient_number|patientnumber|patient_no|patient_ip_no|patientipno|pt_nbr)$/i,
   
   // Admission-related identifiers
   admission: /^(admission_type_id|admission_id|admissionid|admission_source_id|admission_source|admissionsource|discharge_disposition_id|discharge_disposition|dischargedisposition)$/i,
