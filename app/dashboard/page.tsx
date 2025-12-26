@@ -8,7 +8,7 @@ import { CreateProjectModal } from '@/components/CreateProjectModal'
 import { EditProjectModal } from '@/components/EditProjectModal'
 import { CollaborationRequests } from '@/components/CollaborationRequests'
 import { Button } from '@/components/ui/button'
-import { useSessionStore } from '@/store/useSessionStore'
+import { useSessionStore } from '@/lib/useSessionStore'
 import { supabase } from '@/lib/supabaseClient'
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
 
