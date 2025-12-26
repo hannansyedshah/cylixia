@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSessionStore } from '@/store/useSessionStore'
+import { useSessionStore } from '@/lib/useSessionStore'
 
 export default function WorkspacePage() {
   const router = useRouter()
