@@ -11,9 +11,13 @@ interface ExecuteResponse {
   plot_base64?: Array<{ filename: string; data: string }>
 }
 
-const R_EXECUTION_URL = process.env.R_EXECUTION_URL || 'https://ShayanShah1124-cReate.hf.space/run'
+const R_EXECUTION_URL = process.env.R_EXECUTION_URL!
 
 export async function executeCode(request: ExecuteRequest): Promise<ExecuteResponse> {
+  if (!R_EXECUTION_URL) {
+    return { stderr: 'R_EXECUTION_URL not configured' }
+  }
+
   try {
     const response = await fetch(R_EXECUTION_URL, {
       method: 'POST',
