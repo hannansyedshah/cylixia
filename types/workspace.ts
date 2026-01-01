@@ -7,7 +7,7 @@ export interface ProjectUpdate {
 }
 
 export interface TypingUser {
-  id: string
+  userId: string
   displayName: string
   avatarUrl?: string | null
 }
@@ -16,12 +16,15 @@ export interface ActiveUser {
   userId: string
   displayName: string
   avatarUrl?: string | null
+  activity: 'typing' | 'editing' | 'active'
   lastSeen: number
 }
 
 export interface ContextFields {
-  researchQuestion: string
-  dataDescription: string
-  methodology: string
-  expectedOutcome: string
+  studyType: string
+  objective: string
+  keyFields: string
+  analysisTypes: string[]
+  additionalNotes: string
+  excludedFields: string[]
 }
