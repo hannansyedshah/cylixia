@@ -13,6 +13,12 @@ import { NistComplianceModal } from '@/components/workspace/NistComplianceModal'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
+import { getProject, getMessages, getSharedDatasets } from '@/lib/api/projects'
+import { sendChat } from '@/lib/api/chat'
+import { executeCode } from '@/lib/api/execute'
+import { updateCode, saveContext, saveOutput } from '@/actions/project'
+import { createMessage } from '@/actions/messages'
+import { saveVersion } from '@/actions/versions'
 import type { Message } from '@/types/database'
 import type { DatasetItem, SharedDataset } from '@/types/dataset'
 import type { AiriaMode } from '@/types/api'
@@ -71,12 +77,11 @@ export default function WorkspacePage() {
     setLoadingProject(true)
 
     try {
-      const res = await fetch(`/api/projects/${projectId}`)
-      if (!res.ok) {
-        if (res.status === 404) router.push('/dashboard')
+      const p = await getProject(projectId)
+      if (!p) {
+        router.push('/dashboard')
         return
       }
-      const { project: p } = await res.json()
       if (!mountedRef.current) return
 
       setProject({ ...p, messages: p.messages || [] })
@@ -84,24 +89,17 @@ export default function WorkspacePage() {
       if (p.stdout) setStdoutText(p.stdout)
       if (p.stderr) setStderrText(p.stderr)
 
-      // NIST acknowledgement
       if (p.hipaa_compliant && !localStorage.getItem(`nist-acknowledged-${p.name}`)) {
         setShowNistModal(true)
       }
 
-      // Load messages
-      const msgRes = await fetch(`/api/projects/${projectId}/messages`)
-      if (msgRes.ok) {
-        const { messages } = await msgRes.json()
-        setProject((prev: any) => prev ? { ...prev, messages } : prev)
-      }
+      const [messages, sharedDs] = await Promise.all([
+        getMessages(projectId),
+        getSharedDatasets(projectId)
+      ])
 
-      // Load shared datasets
-      const dsRes = await fetch(`/api/projects/${projectId}/shared-datasets`)
-      if (dsRes.ok) {
-        const { datasets: sd } = await dsRes.json()
-        setSharedDatasets(sd || [])
-      }
+      setProject((prev: any) => prev ? { ...prev, messages } : prev)
+      setSharedDatasets(sharedDs)
     } catch (e) {
       console.error('Failed to load project:', e)
     } finally {
@@ -129,7 +127,6 @@ export default function WorkspacePage() {
     return () => clearInterval(interval)
   }, [loading])
 
-  // Update estimated time based on mode
   useEffect(() => {
     setEstimatedSeconds(airiaMode === 'ask' ? 60 : 40)
   }, [airiaMode])
@@ -152,7 +149,6 @@ export default function WorkspacePage() {
     return () => { channel.unsubscribe() }
   }, [projectId])
 
-  // Cleanup
   useEffect(() => {
     return () => { mountedRef.current = false }
   }, [])
@@ -161,17 +157,12 @@ export default function WorkspacePage() {
   const handleCodeChange = useCallback((newCode: string) => {
     if (!project) return
     setProject({ ...project, code: newCode, updated_at: new Date().toISOString() })
-    fetch(`/api/projects/${projectId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: newCode })
-    }).catch(console.error)
+    updateCode(projectId, newCode).catch(console.error)
   }, [project, projectId])
 
   const handleSendMessage = async (prompt: string) => {
     if (!project || loading) return
 
-    // NIST context check
     if (project.hipaa_compliant && !contextWindow) {
       setPendingPrompt(prompt)
       setShowContextModal(true)
@@ -180,50 +171,30 @@ export default function WorkspacePage() {
 
     setLoading(true)
     try {
-      // Post user message
-      await fetch(`/api/projects/${projectId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: prompt })
-      })
+      await createMessage(projectId, { role: 'user', content: prompt })
 
-      // Prepare CSV data
       const csvFiles = datasets
         .filter(d => d.csvText)
         .map(d => ({ fileName: d.fileName, csvData: d.csvText! }))
 
-      // Call AI
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          mode: airiaMode,
-          existingCode: project.code,
-          csvFiles,
-          privacyMode,
-          contextWindow: project.hipaa_compliant ? contextWindow : undefined,
-          isNistProject: project.hipaa_compliant
-        })
+      const data = await sendChat({
+        prompt,
+        mode: airiaMode,
+        existingCode: project.code,
+        csvFiles,
+        privacyMode,
+        contextWindow: project.hipaa_compliant ? contextWindow || undefined : undefined,
+        isNistProject: project.hipaa_compliant
       })
 
-      if (!res.ok) throw new Error('AI request failed')
-      const data = await res.json()
-
-      // Update code (unless ask mode)
       if (airiaMode !== 'ask' && data.code) {
         handleCodeChange(data.code)
       }
 
-      // Post assistant message
-      await fetch(`/api/projects/${projectId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: 'assistant',
-          content: data.message || data.explanation || 'Generated code.',
-          code: data.code
-        })
+      await createMessage(projectId, {
+        role: 'assistant',
+        content: data.message || data.explanation || 'Generated code.',
+        code: data.code
       })
     } catch (e) {
       console.error('Chat error:', e)
@@ -241,35 +212,19 @@ export default function WorkspacePage() {
         .filter(d => d.csvText)
         .map(d => ({ fileName: d.fileName, csvData: encodeBase64(d.csvText!) }))
 
-      const res = await fetch('/api/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: project.code, csvFiles })
-      })
+      const data = await executeCode({ code: project.code, csvFiles })
 
-      const data = await res.json()
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
 
-      // Handle plot_base64 format from HuggingFace
-      const plots = data.plot_base64?.map((p: { data: string }) =>
-        `data:image/png;base64,${p.data}`
-      ) || []
+      const plots = data.plot_base64?.map(p => `data:image/png;base64,${p.data}`) || []
 
       if (plots.length) {
         setGalleryPlots(plots)
         setProject((p: any) => p ? { ...p, plot_url: plots[0] } : p)
       }
 
-      // Save output to DB (don't save base64 plot URLs - too large)
-      await fetch(`/api/projects/${projectId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stdout: data.stdout,
-          stderr: data.stderr
-        })
-      })
+      await saveOutput(projectId, data.stdout || '', data.stderr || '')
     } catch (e) {
       console.error('Run error:', e)
       setStderrText('Execution failed')
@@ -284,20 +239,12 @@ export default function WorkspacePage() {
   }
 
   const handleSaveVersion = async (description: string) => {
-    await fetch(`/api/projects/${projectId}/versions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: project.code, plot_url: project.plot_url, description })
-    })
+    await saveVersion(projectId, { code: project.code, plot_url: project.plot_url, description })
   }
 
   const handleContextSave = async (context: string) => {
     setContextWindow(context)
-    await fetch(`/api/projects/${projectId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context_window: context })
-    })
+    await saveContext(projectId, context)
     setShowContextModal(false)
     if (pendingPrompt) {
       handleSendMessage(pendingPrompt)
@@ -352,7 +299,6 @@ export default function WorkspacePage() {
         )}
 
         <div className="flex-1 flex min-h-0">
-          {/* Left: Chat + Code */}
           <div className="w-1/2 flex flex-col border-r">
             <div className="flex-1 min-h-0">
               <ChatPanel
@@ -380,7 +326,6 @@ export default function WorkspacePage() {
             />
           </div>
 
-          {/* Right: Output */}
           <div className="w-1/2">
             <OutputPanel
               plotUrl={project.plot_url}
