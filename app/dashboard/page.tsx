@@ -1,115 +1,31 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { Layout } from '@/components/layout/Layout'
 import { ProjectCard } from '@/components/dashboard/ProjectCard'
 import { CreateProjectModal } from '@/components/dashboard/CreateProjectModal'
 import { EditProjectModal } from '@/components/dashboard/EditProjectModal'
 import { Button } from '@/components/ui/button'
-import { useSessionStore } from '@/lib/stores/sessionStore'
-import { supabase } from '@/lib/supabase/client'
 import { Plus, FolderOpen } from 'lucide-react'
-import { getProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects'
-import type { Project } from '@/types/database'
-
-interface DashboardProject extends Project {
-  is_shared?: boolean
-}
+import { useDashboard } from '@/hooks/dashboard/useDashboard'
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const { user, setUser } = useSessionStore()
-  const [projects, setProjects] = useState<DashboardProject[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'nist' | 'regular'>('all')
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingProject, setEditingProject] = useState<DashboardProject | null>(null)
-  const [loading, setLoading] = useState(true)
-  const hasLoadedRef = useRef(false)
-
-  const loadProjects = async () => {
-    if (hasLoadedRef.current) return
-    hasLoadedRef.current = true
-
-    try {
-      setLoading(true)
-      const projects = await getProjects()
-      setProjects(projects)
-    } catch (error) {
-      console.error('Failed to load projects:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Handle authentication state changes
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session && !user) {
-        router.push('/login')
-        return
-      }
-
-      if (session && !user) {
-        setUser(session.user)
-      }
-    }
-
-    checkAuth()
-  }, [user, setUser, router])
-
-  // Load projects when user becomes available (only once)
-  useEffect(() => {
-    if (user && !hasLoadedRef.current) {
-      loadProjects()
-    }
-  }, [user])
-
-  const handleCreateProject = async (name: string, description: string, hipaaCompliant: boolean = false) => {
-    try {
-      const project = await createProject({ name, description, hipaaCompliant })
-      if (!project) {
-        alert('A project with that name already exists. Please choose a different name.')
-        return
-      }
-      setProjects(prev => [project, ...prev])
-      router.push(`/workspace/${project.id}`)
-    } catch (error) {
-      console.error('Failed to create project:', error)
-    }
-  }
-
-  const handleDeleteProject = async (projectId: string) => {
-    try {
-      await deleteProject(projectId)
-      setProjects(projects.filter(p => p.id !== projectId))
-    } catch (error) {
-      console.error('Failed to delete project:', error)
-    }
-  }
-
-  const handleEditProject = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId)
-    if (project) {
-      setEditingProject(project)
-    }
-  }
-
-  const handleUpdateProject = async (projectId: string, name: string, description: string) => {
-    try {
-      const project = await updateProject(projectId, { name, description })
-      if (!project) {
-        alert('A project with that name already exists. Please choose a different name.')
-        return
-      }
-      setProjects(projects.map(p => p.id === projectId ? project : p))
-    } catch (error) {
-      console.error('Failed to update project:', error)
-    }
-  }
+  const {
+    user,
+    filteredProjects,
+    searchQuery,
+    setSearchQuery,
+    filterType,
+    setFilterType,
+    showCreateModal,
+    setShowCreateModal,
+    editingProject,
+    setEditingProject,
+    loading,
+    handleCreateProject,
+    handleDeleteProject,
+    handleEditProject,
+    handleUpdateProject
+  } = useDashboard()
 
   if (!user) {
     return null
@@ -146,7 +62,7 @@ export default function DashboardPage() {
                 <Plus className="h-5 w-5 mr-2" />
                 New Project
               </Button>
-              
+
               {/* Filter Buttons */}
               <div className="flex gap-2 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                 <Button
@@ -174,7 +90,7 @@ export default function DashboardPage() {
                   Regular Only
                 </Button>
               </div>
-              
+
               <div className="ml-auto w-full md:w-80">
                 <input
                   type="text"
@@ -192,7 +108,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-center py-20 min-h-[300px]">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rstudio"></div>
             </div>
-          ) : projects.length === 0 ? (
+          ) : filteredProjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 animate-fade-in-up animation-delay-400">
               <div className="animate-float mb-6">
                 <FolderOpen className="h-24 w-24 text-gray-300 dark:text-gray-600" />
@@ -210,20 +126,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up animation-delay-400 min-h-[200px]">
-              {projects
-                .filter(p => {
-                  // Apply type filter first
-                  if (filterType === 'nist' && !p.hipaa_compliant) return false
-                  if (filterType === 'regular' && p.hipaa_compliant) return false
-                  
-                  // Then apply search filter
-                  const q = searchQuery.trim().toLowerCase()
-                  if (!q) return true
-                  const name = (p.name || '').toLowerCase()
-                  const desc = (p.description || '').toLowerCase()
-                  return name.includes(q) || desc.includes(q)
-                })
-                .map((project, index) => (
+              {filteredProjects.map((project, index) => (
                 <div
                   key={project.id}
                   style={{ animationDelay: `${index * 0.1}s` }}
@@ -268,4 +171,3 @@ export default function DashboardPage() {
     </Layout>
   )
 }
-
