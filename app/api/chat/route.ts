@@ -1,118 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { callAiriaAgent, parseAiriaResponse } from '@/lib/airiaClient'
+import { callOpenAI } from '@/lib/openaiClient'
 import { randomizeCSVData } from '@/utils/dataRandomizer'
+import type { OpenAIMode } from '@/types'
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, existingCode, userId, csvData, fileName, privacyMode = true, mode = 'legacy', conversationHistory, preferences, csvFilesForChat, contextWindow, isNistProject = false } = await request.json()
+    const {
+      prompt,
+      existingCode,
+      userId,
+      csvData,
+      fileName,
+      privacyMode = true,
+      mode = 'legacy',
+      csvFilesForChat,
+      contextWindow,
+      isNistProject = false
+    } = await request.json()
 
     console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
 
-    // Always include user request and existing code (if any)
-    const enhancedPrompt = `User Request: ${prompt}
-
-Current R Code:
-\`\`\`r
-${existingCode || ''}
-\`\`\`
-
-Please generate complete, executable R code that applies the user's requested changes to the existing code above. Return ONLY the full R code, with all necessary library() calls.`
-
     // Check if API key is configured
-    if (!process.env.AIRIA_API_KEY) {
-      console.warn('⚠️ AIRIA_API_KEY not configured, using mock response')
-      
-      // Return mock response for testing
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('⚠️ OPENAI_API_KEY not configured, using mock response')
+
       const mockCode = existingCode
         ? `# Updated R code based on user request\n${existingCode}\n\n# Apply changes here`
         : `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
-      
+
       return NextResponse.json({
-        message: 'Mock response (add AIRIA_API_KEY to use real AI)',
+        message: 'Mock response (add OPENAI_API_KEY to use real AI)',
         code: mockCode,
       })
     }
 
-    // Prepare one or many CSVs for AI (randomized if privacy on)
-    let csvFilesPayload: Array<{ fileName: string, csvData: string }> | undefined
+    // Prepare CSV files (randomize if privacy mode enabled)
+    let csvFilesPayload: Array<{ fileName: string; csvData: string }> = []
+
     if (Array.isArray(csvFilesForChat) && csvFilesForChat.length > 0) {
       csvFilesPayload = csvFilesForChat
-        .filter((f: any) => f.csvData && f.fileName) // Only include files with valid data
+        .filter((f: any) => f.csvData && f.fileName)
         .map((f: any) => ({
           fileName: f.fileName,
           csvData: privacyMode ? randomizeCSVData(f.csvData) : f.csvData,
         }))
-      console.log(`📦 Preparing ${csvFilesPayload.length} CSV(s) for AI (${privacyMode ? 'randomized' : 'original'})`)
-      csvFilesPayload.forEach((f, i) => {
-        console.log(`  CSV ${i + 1}: ${f.fileName} (${f.csvData.length} chars)`)
-      })
+      console.log(`📦 Preparing ${csvFilesPayload.length} CSV(s) (${privacyMode ? 'randomized' : 'original'})`)
     } else if (csvData && fileName) {
       const single = privacyMode ? randomizeCSVData(csvData) : csvData
       csvFilesPayload = [{ fileName, csvData: single }]
-      console.log(`📦 Preparing single CSV: ${fileName} (${single.length} chars)`)
+      console.log(`📦 Preparing single CSV: ${fileName}`)
     }
-    
-    if (!csvFilesPayload || csvFilesPayload.length === 0) {
-      console.warn('⚠️ No CSV files to send to AI model')
-    }
-    
-    const airiaResponse = await callAiriaAgent(
-      enhancedPrompt, 
-      userId || 'anonymous',
-      csvFilesPayload?.[0]?.csvData, // maintain backward compatibility for current client
-      csvFilesPayload?.[0]?.fileName,
-      mode,
+
+    // Map legacy modes to simplified modes
+    // legacy/quick -> generate, ask -> ask
+    const openaiMode: OpenAIMode = mode === 'ask' ? 'ask' : 'generate'
+
+    const response = await callOpenAI({
+      mode: openaiMode,
+      prompt,
       existingCode,
-      conversationHistory,
-      preferences,
-      csvFilesPayload, // Pass all CSV files
-      privacyMode, // Pass privacy mode so models know if data is randomized
-      contextWindow, // Pass context window for NIST projects
-      isNistProject // Pass NIST flag for conditional routing
-    )
-    
-    const parsed = parseAiriaResponse(airiaResponse)
-    
-    // Debug: Log what we parsed from Airia
-    console.log('📊 Parsed Airia Response:', {
-      hasExplanation: !!parsed.explanation,
-      hasPlotDescription: !!parsed.plotDescription,
-      hasSuggestions: !!(parsed.nextSuggestions && parsed.nextSuggestions.length > 0)
+      csvFiles: csvFilesPayload.length > 0 ? csvFilesPayload : undefined,
+      privacyMode,
+      contextWindow,
+      isNistProject
     })
 
-    // For ask mode, if response is plain text (no code), use the entire response as message
-    if (mode === 'ask' && (!parsed.code || parsed.code === parsed.message || !parsed.code.includes('library(') && !parsed.code.includes('<-'))) {
-      // Use the raw response as message if it's plain text
-      const rawResponse = airiaResponse.output || airiaResponse.result || parsed.message || parsed.code || ''
-      const responseText = typeof rawResponse === 'string' ? rawResponse : JSON.stringify(rawResponse)
+    // For ask mode without code, return explanation only
+    if (openaiMode === 'ask' && (!response.code || !response.code.includes('library('))) {
       return NextResponse.json({
-        message: responseText.trim() || parsed.message || 'Here\'s the answer to your question:',
-        code: undefined, // Don't return code for ask mode text responses
-        explanation: parsed.explanation,
-        plotDescription: parsed.plotDescription,
-        nextSuggestions: parsed.nextSuggestions,
-        rawResponse: airiaResponse, // For debugging
+        message: response.explanation || response.message,
+        code: undefined,
+        explanation: response.explanation,
+        plotDescription: response.plotDescription,
+        nextSuggestions: response.nextSuggestions,
       })
     }
 
     return NextResponse.json({
-      message: parsed.message,
-      code: parsed.code,
-      explanation: parsed.explanation,
-      plotDescription: parsed.plotDescription,
-      nextSuggestions: parsed.nextSuggestions,
-      rawResponse: airiaResponse, // For debugging
+      message: response.message,
+      code: response.code,
+      explanation: response.explanation,
+      plotDescription: response.plotDescription,
+      nextSuggestions: response.nextSuggestions,
     })
   } catch (error: any) {
     console.error('Chat API error:', error)
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Failed to process request',
-        details: 'Check that AIRIA_API_KEY is set in environment variables'
+        details: 'Check that OPENAI_API_KEY is set in environment variables'
       },
       { status: 500 }
     )
   }
 }
-
-
