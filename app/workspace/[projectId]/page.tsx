@@ -246,27 +246,26 @@ export default function WorkspacePage() {
       })
 
       const data = await res.json()
-      console.log('Execute response:', data)
-
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
 
-      // Handle multiple possible plot response formats
-      const plots = data.plots || data.plot_urls || (data.plot_url ? [data.plot_url] : [])
+      // Handle plot_base64 format from HuggingFace
+      const plots = data.plot_base64?.map((p: { data: string }) =>
+        `data:image/png;base64,${p.data}`
+      ) || []
+
       if (plots.length) {
-        console.log('Setting plots:', plots)
         setGalleryPlots(plots)
         setProject((p: any) => p ? { ...p, plot_url: plots[0] } : p)
       }
 
-      // Save output to DB
+      // Save output to DB (don't save base64 plot URLs - too large)
       await fetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           stdout: data.stdout,
-          stderr: data.stderr,
-          plot_url: plots[0] || null
+          stderr: data.stderr
         })
       })
     } catch (e) {
