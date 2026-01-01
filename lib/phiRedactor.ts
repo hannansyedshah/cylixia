@@ -1,14 +1,11 @@
 /**
  * PHI (Protected Health Information) Redaction Utility
- * 
+ *
  * Automatically detects and redacts PHI from CSV data for NIST compliance.
  * All processing happens client-side - original data is never sent to servers.
  */
 
-interface RedactionResult {
-  redactedData: string
-  redactedColumns: string[]
-}
+import type { RedactionResult } from '@/types'
 
 /**
  * Patterns for detecting PHI columns by name
