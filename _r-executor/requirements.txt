@@ -1,4 +1,0 @@
-fastapi
-uvicorn[standard]
-rpy2
-pandas
