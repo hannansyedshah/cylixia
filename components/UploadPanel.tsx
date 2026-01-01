@@ -8,28 +8,10 @@ import { UserAvatar } from './UserAvatar'
 import { ComplianceReviewModal } from './ComplianceReviewModal'
 import { CSVDataEditor } from './CSVDataEditor'
 import { redactPHI } from '@/lib/phiRedactor'
+import type { DatasetItem, SharedDataset } from '@/types'
 
-interface DatasetItem {
-  id: string
-  fileName: string
-  sizeBytes: number
-  persisted: boolean
-  includeChat: boolean
-  includeRun: boolean
-  csvText?: string // present for ephemeral items
-  excludedColumns?: string[] // columns that were excluded/redacted (for NIST compliance)
-}
-
-interface SharedDataset {
-  id: string
-  project_id: string
-  user_id: string
-  file_name: string
-  csv_text: string
-  size_bytes: number
-  include_chat: boolean
-  include_run: boolean
-  created_at: string
+// Extended SharedDataset with profile relation for display
+interface SharedDatasetWithProfile extends SharedDataset {
   profiles?: {
     id: string
     display_name: string | null
@@ -39,7 +21,7 @@ interface SharedDataset {
 
 interface UploadPanelProps {
   datasets: DatasetItem[]
-  sharedDatasets?: SharedDataset[]
+  sharedDatasets?: SharedDatasetWithProfile[]
   onDatasetsChange?: (datasets: DatasetItem[]) => void
   onSharedDatasetsChange?: (datasets: SharedDataset[]) => void
   privacyMode?: boolean
