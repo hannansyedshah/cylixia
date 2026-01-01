@@ -118,9 +118,7 @@ export function ContextWindowModal({
       const parsed = parseInitialContext(generatedContext)
       setFields(parsed)
       setHasGenerated(true)
-      console.log('✅ Context auto-generated and fields populated:', parsed)
     } catch (error) {
-      console.error('Failed to generate context:', error)
       // Set default values if generation fails
       setFields(prev => ({
         ...prev,

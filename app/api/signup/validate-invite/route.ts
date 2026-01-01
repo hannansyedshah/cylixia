@@ -161,16 +161,10 @@ export async function POST(request: NextRequest) {
 
     // Get client identifier for rate limiting
     const identifier = getClientIdentifier(request)
-    
-    // Debug logging
-    console.log('Client identifier:', identifier)
-    console.log('Rate limit store size:', rateLimitStore.size)
-    console.log('Current entry:', rateLimitStore.get(identifier))
 
     // Check if already blocked
     const rateLimit = checkRateLimit(identifier)
     if (!rateLimit.allowed) {
-      console.log('User is blocked, retry after:', rateLimit.retryAfter)
       return NextResponse.json(
         {
           error: `Too many failed attempts. Please try again in ${Math.ceil((rateLimit.retryAfter || 0) / 60)} minutes.`,
@@ -195,18 +189,14 @@ export async function POST(request: NextRequest) {
 
     // Verify the invite code
     const isValid = verifySecret(inviteCode.trim(), expectedHash)
-    console.log('Invite code valid:', isValid)
 
     if (isValid) {
       recordSuccess(identifier)
-      console.log('Success - cleared rate limit for:', identifier)
       return NextResponse.json({ valid: true, remainingAttempts: MAX_ATTEMPTS })
     } else {
       // Record failed attempt and get remaining attempts
       const attemptResult = recordFailedAttempt(identifier)
-      console.log('Failed attempt result:', attemptResult)
-      console.log('Updated rate limit store:', rateLimitStore.get(identifier))
-      
+
       if (attemptResult.blocked) {
         return NextResponse.json(
           {
@@ -220,13 +210,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Return error with remaining attempts
-      const attemptsText = attemptResult.remainingAttempts === 1 
-        ? '1 attempt remaining' 
+      const attemptsText = attemptResult.remainingAttempts === 1
+        ? '1 attempt remaining'
         : `${attemptResult.remainingAttempts} attempts remaining`
-      
+
       const errorMessage = `Invalid invite code. You have ${attemptsText}.`
-      console.log('Returning error:', errorMessage, 'Remaining attempts:', attemptResult.remainingAttempts)
-      
+
       return NextResponse.json(
         {
           error: errorMessage,

@@ -8,18 +8,13 @@ export async function GET(
 ) {
   const { projectId } = await params
   try {
-    console.log('🔍 API: Getting project:', projectId)
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    
-    console.log('👤 API: User:', user?.id ? 'Found' : 'Not found')
-    
+
     if (!user) {
-      console.log('❌ API: Unauthorized')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('📡 API: Fetching project from database...')
     // Get project - check if user is owner or collaborator
     const { data: project, error: projectError } = await supabase
       .from('projects')
@@ -27,10 +22,7 @@ export async function GET(
       .eq('id', projectId)
       .single()
 
-    if (projectError) {
-      console.error('💥 API: Project error:', projectError)
-      throw projectError
-    }
+    if (projectError) throw projectError
 
     // Check if user has access (owner or collaborator)
     const isOwner = project.user_id === user.id
@@ -52,7 +44,6 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    console.log('📡 API: Fetching messages...')
     // Get messages for this project
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
@@ -60,15 +51,10 @@ export async function GET(
       .eq('project_id', projectId)
       .order('created_at', { ascending: true })
 
-    if (messagesError) {
-      console.error('💥 API: Messages error:', messagesError)
-      throw messagesError
-    }
+    if (messagesError) throw messagesError
 
-    console.log('✅ API: Project loaded successfully:', project.name, 'with', messages?.length || 0, 'messages')
     return NextResponse.json({ project: { ...project, messages: messages || [] } })
   } catch (error: any) {
-    console.error('💥 API: Error:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

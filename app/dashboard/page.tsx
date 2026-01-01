@@ -42,8 +42,6 @@ export default function DashboardPage() {
     hasLoadedRef.current = true // mark early; allow manual/interval refresh to reset
     try {
       setLoading(true)
-      console.log('Loading projects...')
-
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
       const response = await fetch('/api/projects', {
@@ -57,8 +55,6 @@ export default function DashboardPage() {
       }
       
       const data = await response.json()
-      console.log('Projects loaded:', data.projects?.length || 0)
-      
       if (mountedRef.current && data.projects) {
         setProjects(data.projects)
       }

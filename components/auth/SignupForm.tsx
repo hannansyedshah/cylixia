@@ -80,30 +80,15 @@ export function SignupForm() {
       })
 
       const validateData = await validateResponse.json()
-      
-      // Debug logging (remove in production)
-      console.log('Validation response:', validateData)
-      console.log('Status:', validateResponse.status)
 
       if (!validateData.valid) {
-        // Update remaining attempts - this is critical for displaying the counter
+        // Update remaining attempts
         const remaining = validateData.remainingAttempts
         if (remaining !== undefined && remaining !== null) {
           setRemainingAttempts(remaining)
-          console.log('Set remaining attempts to:', remaining)
-        } else {
-          console.warn('remainingAttempts not found in response:', validateData)
         }
-        
-        // Always use the error message from the API
-        const errorMsg = validateData.error || 'Invalid invite code'
-        console.log('Setting error message:', errorMsg)
-        
-        if (validateResponse.status === 429) {
-          setError(errorMsg)
-        } else {
-          setError(errorMsg)
-        }
+
+        setError(validateData.error || 'Invalid invite code')
         setLoading(false)
         return
       } else {

@@ -13,9 +13,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('📝 Generating context for project:', projectName)
-    console.log('📂 CSV files:', csvFiles.length)
-
     const context = await generateContext({
       projectName,
       csvFiles

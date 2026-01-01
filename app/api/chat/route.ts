@@ -18,12 +18,8 @@ export async function POST(request: NextRequest) {
       isNistProject = false
     } = await request.json()
 
-    console.log(`📝 User prompt: ${prompt.substring(0, 100)}...`)
-
     // Check if API key is configured
     if (!process.env.OPENAI_API_KEY) {
-      console.warn('⚠️ OPENAI_API_KEY not configured, using mock response')
-
       const mockCode = existingCode
         ? `# Updated R code based on user request\n${existingCode}\n\n# Apply changes here`
         : `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
@@ -44,11 +40,9 @@ export async function POST(request: NextRequest) {
           fileName: f.fileName,
           csvData: privacyMode ? randomizeCSVData(f.csvData) : f.csvData,
         }))
-      console.log(`📦 Preparing ${csvFilesPayload.length} CSV(s) (${privacyMode ? 'randomized' : 'original'})`)
     } else if (csvData && fileName) {
       const single = privacyMode ? randomizeCSVData(csvData) : csvData
       csvFilesPayload = [{ fileName, csvData: single }]
-      console.log(`📦 Preparing single CSV: ${fileName}`)
     }
 
     const openaiMode: OpenAIMode = mode as OpenAIMode

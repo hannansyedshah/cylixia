@@ -14,11 +14,6 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
   try {
     const client = getClient()
 
-    console.log(`🤖 OpenAI ${request.mode} mode: Sending request...`)
-    if (request.csvFiles?.length) {
-      console.log(`📊 CSV files: ${request.csvFiles.map(f => f.fileName).join(', ')}`)
-    }
-
     const completion = await client.chat.completions.create({
       model: CONFIG.model,
       messages: [
@@ -30,8 +25,6 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
     })
 
     const responseText = completion.choices[0]?.message?.content || ''
-    console.log(`✅ OpenAI response received (${responseText.length} chars)`)
-
     return parseResponse(responseText, request.mode)
   } catch (error) {
     handleApiError(error)
@@ -41,8 +34,6 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
 export async function generateContext(request: OpenAIContextRequest): Promise<string> {
   try {
     const client = getClient()
-
-    console.log(`🔍 Generating context for project: ${request.projectName}`)
 
     const completion = await client.chat.completions.create({
       model: CONFIG.model,
@@ -55,8 +46,6 @@ export async function generateContext(request: OpenAIContextRequest): Promise<st
     })
 
     const context = completion.choices[0]?.message?.content || ''
-    console.log(`✅ Context generated (${context.length} chars)`)
-
     return context || getDefaultContext(request.csvFiles)
   } catch (error) {
     console.error('Context generation error, using fallback:', error)
