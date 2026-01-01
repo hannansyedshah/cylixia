@@ -11,11 +11,11 @@ interface ExecuteResponse {
   plot_base64?: Array<{ filename: string; data: string }>
 }
 
-const HUGGINGFACE_ENDPOINT = 'https://ShayanShah1124-cReate.hf.space/run'
+const R_EXECUTION_URL = process.env.R_EXECUTION_URL || 'https://ShayanShah1124-cReate.hf.space/run'
 
 export async function executeCode(request: ExecuteRequest): Promise<ExecuteResponse> {
   try {
-    const response = await fetch(HUGGINGFACE_ENDPOINT, {
+    const response = await fetch(R_EXECUTION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
