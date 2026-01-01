@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateContextWindow } from '@/lib/airiaClient'
+import { generateContext } from '@/lib/openaiClient'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { projectName, csvFiles, userId } = body
+    const { projectName, csvFiles } = body
 
     if (!projectName || !csvFiles) {
       return NextResponse.json(
@@ -16,11 +16,10 @@ export async function POST(request: NextRequest) {
     console.log('📝 Generating context for project:', projectName)
     console.log('📂 CSV files:', csvFiles.length)
 
-    const context = await generateContextWindow(
+    const context = await generateContext({
       projectName,
-      csvFiles,
-      userId || 'anonymous'
-    )
+      csvFiles
+    })
 
     return NextResponse.json({ context })
   } catch (error: any) {
@@ -31,4 +30,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
