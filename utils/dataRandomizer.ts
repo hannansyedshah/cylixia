@@ -1,23 +1,5 @@
-/**
- * Data Randomization Utility
- *
- * This utility randomizes CSV data while preserving the structure and data types
- * to protect user privacy when sending data to AI services for code generation.
- * The original data is still used for actual R code execution.
- *
- * PRIVACY PROTECTION FLOW:
- * 1. User uploads CSV → Original data stored locally
- * 2. Chat request → Randomized data sent to AI for code generation
- * 3. R execution → Original data used for actual code execution
- *
- * This ensures AI services never see real user data while maintaining functionality.
- */
-
 import type { ColumnInfo } from '@/types'
 
-/**
- * Analyzes CSV data to determine column types and characteristics
- */
 function analyzeCSVStructure(csvData: string): ColumnInfo[] {
   const lines = csvData.split('\n').filter(line => line.trim())
   if (lines.length < 2) return []
@@ -37,7 +19,6 @@ function analyzeCSVStructure(csvData: string): ColumnInfo[] {
       continue
     }
 
-    // Check if all values are numeric
     const numericValues = values.map(v => parseFloat(v)).filter(v => !isNaN(v))
     if (numericValues.length === values.length) {
       columns.push({
@@ -49,7 +30,6 @@ function analyzeCSVStructure(csvData: string): ColumnInfo[] {
       continue
     }
 
-    // Check if all values are dates (basic check)
     const dateValues = values.filter(v => {
       const date = new Date(v)
       return !isNaN(date.getTime()) && v.match(/\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}/)
@@ -59,7 +39,6 @@ function analyzeCSVStructure(csvData: string): ColumnInfo[] {
       continue
     }
 
-    // Check if all values are boolean-like
     const booleanValues = values.filter(v => 
       ['true', 'false', 'yes', 'no', '1', '0', 't', 'f'].includes(v.toLowerCase())
     )
@@ -68,7 +47,6 @@ function analyzeCSVStructure(csvData: string): ColumnInfo[] {
       continue
     }
 
-    // Default to text
     const uniqueValues = [...new Set(values)]
     columns.push({
       name: columnName,
@@ -80,9 +58,6 @@ function analyzeCSVStructure(csvData: string): ColumnInfo[] {
   return columns
 }
 
-/**
- * Generates random data based on column analysis
- */
 function generateRandomValue(column: ColumnInfo): string {
   switch (column.type) {
     case 'numeric':
@@ -103,7 +78,6 @@ function generateRandomValue(column: ColumnInfo): string {
       if (column.uniqueValues && column.uniqueValues.length > 0) {
         return column.uniqueValues[Math.floor(Math.random() * column.uniqueValues.length)]
       }
-      // Generate random text
       const words = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta']
       return words[Math.floor(Math.random() * words.length)] + Math.floor(Math.random() * 1000)
     
@@ -112,12 +86,6 @@ function generateRandomValue(column: ColumnInfo): string {
   }
 }
 
-/**
- * Randomizes CSV data while preserving structure and data types
- * 
- * @param csvData Original CSV data string
- * @returns Randomized CSV data with same structure
- */
 export function randomizeCSVData(csvData: string): string {
   if (!csvData || csvData.trim() === '') {
     return csvData
@@ -130,28 +98,18 @@ export function randomizeCSVData(csvData: string): string {
     const headers = lines[0]
     const columns = analyzeCSVStructure(csvData)
     
-    // Generate randomized data rows
     const dataRows = lines.slice(1)
     const randomizedRows = dataRows.map(() => {
       return columns.map(column => generateRandomValue(column)).join(',')
     })
 
-    // Reconstruct CSV
     return [headers, ...randomizedRows].join('\n')
   } catch (error) {
     console.error('Error randomizing CSV data:', error)
-    // Return original data if randomization fails
     return csvData
   }
 }
 
-/**
- * Creates a sample of the original CSV for preview purposes
- * 
- * @param csvData Original CSV data string
- * @param maxRows Maximum number of rows to include in sample
- * @returns Sample CSV data
- */
 export function createCSVSample(csvData: string, maxRows: number = 10): string {
   if (!csvData || csvData.trim() === '') {
     return csvData
@@ -171,13 +129,6 @@ export function createCSVSample(csvData: string, maxRows: number = 10): string {
   }
 }
 
-/**
- * Validates that randomized data maintains the same structure as original
- * 
- * @param original Original CSV data
- * @param randomized Randomized CSV data
- * @returns True if structure is preserved
- */
 export function validateRandomizedData(original: string, randomized: string): boolean {
   try {
     const originalLines = original.split('\n').filter(line => line.trim())
