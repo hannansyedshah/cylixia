@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { supabase } from '@/lib/supabase/client'
-import { useSessionStore } from '@/lib/useSessionStore'
+import { useSessionStore } from '@/lib/stores/sessionStore'
 import { TerminalView } from './TerminalView'
 import { PlotViewer } from './PlotViewer'
 import { Button } from '@/components/ui/button'

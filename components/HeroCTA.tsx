@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { useSessionStore } from '@/lib/useSessionStore'
+import { useSessionStore } from '@/lib/stores/sessionStore'
 
 export function HeroCTA() {
   const { user } = useSessionStore()

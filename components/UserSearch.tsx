@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { UserAvatar } from './UserAvatar'
 import { Loader2 } from 'lucide-react'
-import { useSessionStore } from '@/lib/useSessionStore'
+import { useSessionStore } from '@/lib/stores/sessionStore'
 import type { UserSearchResult } from '@/types'
 
 interface UserSearchProps {

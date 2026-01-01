@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { useSessionStore } from '@/lib/useSessionStore'
+import { useSessionStore } from '@/lib/stores/sessionStore'
 import type { ProjectUpdate } from '@/types'
 
 interface UseRealtimeProjectOptions {
