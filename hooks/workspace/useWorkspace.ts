@@ -7,14 +7,13 @@ import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
 import { getProject, updateCode, saveContext, saveOutput } from '@/lib/db/projects'
 import { getMessages, createMessage } from '@/lib/db/messages'
-import { getSharedDatasets } from '@/lib/db/datasets'
 import { saveVersion } from '@/lib/db/versions'
 import { sendChat } from '@/actions/chat'
 import { executeCode } from '@/actions/execute'
 import { useElapsedTimer } from '@/hooks/workspace/useElapsedTimer'
 import { useRealtimeMessages } from '@/hooks/workspace/useRealtimeMessages'
 import type { Message } from '@/types/database'
-import type { DatasetItem, SharedDataset } from '@/types/dataset'
+import type { DatasetItem } from '@/types/dataset'
 import type { AiriaMode } from '@/types/api'
 
 export function useWorkspace(projectId: string) {
@@ -38,7 +37,6 @@ export function useWorkspace(projectId: string) {
 
   // Datasets
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
-  const [sharedDatasets, setSharedDatasets] = useState<SharedDataset[]>([])
 
   // NIST/Context
   const [contextWindow, setContextWindow] = useState<string | null>(null)
@@ -93,13 +91,8 @@ export function useWorkspace(projectId: string) {
         setShowNistModal(true)
       }
 
-      const [messages, sharedDs] = await Promise.all([
-        getMessages(projectId),
-        getSharedDatasets(projectId)
-      ])
-
+      const messages = await getMessages(projectId)
       setProject((prev: any) => prev ? { ...prev, messages } : prev)
-      setSharedDatasets(sharedDs)
     } catch (e) {
       console.error('Failed to load project:', e)
     } finally {
@@ -247,7 +240,6 @@ export function useWorkspace(projectId: string) {
     // Datasets
     datasets,
     setDatasets,
-    sharedDatasets,
     datasetsNeedReupload,
 
     // Context/NIST

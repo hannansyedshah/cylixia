@@ -30,7 +30,6 @@ export default function WorkspacePage() {
     galleryPlots,
     datasets,
     setDatasets,
-    sharedDatasets,
     datasetsNeedReupload,
     contextWindow,
     showContextModal,
@@ -84,10 +83,7 @@ export default function WorkspacePage() {
               privacyMode={privacyMode}
               hipaaCompliant={project.hipaa_compliant}
               datasets={datasets}
-              sharedDatasets={sharedDatasets}
               onDatasetsChange={setDatasets}
-              projectId={projectId}
-              currentUserId={user.id}
             />
           </div>
         )}
