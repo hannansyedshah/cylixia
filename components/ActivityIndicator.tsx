@@ -5,14 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/lib/useSessionStore'
 import { Users } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'
-
-interface ActiveUser {
-  userId: string
-  displayName: string
-  avatarUrl?: string | null
-  activity: 'typing' | 'editing' | 'active'
-  lastSeen: number
-}
+import type { ActiveUser } from '@/types'
 
 export function ActivityIndicator({ projectId }: { projectId: string }) {
   const { user } = useSessionStore()
