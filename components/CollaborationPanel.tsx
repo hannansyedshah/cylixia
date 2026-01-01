@@ -9,20 +9,7 @@ import { UserProfileModal } from './UserProfileModal'
 import { UserPlus, Loader2 } from 'lucide-react'
 import { useSessionStore } from '@/lib/useSessionStore'
 import { supabase } from '@/lib/supabaseClient'
-
-interface Collaborator {
-  id: string
-  project_id: string
-  user_id: string
-  role: 'owner' | 'edit' | 'view'
-  status: string
-  created_at: string
-  profiles?: {
-    id: string
-    display_name: string | null
-    avatar_url: string | null
-  }
-}
+import type { Collaborator } from '@/types'
 
 interface CollaborationPanelProps {
   projectId: string
