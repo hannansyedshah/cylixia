@@ -1,10 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
-interface SessionStore {
-  user: any | null
-  setUser: (user: any | null) => void
-}
+import type { SessionStore } from '@/types'
 
 export const useSessionStore = create<SessionStore>()(
   persist(
