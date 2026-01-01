@@ -10,7 +10,7 @@ import {
   buildUserMessage,
   buildContextMessage,
   CONTEXT_SYSTEM_PROMPT,
-  getDefaultContextTemplate
+  getDefaultContext
 } from '@/templates/openai'
 
 export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse> {
@@ -60,16 +60,9 @@ export async function generateContext(request: OpenAIContextRequest): Promise<st
     const context = completion.choices[0]?.message?.content || ''
     console.log(`✅ Context generated (${context.length} chars)`)
 
-    return context || getDefaultContext(request)
-  } catch (error: any) {
-    console.error('Context generation error:', error)
-    return getDefaultContext(request)
+    return context || getDefaultContext(request.csvFiles)
+  } catch (error) {
+    console.error('Context generation error, using fallback:', error)
+    return getDefaultContext(request.csvFiles)
   }
-}
-
-function getDefaultContext(request: OpenAIContextRequest): string {
-  const fileNames = request.csvFiles.map(f => f.fileName).join(', ')
-  const keyFields = request.csvFiles[0]?.csvData.split('\n')[0] || 'Not specified'
-
-  return getDefaultContextTemplate(keyFields, fileNames)
 }

@@ -3,13 +3,21 @@
  */
 
 import type { OpenAIResponse, OpenAIMode } from '@/types'
+import { getResponseMessage } from '@/templates/openai'
+
+interface ParsedJson {
+  r_code?: string
+  explanation?: string
+  plot_description?: string
+  next_suggestions?: string[]
+}
 
 export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
   const jsonResponse = tryParseJson(text)
   if (jsonResponse) {
     return {
       code: jsonResponse.r_code || '',
-      message: mode === 'ask' ? 'Here\'s the answer to your question:' : 'Here\'s the R code for your request:',
+      message: getResponseMessage(mode),
       explanation: jsonResponse.explanation,
       plotDescription: jsonResponse.plot_description,
       nextSuggestions: jsonResponse.next_suggestions
@@ -20,14 +28,14 @@ export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
   if (codeBlock) {
     return {
       code: codeBlock,
-      message: 'Here\'s the R code:'
+      message: getResponseMessage('generate', 'codeBlock')
     }
   }
 
   if (looksLikeRCode(text)) {
     return {
       code: text.trim(),
-      message: 'Here\'s the R code for your request:'
+      message: getResponseMessage('generate')
     }
   }
 
@@ -37,7 +45,7 @@ export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
   }
 }
 
-function tryParseJson(text: string): Record<string, any> | null {
+function tryParseJson(text: string): ParsedJson | null {
   try {
     let jsonText = text
 

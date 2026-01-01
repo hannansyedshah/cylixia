@@ -6,10 +6,15 @@ export {
 
 export {
   CONTEXT_SYSTEM_PROMPT,
-  getDefaultContextTemplate
+  getDefaultContextTemplate,
+  getDefaultContext
 } from './contextPrompts'
 
 export {
   buildUserMessage,
   buildContextMessage
 } from './messages'
+
+export {
+  getResponseMessage
+} from './responseMessages'

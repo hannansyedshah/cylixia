@@ -34,3 +34,10 @@ Preferred Analysis Types: [To be specified]
 
 Additional Notes: NIST-compliant mode. All PHI fields treated as de-identified tokens.`
 }
+
+export function getDefaultContext(csvFiles: Array<{ fileName: string; csvData: string }>): string {
+  const fileNames = csvFiles.map(f => f.fileName).join(', ')
+  const keyFields = csvFiles[0]?.csvData.split('\n')[0] || 'Not specified'
+
+  return getDefaultContextTemplate(keyFields, fileNames)
+}
