@@ -20,14 +20,22 @@ export interface Profile {
   updated_at: string
 }
 
+export interface PartialProfile {
+  id: string
+  display_name: string | null
+  avatar_url: string | null
+}
+
 export interface Message {
   id: string
-  project_id: string
+  project_id?: string
   role: 'user' | 'assistant'
   content: string
-  code: string | null
-  plot_url: string | null
+  code?: string | null
+  plot_url?: string | null
   created_at: string
+  user_id?: string
+  profiles?: Profile | PartialProfile | null
 }
 
 export interface CodeVersion {
