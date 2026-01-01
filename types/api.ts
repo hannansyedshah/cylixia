@@ -12,8 +12,8 @@ export interface AiriaRequest {
 }
 
 export interface AiriaResponse {
-  output?: string
-  result?: unknown
+  output?: string | Record<string, unknown>
+  result?: string | Record<string, unknown>
   error?: string
   rCode?: string
   message?: string
