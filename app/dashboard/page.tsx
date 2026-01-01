@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Layout } from '@/components/layout/Layout'
 import { ProjectCard } from '@/components/dashboard/ProjectCard'
 import { CreateProjectModal } from '@/components/dashboard/CreateProjectModal'
@@ -9,7 +9,7 @@ import { EditProjectModal } from '@/components/dashboard/EditProjectModal'
 import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
-import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
+import { Plus, FolderOpen } from 'lucide-react'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects'
 import type { Project } from '@/types/database'
 
@@ -19,7 +19,6 @@ interface DashboardProject extends Project {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const pathname = usePathname()
   const { user, setUser } = useSessionStore()
   const [projects, setProjects] = useState<DashboardProject[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -27,61 +26,39 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<DashboardProject | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
   const hasLoadedRef = useRef(false)
-  const refreshAttemptsRef = useRef(0)
-  const intervalRef = useRef<any>(null)
-  const inFlightRef = useRef(false)
-  const mountedRef = useRef(true)
-  const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const loadProjects = useCallback(async () => {
-    // Avoid spamming requests due to rapid remounts/back nav or render loops
-    if (hasLoadedRef.current || inFlightRef.current) return
+  const loadProjects = async () => {
+    if (hasLoadedRef.current) return
+    hasLoadedRef.current = true
 
-    inFlightRef.current = true
-    hasLoadedRef.current = true // mark early; allow manual/interval refresh to reset
     try {
       setLoading(true)
       const projects = await getProjects()
-      if (mountedRef.current) {
-        setProjects(projects)
-      }
+      setProjects(projects)
     } catch (error) {
       console.error('Failed to load projects:', error)
     } finally {
-      if (mountedRef.current) {
-        setLoading(false)
-      }
-      // Always reset inFlight, even on error
-      inFlightRef.current = false
+      setLoading(false)
     }
-  }, [])
+  }
 
   // Handle authentication state changes
   useEffect(() => {
-    let mounted = true
-    
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!mounted) return
-      
+
       if (!session && !user) {
         router.push('/login')
         return
       }
-      
+
       if (session && !user) {
         setUser(session.user)
       }
     }
-    
+
     checkAuth()
-    
-    return () => {
-      mounted = false
-    }
   }, [user, setUser, router])
 
   // Load projects when user becomes available (only once)
@@ -89,9 +66,7 @@ export default function DashboardPage() {
     if (user && !hasLoadedRef.current) {
       loadProjects()
     }
-  }, [user, loadProjects])
-
-  // Auto-refresh will be set up after refreshProjects is defined
+  }, [user])
 
   const handleCreateProject = async (name: string, description: string, hipaaCompliant: boolean = false) => {
     try {
@@ -100,10 +75,8 @@ export default function DashboardPage() {
         alert('A project with that name already exists. Please choose a different name.')
         return
       }
-      if (mountedRef.current) {
-        setProjects(prev => [project, ...prev])
-        router.push(`/workspace/${project.id}`)
-      }
+      setProjects(prev => [project, ...prev])
+      router.push(`/workspace/${project.id}`)
     } catch (error) {
       console.error('Failed to create project:', error)
     }
@@ -112,9 +85,7 @@ export default function DashboardPage() {
   const handleDeleteProject = async (projectId: string) => {
     try {
       await deleteProject(projectId)
-      if (mountedRef.current) {
-        setProjects(projects.filter(p => p.id !== projectId))
-      }
+      setProjects(projects.filter(p => p.id !== projectId))
     } catch (error) {
       console.error('Failed to delete project:', error)
     }
@@ -134,140 +105,11 @@ export default function DashboardPage() {
         alert('A project with that name already exists. Please choose a different name.')
         return
       }
-      if (mountedRef.current) {
-        setProjects(projects.map(p => p.id === projectId ? project : p))
-      }
+      setProjects(projects.map(p => p.id === projectId ? project : p))
     } catch (error) {
       console.error('Failed to update project:', error)
     }
   }
-
-  const refreshProjects = useCallback(async () => {
-    try {
-      if (mountedRef.current) {
-        setIsRefreshing(true)
-        hasLoadedRef.current = false
-        setProjects([]) // Clear existing projects
-      }
-      await loadProjects()
-    } finally {
-      if (mountedRef.current) {
-        setIsRefreshing(false)
-      }
-    }
-  }, [loadProjects])
-
-  // Auto-refresh with a hard cap of 5 times; cleans up on unmount/navigation
-  useEffect(() => {
-    if (!user) return
-    // Only auto-refresh on dashboard route
-    if (pathname !== '/dashboard') return
-    // Clear any existing interval before starting a new one
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-    refreshAttemptsRef.current = 0
-    intervalRef.current = setInterval(() => {
-      // Stop if navigated away
-      if (pathname !== '/dashboard') {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-        return
-      }
-      // Stop once we've hit the cap
-      if (refreshAttemptsRef.current >= 5) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-        return
-      }
-      // Only refresh when tab is visible
-      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
-        return
-      }
-      refreshProjects()
-      refreshAttemptsRef.current += 1
-    }, 15000) // 15s cadence; adjust if needed
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-    }
-  }, [user, pathname, refreshProjects])
-
-  // Handle visibility changes to reset stuck states
-  // Use refs to access current state values to avoid recreating listener
-  const loadingRef = useRef(loading)
-  const isRefreshingRef = useRef(isRefreshing)
-  
-  useEffect(() => {
-    loadingRef.current = loading
-    isRefreshingRef.current = isRefreshing
-  }, [loading, isRefreshing])
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && mountedRef.current) {
-        // Clear any existing timeout first
-        if (visibilityTimeoutRef.current) {
-          clearTimeout(visibilityTimeoutRef.current)
-          visibilityTimeoutRef.current = null
-        }
-
-        // Reset stuck states when tab becomes visible again
-        // Use refs to get current values without causing dependency issues
-        const currentLoading = loadingRef.current
-        const currentIsRefreshing = isRefreshingRef.current
-
-        // If in-flight flag is set but not actually loading/refreshing, reset it
-        if (inFlightRef.current && !currentLoading && !currentIsRefreshing) {
-          inFlightRef.current = false
-        }
-        // If refreshing flag is stuck without an active request
-        if (currentIsRefreshing && !inFlightRef.current) {
-          setIsRefreshing(false)
-        }
-        // If loading is stuck (no active request), reset it after a delay
-        // This ensures buttons become clickable again
-        if (currentLoading && !inFlightRef.current) {
-          // Loading state is stuck - reset it
-          visibilityTimeoutRef.current = setTimeout(() => {
-            if (mountedRef.current && loadingRef.current && !inFlightRef.current) {
-              setLoading(false)
-            }
-            visibilityTimeoutRef.current = null
-          }, 1000)
-        }
-      } else if (document.visibilityState === 'hidden') {
-        // Clear timeout when tab becomes hidden
-        if (visibilityTimeoutRef.current) {
-          clearTimeout(visibilityTimeoutRef.current)
-          visibilityTimeoutRef.current = null
-        }
-      }
-    }
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', handleVisibilityChange)
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-        // Clean up any pending timeout
-        if (visibilityTimeoutRef.current) {
-          clearTimeout(visibilityTimeoutRef.current)
-          visibilityTimeoutRef.current = null
-        }
-      }
-    }
-  }, []) // Empty deps - use refs to access current state
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
 
   if (!user) {
     return null
@@ -303,15 +145,6 @@ export default function DashboardPage() {
               >
                 <Plus className="h-5 w-5 mr-2" />
                 New Project
-              </Button>
-              <Button
-                onClick={refreshProjects}
-                size="lg"
-                variant="outline"
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={isRefreshing ? 'h-5 w-5 mr-2 animate-spin' : 'h-5 w-5 mr-2'} />
-                {isRefreshing ? 'Refreshing' : 'Refresh'}
               </Button>
               
               {/* Filter Buttons */}
