@@ -48,30 +48,14 @@ export async function shareDataset(projectId: string, data: ShareDatasetData): P
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Check user has edit access
+  // Only owner can share datasets
   const { data: project } = await supabase
     .from('projects')
     .select('user_id')
     .eq('id', projectId)
     .single()
 
-  if (!project) return null
-
-  let canShare = project.user_id === user.id
-
-  if (!canShare) {
-    const { data: collaborator } = await supabase
-      .from('project_collaborators')
-      .select('role')
-      .eq('project_id', projectId)
-      .eq('user_id', user.id)
-      .eq('status', 'accepted')
-      .single()
-
-    canShare = collaborator?.role === 'owner' || collaborator?.role === 'edit'
-  }
-
-  if (!canShare) return null
+  if (!project || project.user_id !== user.id) return null
 
   const { data: dataset, error } = await supabase
     .from('shared_datasets')

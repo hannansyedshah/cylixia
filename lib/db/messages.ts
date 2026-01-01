@@ -15,26 +15,14 @@ export async function getMessages(projectId: string): Promise<Message[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  // Check access
+  // Only owner can access
   const { data: project } = await supabase
     .from('projects')
     .select('id, user_id')
     .eq('id', projectId)
     .single()
 
-  if (!project) return []
-
-  if (project.user_id !== user.id) {
-    const { data: collaborator } = await supabase
-      .from('project_collaborators')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', user.id)
-      .eq('status', 'accepted')
-      .single()
-
-    if (!collaborator) return []
-  }
+  if (!project || project.user_id !== user.id) return []
 
   const { data: messages } = await supabase
     .from('messages')
@@ -50,26 +38,14 @@ export async function createMessage(projectId: string, data: CreateMessageData):
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Check access
+  // Only owner can create messages
   const { data: project } = await supabase
     .from('projects')
     .select('id, user_id')
     .eq('id', projectId)
     .single()
 
-  if (!project) return null
-
-  if (project.user_id !== user.id) {
-    const { data: collaborator } = await supabase
-      .from('project_collaborators')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', user.id)
-      .eq('status', 'accepted')
-      .single()
-
-    if (!collaborator) return null
-  }
+  if (!project || project.user_id !== user.id) return null
 
   const messageData: any = {
     project_id: projectId,

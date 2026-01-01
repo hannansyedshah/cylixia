@@ -53,18 +53,8 @@ export async function getProject(id: string): Promise<ProjectWithData | null> {
 
   if (error || !project) return null
 
-  // Check access
-  if (project.user_id !== user.id) {
-    const { data: collaborator } = await supabase
-      .from('project_collaborators')
-      .select('*')
-      .eq('project_id', id)
-      .eq('user_id', user.id)
-      .eq('status', 'accepted')
-      .single()
-
-    if (!collaborator) return null
-  }
+  // Only owner can access
+  if (project.user_id !== user.id) return null
 
   // Get messages
   const { data: messages } = await supabase
@@ -115,31 +105,14 @@ export async function updateProject(projectId: string, data: UpdateProjectData):
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Check access
+  // Only owner can edit
   const { data: projectCheck } = await supabase
     .from('projects')
     .select('user_id')
     .eq('id', projectId)
     .single()
 
-  if (!projectCheck) return null
-
-  let canEdit = projectCheck.user_id === user.id
-
-  if (!canEdit) {
-    const { data: collaborator } = await supabase
-      .from('project_collaborators')
-      .select('role')
-      .eq('project_id', projectId)
-      .eq('user_id', user.id)
-      .eq('status', 'accepted')
-      .in('role', ['owner', 'edit'])
-      .single()
-
-    canEdit = !!collaborator
-  }
-
-  if (!canEdit) return null
+  if (!projectCheck || projectCheck.user_id !== user.id) return null
 
   // Validate name if being updated
   if (data.name !== undefined) {
