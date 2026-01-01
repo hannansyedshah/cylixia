@@ -1,4 +1,4 @@
-import type { OpenAIMode } from '@/types'
+import type { OpenAIMode } from '@/types/openai'
 import { BASE_PROMPT, PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from './base'
 import { GENERATE_OUTPUT_FORMAT } from './generate'
 import { ASK_OUTPUT_FORMAT } from './ask'

@@ -2,16 +2,13 @@
  * OpenAI API - Code Generation & Context
  */
 
-import type { OpenAIRequest, OpenAIResponse, OpenAIContextRequest } from '@/types'
+import type { OpenAIRequest, OpenAIResponse, OpenAIContextRequest } from '@/types/openai'
 import { getClient, handleApiError, CONFIG } from './client'
 import { parseResponse } from '@/utils/openaiParser'
-import {
-  getSystemPrompt,
-  buildUserMessage,
-  buildContextMessage,
-  CONTEXT_SYSTEM_PROMPT,
-  getDefaultContext
-} from '@/templates/openai'
+import { getSystemPrompt } from '@/templates/openai/prompts/systemPrompt'
+import { buildUserMessage } from '@/templates/openai/messages/userMessage'
+import { buildContextMessage } from '@/templates/openai/messages/contextMessage'
+import { CONTEXT_SYSTEM_PROMPT, getDefaultContext } from '@/templates/openai/contextPrompts'
 
 export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse> {
   try {

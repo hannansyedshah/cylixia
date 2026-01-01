@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
-import type { CodeVersion } from '@/types'
+import type { CodeVersion } from '@/types/database'
 
 // Extended CodeVersion with profile relation for display
 interface CodeVersionWithProfile extends CodeVersion {

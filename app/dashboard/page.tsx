@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
-import type { Project } from '@/types'
+import type { Project } from '@/types/database'
 
 interface DashboardProject extends Project {
   is_shared?: boolean

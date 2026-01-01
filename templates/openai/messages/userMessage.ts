@@ -2,8 +2,8 @@
  * User Message Builder for Code Generation
  */
 
-import type { OpenAIRequest } from '@/types'
-import { PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from '../prompts'
+import type { OpenAIRequest } from '@/types/openai'
+import { PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from '../prompts/systemPrompt'
 
 export function buildUserMessage(request: OpenAIRequest): string {
   const sections: string[] = []

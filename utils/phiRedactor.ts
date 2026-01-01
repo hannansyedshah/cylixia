@@ -1,4 +1,4 @@
-import type { RedactionResult } from '@/types'
+import type { RedactionResult } from '@/types/dataset'
 
 const PHI_PATTERNS = {
   names: /^(name|names|firstname|lastname|fullname|givenname|middlename|first_name|last_name|full_name|given_name|middle_name|patient_name|person_name|subject_name|participant_name|clinician_name|doctor_name|physician_name|provider_name|staff_name|user_name|patientname|personname|subjectname|participantname|clinicianname|doctorname|physicianname|providername|staffname|username)$/i,

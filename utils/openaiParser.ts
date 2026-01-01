@@ -2,8 +2,8 @@
  * OpenAI Response Parser
  */
 
-import type { OpenAIResponse, OpenAIMode } from '@/types'
-import { getResponseMessage } from '@/templates/openai'
+import type { OpenAIResponse, OpenAIMode } from '@/types/openai'
+import { getResponseMessage } from '@/templates/openai/responseMessages'
 
 interface ParsedJson {
   r_code?: string

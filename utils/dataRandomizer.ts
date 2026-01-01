@@ -1,4 +1,4 @@
-import type { ColumnInfo } from '@/types'
+import type { ColumnInfo } from '@/types/dataset'
 
 function analyzeCSVStructure(csvData: string): ColumnInfo[] {
   const lines = csvData.split('\n').filter(line => line.trim())

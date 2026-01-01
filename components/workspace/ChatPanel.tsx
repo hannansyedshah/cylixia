@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Send, Sparkles, Copy, Check, Loader2 } from 'lucide-react'
-import type { Message } from '@/types'
+import type { Message } from '@/types/database'
 
 interface ChatPanelProps {
   messages: Message[]

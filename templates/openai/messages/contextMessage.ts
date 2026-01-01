@@ -2,7 +2,7 @@
  * User Message Builder for Context Generation
  */
 
-import type { OpenAIContextRequest } from '@/types'
+import type { OpenAIContextRequest } from '@/types/openai'
 
 export function buildContextMessage(request: OpenAIContextRequest): string {
   const sections: string[] = []

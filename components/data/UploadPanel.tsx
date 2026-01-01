@@ -8,7 +8,7 @@ import { UserAvatar } from '@/components/profile/UserAvatar'
 import { ComplianceReviewModal } from './ComplianceReviewModal'
 import { CSVDataEditor } from './CSVDataEditor'
 import { redactPHI } from '@/utils/phiRedactor'
-import type { DatasetItem, SharedDataset } from '@/types'
+import type { DatasetItem, SharedDataset } from '@/types/dataset'
 
 // Extended SharedDataset with profile relation for display
 interface SharedDatasetWithProfile extends SharedDataset {

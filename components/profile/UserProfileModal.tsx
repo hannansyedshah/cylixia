@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UserAvatar } from './UserAvatar'
 import { Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { Profile } from '@/types'
+import type { Profile } from '@/types/database'
 
 interface UserProfileModalProps {
   userId: string

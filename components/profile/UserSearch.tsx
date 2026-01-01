@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { UserAvatar } from './UserAvatar'
 import { Loader2 } from 'lucide-react'
 import { useSessionStore } from '@/lib/stores/sessionStore'
-import type { UserSearchResult } from '@/types'
+import type { UserSearchResult } from '@/types/user'
 
 interface UserSearchProps {
   onSelect: (user: UserSearchResult) => void

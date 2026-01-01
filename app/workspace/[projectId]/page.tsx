@@ -13,7 +13,9 @@ import { NistComplianceModal } from '@/components/workspace/NistComplianceModal'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
-import type { Message, DatasetItem, SharedDataset, AiriaMode } from '@/types'
+import type { Message } from '@/types/database'
+import type { DatasetItem, SharedDataset } from '@/types/dataset'
+import type { AiriaMode } from '@/types/api'
 
 export default function WorkspacePage() {
   const router = useRouter()

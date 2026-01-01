@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Loader2, Shield, Plus, Trash2, FileText } from 'lucide-react'
-import type { ContextFields } from '@/types'
+import type { ContextFields } from '@/types/workspace'
 
 interface ContextWindowModalProps {
   projectName: string

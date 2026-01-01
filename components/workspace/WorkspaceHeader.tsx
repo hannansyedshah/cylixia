@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shield, Edit3 } from 'lucide-react'
-import type { AiriaMode } from '@/types'
+import type { AiriaMode } from '@/types/api'
 
 interface WorkspaceHeaderProps {
   projectName: string

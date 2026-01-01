@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { callOpenAI } from '@/lib/openai'
+import { callOpenAI } from '@/lib/openai/api'
 import { randomizeCSVData } from '@/utils/dataRandomizer'
-import type { OpenAIMode } from '@/types'
+import type { OpenAIMode } from '@/types/openai'
 
 export async function POST(request: NextRequest) {
   try {
