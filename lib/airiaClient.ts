@@ -3,22 +3,7 @@
  * Connects to your Airia agent for R code generation
  */
 
-interface AiriaRequest {
-  userId: string
-  userInput: string
-  asyncOutput: boolean
-  csvData?: string
-  fileName?: string
-  csvFiles?: Array<{ fileName: string, csvData: string }>
-}
-
-interface AiriaResponse {
-  output?: string
-  result?: any
-  error?: string
-  rCode?: string
-  message?: string
-}
+import type { AiriaRequest, AiriaResponse } from '@/types'
 
 const AIRIA_API_URL_LEGACY = 'https://api.airia.ai/v2/PipelineExecution/3b015c24-44cf-400c-aac7-437fb5963f63'
 const AIRIA_API_URL_QUICK = 'https://api.airia.ai/v2/PipelineExecution/3679b604-284a-40fc-9ebc-e77362d144f6'
@@ -304,14 +289,16 @@ Please return ONLY full R code with necessary library() calls.`
 /**
  * Parse R code and message from Airia response
  */
-export function parseAiriaResponse(airiaData: AiriaResponse): { 
-  code: string, 
+export function parseAiriaResponse(airiaData: AiriaResponse): {
+  code: string,
   message: string,
   explanation?: string,
   plotDescription?: string,
   nextSuggestions?: string[]
 } {
-  const responseText = airiaData.output || airiaData.result || ''
+  // Get response text, ensuring it's a string for processing
+  const rawOutput = airiaData.output || airiaData.result || ''
+  const responseText = typeof rawOutput === 'string' ? rawOutput : JSON.stringify(rawOutput)
   
   console.log('🔍 Parsing Airia response, responseText type:', typeof responseText)
   
@@ -327,8 +314,8 @@ export function parseAiriaResponse(airiaData: AiriaResponse): {
   try {
     // Clean up response text before parsing (remove bullet points, extra whitespace)
     let cleanedText = responseText
-    if (typeof responseText === 'string') {
-      // First, try to extract JSON from markdown code blocks
+    // First, try to extract JSON from markdown code blocks
+    if (responseText) {
       const jsonBlockMatch = responseText.match(/```json\s*\n?([\s\S]*?)```/)
       if (jsonBlockMatch) {
         cleanedText = jsonBlockMatch[1].trim()
