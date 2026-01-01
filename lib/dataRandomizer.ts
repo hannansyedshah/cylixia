@@ -1,25 +1,19 @@
 /**
  * Data Randomization Utility
- * 
+ *
  * This utility randomizes CSV data while preserving the structure and data types
  * to protect user privacy when sending data to AI services for code generation.
  * The original data is still used for actual R code execution.
- * 
+ *
  * PRIVACY PROTECTION FLOW:
  * 1. User uploads CSV → Original data stored locally
  * 2. Chat request → Randomized data sent to AI for code generation
  * 3. R execution → Original data used for actual code execution
- * 
+ *
  * This ensures AI services never see real user data while maintaining functionality.
  */
 
-interface ColumnInfo {
-  name: string
-  type: 'numeric' | 'text' | 'date' | 'boolean'
-  min?: number
-  max?: number
-  uniqueValues?: string[]
-}
+import type { ColumnInfo } from '@/types'
 
 /**
  * Analyzes CSV data to determine column types and characteristics
