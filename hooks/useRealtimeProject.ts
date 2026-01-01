@@ -9,14 +9,14 @@ interface UseRealtimeProjectOptions {
   projectId: string
   onCodeChange?: (code: string) => void
   debounceMs?: number
-  enabled?: boolean // Whether real-time collaboration is enabled
+  enabled?: boolean
 }
 
-export function useRealtimeProject({ 
-  projectId, 
+export function useRealtimeProject({
+  projectId,
   onCodeChange,
-  debounceMs = 200, // Fast updates for instant feel
-  enabled = true // Default to enabled for backward compatibility
+  debounceMs = 200,
+  enabled = true
 }: UseRealtimeProjectOptions) {
   const { user } = useSessionStore()
   const [isConnected, setIsConnected] = useState(false)
@@ -24,20 +24,17 @@ export function useRealtimeProject({
   const subscriptionRef = useRef<any>(null)
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastUpdateRef = useRef<string | null>(null)
-  const lastLocalCodeRef = useRef<string | null>(null) // Track our last local code state
-  const isApplyingRemoteChangeRef = useRef(false) // Flag to prevent loops when applying remote changes
+  const lastLocalCodeRef = useRef<string | null>(null)
+  const isApplyingRemoteChangeRef = useRef(false)
 
-  // Store onCodeChange in a ref to avoid recreating subscription
   const onCodeChangeRef = useRef(onCodeChange)
   useEffect(() => {
     onCodeChangeRef.current = onCodeChange
   }, [onCodeChange])
 
-  // Initialize lastLocalCodeRef with current code when project loads
   useEffect(() => {
     if (!projectId || !user) return
-    
-    // Fetch current project code to initialize our state
+
     supabase
       .from('projects')
       .select('code, updated_at')
@@ -52,11 +49,10 @@ export function useRealtimeProject({
   }, [projectId, user])
 
   useEffect(() => {
-    if (!projectId || !user || !enabled) return // Don't subscribe if disabled
+    if (!projectId || !user || !enabled) return
 
-    // Subscribe to project changes
     const channel = supabase
-      .channel(`project-${projectId}`) // Stable channel name per project
+      .channel(`project-${projectId}`)
       .on(
         'postgres_changes',
         {
@@ -67,44 +63,29 @@ export function useRealtimeProject({
         },
         (payload) => {
           const newData = payload.new as ProjectUpdate
-          
-          // Ignore if we're currently applying a remote change (prevent loops)
+
           if (isApplyingRemoteChangeRef.current) {
             return
           }
-          
-          // Ignore updates from current user to prevent loops
-          // Only ignore if the timestamp matches exactly (same update we just sent)
+
           if (newData.updated_at === lastUpdateRef.current) {
             return
           }
 
-          // Only apply if the code is actually different and newer than our last local state
           if (newData.code !== undefined && onCodeChangeRef.current) {
             const incomingCode = newData.code
             const currentLocalCode = lastLocalCodeRef.current
-            
-            // Only apply if code is significantly different (not just minor changes)
-            // This prevents stuttering from rapid updates
+
             if (incomingCode !== currentLocalCode) {
-              // Mark that we're applying a remote change
               isApplyingRemoteChangeRef.current = true
-              
-              // Update lastUpdateRef to the new timestamp
               lastUpdateRef.current = newData.updated_at
-              
-              // Update our last local code ref to match the incoming code
               lastLocalCodeRef.current = incomingCode
-              
-              // Call the callback (this will update the editor)
               onCodeChangeRef.current(incomingCode)
-              
-              // Reset the flag quickly to allow new updates
+
               setTimeout(() => {
                 isApplyingRemoteChangeRef.current = false
-              }, 50) // Faster reset for smoother updates
+              }, 50)
             } else {
-              // Update timestamp even if we don't apply the code (to track latest update)
               lastUpdateRef.current = newData.updated_at
             }
           }
@@ -121,25 +102,22 @@ export function useRealtimeProject({
         subscriptionRef.current.unsubscribe()
       }
     }
-  }, [projectId, user, enabled]) // Added enabled to dependencies
+  }, [projectId, user, enabled])
 
   const lastBroadcastedCodeRef = useRef<string | null>(null)
 
   const broadcastCodeChange = useCallback(async (code: string) => {
     if (!projectId || !user) return
 
-    // Skip if code hasn't actually changed
     if (code === lastBroadcastedCodeRef.current) {
       return
     }
 
-    // Debounce updates to reduce egress
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
     }
 
     debounceTimeoutRef.current = setTimeout(async () => {
-      // Double-check code hasn't changed during debounce
       if (code === lastBroadcastedCodeRef.current) {
         return
       }
@@ -148,7 +126,7 @@ export function useRealtimeProject({
         const now = new Date().toISOString()
         lastUpdateRef.current = now
         lastBroadcastedCodeRef.current = code
-        lastLocalCodeRef.current = code // Update our last local code state
+        lastLocalCodeRef.current = code
 
         const { error } = await supabase
           .from('projects')
@@ -157,7 +135,6 @@ export function useRealtimeProject({
 
         if (error) {
           console.error('[Realtime] Failed to broadcast code change:', error)
-          // Reset on error so we can retry
           lastBroadcastedCodeRef.current = null
           lastLocalCodeRef.current = null
         }
