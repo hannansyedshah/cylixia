@@ -1,20 +1,7 @@
 'use client'
 
 import { UserAvatar } from './UserAvatar'
-
-interface Collaborator {
-  id: string
-  project_id: string
-  user_id: string
-  role: 'owner' | 'edit' | 'view'
-  status: string
-  created_at: string
-  profiles?: {
-    id: string
-    display_name: string | null
-    avatar_url: string | null
-  }
-}
+import type { Collaborator } from '@/types'
 
 interface CollaboratorListProps {
   collaborators: Collaborator[]
