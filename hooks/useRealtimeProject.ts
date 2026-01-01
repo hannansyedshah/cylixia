@@ -3,13 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/lib/useSessionStore'
-
-interface ProjectUpdate {
-  id: string
-  code?: string
-  updated_at: string
-  user_id?: string // Project owner (not necessarily who edited)
-}
+import type { ProjectUpdate } from '@/types'
 
 interface UseRealtimeProjectOptions {
   projectId: string
