@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       csvData,
       fileName,
       privacyMode = true,
-      mode = 'legacy',
+      mode = 'generate',
       csvFilesForChat,
       contextWindow,
       isNistProject = false
@@ -51,9 +51,7 @@ export async function POST(request: NextRequest) {
       console.log(`📦 Preparing single CSV: ${fileName}`)
     }
 
-    // Map legacy modes to simplified modes
-    // legacy/quick -> generate, ask -> ask
-    const openaiMode: OpenAIMode = mode === 'ask' ? 'ask' : 'generate'
+    const openaiMode: OpenAIMode = mode as OpenAIMode
 
     const response = await callOpenAI({
       mode: openaiMode,

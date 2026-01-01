@@ -82,7 +82,7 @@ export function WorkspaceHeader({
         </Button>
 
         <div className="flex gap-1 text-xs">
-          {(['legacy', 'quick', 'ask'] as const).map((mode) => (
+          {(['generate', 'ask'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => onAiriaModeChange(mode)}
@@ -92,7 +92,7 @@ export function WorkspaceHeader({
                   : 'bg-transparent border-transparent opacity-70'
               }`}
             >
-              {mode === 'ask' ? 'Ask Data' : mode.charAt(0).toUpperCase() + mode.slice(1)}
+              {mode === 'generate' ? 'Generate' : 'Ask Data'}
             </button>
           ))}
         </div>

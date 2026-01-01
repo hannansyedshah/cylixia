@@ -1,6 +1,6 @@
 // API request/response types
 
-export type AiriaMode = 'legacy' | 'quick' | 'ask'
+export type AiriaMode = 'generate' | 'ask'
 
 export interface AiriaRequest {
   userId: string

@@ -26,7 +26,7 @@ export default function WorkspacePage() {
   const [loadingProject, setLoadingProject] = useState(true)
 
   // UI state
-  const [airiaMode, setAiriaMode] = useState<AiriaMode>('quick')
+  const [airiaMode, setAiriaMode] = useState<AiriaMode>('generate')
   const [showDatasetsPanel, setShowDatasetsPanel] = useState(false)
   const [privacyMode, setPrivacyMode] = useState(true)
 
@@ -129,7 +129,7 @@ export default function WorkspacePage() {
 
   // Update estimated time based on mode
   useEffect(() => {
-    setEstimatedSeconds(airiaMode === 'legacy' ? 130 : airiaMode === 'ask' ? 60 : 40)
+    setEstimatedSeconds(airiaMode === 'ask' ? 60 : 40)
   }, [airiaMode])
 
   // Real-time messages subscription
