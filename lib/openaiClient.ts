@@ -1,10 +1,16 @@
 /**
  * OpenAI Client for R Code Generation
- * Replaces Airia client with GPT-4o
  */
 
 import OpenAI from 'openai'
 import type { OpenAIRequest, OpenAIResponse, OpenAIContextRequest } from '@/types'
+import {
+  getSystemPrompt,
+  PRIVACY_NOTE_RANDOMIZED,
+  PRIVACY_NOTE_ORIGINAL,
+  CONTEXT_SYSTEM_PROMPT,
+  getDefaultContextTemplate
+} from '@/templates/openai'
 
 let client: OpenAI | null = null
 
@@ -19,62 +25,6 @@ function getClient(): OpenAI {
   return client
 }
 
-function getSystemPrompt(mode: 'generate' | 'ask', isNistProject: boolean): string {
-  const basePrompt = `You are an expert R programmer and statistical analyst specializing in data visualization and analysis.
-You generate clean, well-documented, publication-ready R code following best practices.
-
-IMPORTANT GUIDELINES:
-- Always use individual tidyverse packages (ggplot2, dplyr, readr, tidyr, stringr, purrr, tibble, forcats) - NEVER use library(tidyverse)
-- Include all necessary library() calls at the top of your code
-- Generate complete, executable R code
-- Add helpful comments explaining key steps
-- Use modern R idioms and syntax
-- Handle edge cases gracefully`
-
-  const nistAddendum = isNistProject
-    ? `
-
-NIST COMPLIANCE:
-- All data values are de-identified tokens - treat them as such
-- Do not attempt to infer actual patient/subject information
-- Focus on structural analysis patterns, not specific values
-- Reference the provided research context for parameters`
-    : ''
-
-  if (mode === 'generate') {
-    return `${basePrompt}${nistAddendum}
-
-OUTPUT FORMAT (JSON):
-Return a valid JSON object with this structure:
-{
-  "r_code": "# Complete R code here...",
-  "explanation": "Brief explanation of what the code does",
-  "plot_description": "If visualization is generated, describe what it shows",
-  "next_suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
-}
-
-The r_code field must contain complete, executable R code.
-Provide 2-4 actionable next suggestions.`
-  }
-
-  // ask mode
-  return `${basePrompt}${nistAddendum}
-
-MODE: Question Answering
-The user is asking a question about their data or code, not requesting new code generation.
-
-OUTPUT FORMAT (JSON):
-{
-  "explanation": "Detailed answer to the user's question",
-  "r_code": "Optional: R code snippet if helpful (can be empty string)",
-  "plot_description": "If discussing visualizations, describe relevant aspects",
-  "next_suggestions": ["Follow-up question 1", "Related topic 2"]
-}
-
-Focus on clear, educational explanations.
-Include code snippets only when they illustrate your answer.`
-}
-
 function buildUserMessage(request: OpenAIRequest): string {
   let message = `USER REQUEST: ${request.prompt}\n\n`
 
@@ -83,10 +33,7 @@ function buildUserMessage(request: OpenAIRequest): string {
   }
 
   if (request.csvFiles && request.csvFiles.length > 0) {
-    const privacyNote = request.privacyMode
-      ? '⚠️ NOTE: This CSV data has been RANDOMIZED for privacy protection. Use for structural analysis only.'
-      : '✓ NOTE: This is ORIGINAL data with real values.'
-
+    const privacyNote = request.privacyMode ? PRIVACY_NOTE_RANDOMIZED : PRIVACY_NOTE_ORIGINAL
     message += `${privacyNote}\n\nDATASETS:\n`
 
     request.csvFiles.forEach((file, index) => {
@@ -104,17 +51,14 @@ function buildUserMessage(request: OpenAIRequest): string {
 }
 
 function parseResponse(text: string, mode: 'generate' | 'ask'): OpenAIResponse {
-  // Try to parse as JSON
   try {
     let jsonText = text
 
-    // Extract from markdown code block if present
     const jsonBlockMatch = text.match(/```json\s*\n?([\s\S]*?)```/)
     if (jsonBlockMatch) {
       jsonText = jsonBlockMatch[1].trim()
     }
 
-    // Clean up artifacts
     jsonText = jsonText
       .replace(/^```json\s*/g, '')
       .replace(/```\s*$/g, '')
@@ -130,7 +74,6 @@ function parseResponse(text: string, mode: 'generate' | 'ask'): OpenAIResponse {
       nextSuggestions: parsed.next_suggestions
     }
   } catch {
-    // Fallback: extract code from markdown block
     const codeBlockMatch = text.match(/```r?\n?([\s\S]*?)```/)
     if (codeBlockMatch) {
       return {
@@ -139,7 +82,6 @@ function parseResponse(text: string, mode: 'generate' | 'ask'): OpenAIResponse {
       }
     }
 
-    // If looks like R code, treat as code
     if (text.includes('library(') || text.includes('ggplot(') || text.includes('<-')) {
       return {
         code: text.trim(),
@@ -147,7 +89,6 @@ function parseResponse(text: string, mode: 'generate' | 'ask'): OpenAIResponse {
       }
     }
 
-    // Otherwise treat as plain message
     return {
       code: '',
       message: text.trim()
@@ -183,7 +124,6 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
   } catch (error: any) {
     console.error('OpenAI API error:', error)
 
-    // User-friendly error messages
     if (error.status === 429) {
       throw new Error('Rate limit exceeded. Please try again in a moment.')
     }
@@ -202,22 +142,6 @@ export async function generateContext(request: OpenAIContextRequest): Promise<st
   try {
     const openai = getClient()
 
-    const systemPrompt = `You are a research data analyst specializing in NIST-compliant data analysis.
-Analyze the provided CSV data and generate a research context template.
-
-OUTPUT FORMAT (plain text, no markdown):
-Study Type: [Infer study type - Clinical trial, Observational, Cross-sectional, Longitudinal]
-
-Objective: [Infer main research objective based on data structure]
-
-Dataset Key Fields: [List important column names, comma-separated]
-
-Preferred Analysis Types: [3-5 appropriate analyses - Linear regression, Logistic regression, etc.]
-
-Additional Notes: [Important observations about dataset structure or quality]
-
-Return ONLY the template above with values filled in. No code blocks, no extra formatting.`
-
     let userMessage = `Project: ${request.projectName}\n\nCSV Files:\n`
     request.csvFiles.forEach((file, index) => {
       userMessage += `\nFile ${index + 1}: ${file.fileName}\n`
@@ -229,7 +153,7 @@ Return ONLY the template above with values filled in. No code blocks, no extra f
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: CONTEXT_SYSTEM_PROMPT },
         { role: 'user', content: userMessage }
       ],
       temperature: 0.3,
@@ -239,31 +163,20 @@ Return ONLY the template above with values filled in. No code blocks, no extra f
     const context = completion.choices[0]?.message?.content || ''
     console.log(`✅ Context generated (${context.length} chars)`)
 
-    return context || generateDefaultContext(request)
+    return context || getDefaultContext(request)
   } catch (error: any) {
     console.error('Context generation error:', error)
-    return generateDefaultContext(request)
+    return getDefaultContext(request)
   }
 }
 
-function generateDefaultContext(request: OpenAIContextRequest): string {
+function getDefaultContext(request: OpenAIContextRequest): string {
   const fileNames = request.csvFiles.map(f => f.fileName).join(', ')
-
   let keyFields = 'Not specified'
+
   if (request.csvFiles.length > 0) {
-    const headers = request.csvFiles[0].csvData.split('\n')[0] || ''
-    keyFields = headers
+    keyFields = request.csvFiles[0].csvData.split('\n')[0] || 'Not specified'
   }
 
-  return `Study Type: [To be specified]
-
-Objective: [To be specified]
-
-Dataset Key Fields: ${keyFields}
-
-Dataset Files: ${fileNames || 'No files uploaded'}
-
-Preferred Analysis Types: [To be specified]
-
-Additional Notes: NIST-compliant mode. All PHI fields treated as de-identified tokens.`
+  return getDefaultContextTemplate(keyFields, fileNames)
 }
