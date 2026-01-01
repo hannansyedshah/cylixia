@@ -4,24 +4,16 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X, Loader2, Shield, Plus, Trash2, FileText } from 'lucide-react'
+import type { ContextFields } from '@/types'
 
 interface ContextWindowModalProps {
   projectName: string
   csvFiles: Array<{ fileName: string; csvData: string }>
   initialContext?: string | null
-  initialExcludedFields?: string[] // Pre-populated excluded fields from NIST redaction
+  initialExcludedFields?: string[]
   onSave: (context: string) => void
   onCancel: () => void
   onGenerateContext: (projectName: string, csvFiles: Array<{ fileName: string; csvData: string }>) => Promise<string>
-}
-
-interface ContextFields {
-  studyType: string
-  objective: string
-  keyFields: string
-  analysisTypes: string[]
-  additionalNotes: string
-  excludedFields: string[] // Fields fully excluded from analysis (will not be shared)
 }
 
 export function ContextWindowModal({
