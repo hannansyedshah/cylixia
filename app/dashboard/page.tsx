@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
+import { getProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects'
 import type { Project } from '@/types/database'
 
 interface DashboardProject extends Project {
@@ -42,21 +43,9 @@ export default function DashboardPage() {
     hasLoadedRef.current = true // mark early; allow manual/interval refresh to reset
     try {
       setLoading(true)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-      const response = await fetch('/api/projects', {
-        cache: 'no-store',
-        signal: controller.signal,
-      })
-      clearTimeout(timeoutId)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-      
-      const data = await response.json()
-      if (mountedRef.current && data.projects) {
-        setProjects(data.projects)
+      const projects = await getProjects()
+      if (mountedRef.current) {
+        setProjects(projects)
       }
     } catch (error) {
       console.error('Failed to load projects:', error)
@@ -106,20 +95,14 @@ export default function DashboardPage() {
 
   const handleCreateProject = async (name: string, description: string, hipaaCompliant: boolean = false) => {
     try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, hipaaCompliant }),
-      })
-      if (response.status === 409) {
+      const project = await createProject({ name, description, hipaaCompliant })
+      if (!project) {
         alert('A project with that name already exists. Please choose a different name.')
         return
       }
-      const data = await response.json()
-      if (mountedRef.current && data.project) {
-        // Add to local state immediately
-        setProjects(prev => [data.project, ...prev])
-        router.push(`/workspace/${data.project.id}`)
+      if (mountedRef.current) {
+        setProjects(prev => [project, ...prev])
+        router.push(`/workspace/${project.id}`)
       }
     } catch (error) {
       console.error('Failed to create project:', error)
@@ -128,9 +111,7 @@ export default function DashboardPage() {
 
   const handleDeleteProject = async (projectId: string) => {
     try {
-      await fetch(`/api/projects/${projectId}`, {
-        method: 'DELETE',
-      })
+      await deleteProject(projectId)
       if (mountedRef.current) {
         setProjects(projects.filter(p => p.id !== projectId))
       }
@@ -148,18 +129,13 @@ export default function DashboardPage() {
 
   const handleUpdateProject = async (projectId: string, name: string, description: string) => {
     try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
-      })
-      if (response.status === 409) {
+      const project = await updateProject(projectId, { name, description })
+      if (!project) {
         alert('A project with that name already exists. Please choose a different name.')
         return
       }
-      const data = await response.json()
-      if (mountedRef.current && data.project) {
-        setProjects(projects.map(p => p.id === projectId ? data.project : p))
+      if (mountedRef.current) {
+        setProjects(projects.map(p => p.id === projectId ? project : p))
       }
     } catch (error) {
       console.error('Failed to update project:', error)

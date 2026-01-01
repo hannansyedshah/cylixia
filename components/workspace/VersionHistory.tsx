@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import { getVersions, saveVersion, restoreVersion as restoreVersionAction } from '@/lib/db/versions'
 import type { CodeVersion } from '@/types/database'
 
 // Extended CodeVersion with profile relation for display
@@ -163,11 +164,8 @@ export function VersionHistory({
   const loadVersions = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/projects/${projectId}/versions`)
-      const data = await response.json()
-      if (data.versions) {
-        setVersions(data.versions)
-      }
+      const versionsData = await getVersions(projectId)
+      setVersions(versionsData as CodeVersionWithProfile[])
     } catch (error) {
       console.error('Failed to load versions:', error)
     } finally {
@@ -177,25 +175,20 @@ export function VersionHistory({
 
   const saveCurrentVersion = async () => {
     if (!currentCode.trim() || !onSaveVersion) return
-    
+
     setSaving(true)
     try {
-      const response = await fetch(`/api/projects/${projectId}/versions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: currentCode,
-          plot_url: currentPlotUrl,
-          description: description || `Version ${versions.length + 1}`
-        })
+      const version = await saveVersion(projectId, {
+        code: currentCode,
+        plot_url: currentPlotUrl,
+        description: description || `Version ${versions.length + 1}`
       })
 
-      const data = await response.json()
-      if (data.version) {
-        setVersions([data.version, ...versions])
+      if (version) {
+        setVersions([version as CodeVersionWithProfile, ...versions])
         setDescription('')
         setShowDescriptionInput(false)
-        onSaveVersion(data.version.code, data.version.plot_url, data.version.description)
+        onSaveVersion(version.code, version.plot_url ?? undefined, version.description)
       }
     } catch (error) {
       console.error('Failed to save version:', error)
@@ -204,17 +197,13 @@ export function VersionHistory({
     }
   }
 
-  const restoreVersion = async (versionId: string) => {
+  const handleRestoreVersion = async (versionId: string) => {
     if (!onVersionRestore) return
-    
-    try {
-      const response = await fetch(`/api/projects/${projectId}/versions/${versionId}/restore`, {
-        method: 'POST'
-      })
 
-      const data = await response.json()
-      if (data.success) {
-        onVersionRestore(data.code, data.plot_url)
+    try {
+      const result = await restoreVersionAction(projectId, versionId)
+      if (result) {
+        onVersionRestore(result.code, result.plot_url ?? undefined)
         setShowHistory(false)
       }
     } catch (error) {
@@ -459,7 +448,7 @@ export function VersionHistory({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => restoreVersion(version.id)}
+                                onClick={() => handleRestoreVersion(version.id)}
                                 className="flex items-center space-x-1"
                               >
                                 <RotateCcw className="h-3 w-3" />

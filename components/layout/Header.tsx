@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { ThemeToggle } from './ThemeToggle'
 import { supabase } from '@/lib/supabase/client'
+import { getProfile } from '@/lib/db/profile'
 
 export function Header() {
   const pathname = usePathname()
@@ -18,14 +19,11 @@ export function Header() {
 
   // Load profile when user changes
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadProfileData = async () => {
       if (actualUser?.id) {
         try {
-          const response = await fetch('/api/profile')
-          if (response.ok) {
-            const data = await response.json()
-            setProfile(data.profile)
-          }
+          const profileData = await getProfile()
+          setProfile(profileData)
         } catch (error) {
           console.error('Failed to load profile:', error)
         }
@@ -33,7 +31,7 @@ export function Header() {
         setProfile(null)
       }
     }
-    loadProfile()
+    loadProfileData()
   }, [actualUser?.id])
 
   // Check actual Supabase session on mount and set up auth listener once

@@ -13,12 +13,13 @@ import { NistComplianceModal } from '@/components/workspace/NistComplianceModal'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
-import { getProject, getMessages, getSharedDatasets } from '@/lib/api/projects'
-import { sendChat } from '@/lib/api/chat'
-import { executeCode } from '@/lib/api/execute'
-import { updateCode, saveContext, saveOutput } from '@/actions/project'
-import { createMessage } from '@/actions/messages'
-import { saveVersion } from '@/actions/versions'
+import { getProject, updateCode, saveContext, saveOutput } from '@/lib/db/projects'
+import { getMessages, createMessage } from '@/lib/db/messages'
+import { getSharedDatasets } from '@/lib/db/datasets'
+import { saveVersion } from '@/lib/db/versions'
+import { sendChat } from '@/actions/chat'
+import { executeCode } from '@/actions/execute'
+import { generateContext } from '@/actions/context'
 import type { Message } from '@/types/database'
 import type { DatasetItem, SharedDataset } from '@/types/dataset'
 import type { AiriaMode } from '@/types/api'
@@ -355,13 +356,7 @@ export default function WorkspacePage() {
             onSave={handleContextSave}
             onCancel={() => { setShowContextModal(false); setPendingPrompt('') }}
             onGenerateContext={async (name, files) => {
-              const res = await fetch('/api/context/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectName: name, csvFiles: files })
-              })
-              const data = await res.json()
-              return data.context || ''
+              return generateContext({ projectName: name, csvFiles: files })
             }}
           />
         )}

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { useSessionStore } from '@/lib/stores/sessionStore'
+import { getProfile, updateProfile } from '@/lib/db/profile'
 import { Loader2 } from 'lucide-react'
 import type { Profile } from '@/types/database'
 
@@ -31,16 +32,13 @@ export function ProfilePage() {
   const loadProfile = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/profile')
-      if (!response.ok) throw new Error('Failed to load profile')
-      
-      const data = await response.json()
-      setProfile(data.profile)
+      const profileData = await getProfile()
+      setProfile(profileData)
       setFormData({
-        display_name: data.profile?.display_name || '',
-        bio: data.profile?.bio || '',
-        location: data.profile?.location || '',
-        website: data.profile?.website || ''
+        display_name: profileData?.display_name || '',
+        bio: profileData?.bio || '',
+        location: profileData?.location || '',
+        website: profileData?.website || ''
       })
     } catch (error: any) {
       console.error('Failed to load profile:', error)
@@ -52,19 +50,11 @@ export function ProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const response = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to save profile')
+      const profileData = await updateProfile(formData)
+      if (!profileData) {
+        throw new Error('Failed to save profile')
       }
-
-      const data = await response.json()
-      setProfile(data.profile)
+      setProfile(profileData)
       // Trigger a page refresh to update the header with new display name
       window.location.reload()
       alert('Profile updated successfully!')
