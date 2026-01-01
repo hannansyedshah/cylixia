@@ -20,6 +20,8 @@ import { saveVersion } from '@/lib/db/versions'
 import { sendChat } from '@/actions/chat'
 import { executeCode } from '@/actions/execute'
 import { generateContext } from '@/actions/context'
+import { useElapsedTimer } from '@/hooks/useElapsedTimer'
+import { useRealtimeMessages } from '@/hooks/useRealtimeMessages'
 import type { Message } from '@/types/database'
 import type { DatasetItem, SharedDataset } from '@/types/dataset'
 import type { AiriaMode } from '@/types/api'
@@ -54,14 +56,20 @@ export default function WorkspacePage() {
   const [showNistModal, setShowNistModal] = useState(false)
   const [pendingPrompt, setPendingPrompt] = useState('')
 
-  // Loading indicators
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [estimatedSeconds, setEstimatedSeconds] = useState(40)
-  const loadingStartRef = useRef<number | null>(null)
-
-  // Refs
+  // Hooks
+  const elapsedSeconds = useElapsedTimer(loading)
+  const estimatedSeconds = airiaMode === 'ask' ? 60 : 40
   const hasLoadedRef = useRef(false)
-  const mountedRef = useRef(true)
+
+  // Real-time messages
+  const handleNewMessage = useCallback((newMsg: Message) => {
+    setProject((prev: any) => {
+      if (!prev || prev.messages?.some((m: Message) => m.id === newMsg.id)) return prev
+      return { ...prev, messages: [...(prev.messages || []), newMsg] }
+    })
+  }, [])
+
+  useRealtimeMessages({ projectId, onNewMessage: handleNewMessage })
 
   // Auth check
   useEffect(() => {
@@ -83,7 +91,6 @@ export default function WorkspacePage() {
         router.push('/dashboard')
         return
       }
-      if (!mountedRef.current) return
 
       setProject({ ...p, messages: p.messages || [] })
       if (p.context_window) setContextWindow(p.context_window)
@@ -104,55 +111,13 @@ export default function WorkspacePage() {
     } catch (e) {
       console.error('Failed to load project:', e)
     } finally {
-      if (mountedRef.current) setLoadingProject(false)
+      setLoadingProject(false)
     }
   }, [projectId, router])
 
   useEffect(() => {
     if (projectId && !hasLoadedRef.current) loadProject()
   }, [projectId, loadProject])
-
-  // Elapsed time tracking
-  useEffect(() => {
-    if (!loading) {
-      loadingStartRef.current = null
-      setElapsedSeconds(0)
-      return
-    }
-    loadingStartRef.current = Date.now()
-    const interval = setInterval(() => {
-      if (loadingStartRef.current) {
-        setElapsedSeconds(Math.floor((Date.now() - loadingStartRef.current) / 1000))
-      }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [loading])
-
-  useEffect(() => {
-    setEstimatedSeconds(airiaMode === 'ask' ? 60 : 40)
-  }, [airiaMode])
-
-  // Real-time messages subscription
-  useEffect(() => {
-    if (!projectId) return
-    const channel = supabase
-      .channel(`messages-${projectId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `project_id=eq.${projectId}` },
-        (payload) => {
-          const newMsg = payload.new as Message
-          setProject((prev: any) => {
-            if (!prev || prev.messages?.some((m: Message) => m.id === newMsg.id)) return prev
-            return { ...prev, messages: [...(prev.messages || []), newMsg] }
-          })
-        }
-      )
-      .subscribe()
-    return () => { channel.unsubscribe() }
-  }, [projectId])
-
-  useEffect(() => {
-    return () => { mountedRef.current = false }
-  }, [])
 
   // Handlers
   const handleCodeChange = useCallback((newCode: string) => {
@@ -200,7 +165,7 @@ export default function WorkspacePage() {
     } catch (e) {
       console.error('Chat error:', e)
     } finally {
-      if (mountedRef.current) setLoading(false)
+      setLoading(false)
     }
   }
 
@@ -230,7 +195,7 @@ export default function WorkspacePage() {
       console.error('Run error:', e)
       setStderrText('Execution failed')
     } finally {
-      if (mountedRef.current) setLoading(false)
+      setLoading(false)
     }
   }
 
