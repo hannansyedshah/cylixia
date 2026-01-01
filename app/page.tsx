@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Layout } from '@/components/Layout'
+import { Layout } from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
-import { HeroCTA } from '@/components/HeroCTA'
+import { HeroCTA } from '@/components/layout/HeroCTA'
 import { 
   ShieldCheck, 
   Code2, 

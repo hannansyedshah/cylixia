@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CodeEditor } from '@/components/CodeEditor'
-import { VersionHistory } from '@/components/VersionHistory'
+import { CodeEditor } from './CodeEditor'
+import { VersionHistory } from './VersionHistory'
 import { Play, Maximize2, Minimize2, Code2 } from 'lucide-react'
 
 interface CodePanelProps {

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { PlotViewer } from '@/components/PlotViewer'
-import { TerminalView } from '@/components/TerminalView'
+import { PlotViewer } from './PlotViewer'
+import { TerminalView } from './TerminalView'
 import { BarChart3 } from 'lucide-react'
 
 interface OutputPanelProps {

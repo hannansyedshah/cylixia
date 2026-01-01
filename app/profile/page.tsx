@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Layout } from '@/components/Layout'
-import { ProfilePage } from '@/components/ProfilePage'
+import { Layout } from '@/components/layout/Layout'
+import { ProfilePage } from '@/components/profile/ProfilePage'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 
