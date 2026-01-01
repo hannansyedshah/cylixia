@@ -5,16 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from './UserAvatar'
 import { Loader2, Check, X } from 'lucide-react'
+import type { CollaborationRequest } from '@/types'
 
-interface CollaborationRequest {
-  id: string
-  project_id: string
-  from_user_id: string
-  to_user_id: string
-  role: 'edit' | 'view'
+interface CollaborationRequestWithRelations extends CollaborationRequest {
   message: string | null
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled'
-  created_at: string
   project?: {
     id: string
     name: string
@@ -28,7 +22,7 @@ interface CollaborationRequest {
 }
 
 export function CollaborationRequests() {
-  const [requests, setRequests] = useState<CollaborationRequest[]>([])
+  const [requests, setRequests] = useState<CollaborationRequestWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
 
