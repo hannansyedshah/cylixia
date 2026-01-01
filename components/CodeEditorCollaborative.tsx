@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { X } from 'lucide-react'
+import type { TypingUser } from '@/types'
 
 interface CodeEditorCollaborativeProps {
   value: string
@@ -25,11 +26,6 @@ interface CodeEditorCollaborativeProps {
   onRealtimeCollaborationToggle?: (enabled: boolean) => void // Callback to toggle real-time collaboration
 }
 
-interface TypingUser {
-  userId: string
-  displayName: string
-  avatarUrl?: string | null
-}
 
 export function CodeEditorCollaborative({ 
   value, 
