@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { callAiriaAgent, parseAiriaResponse } from '@/lib/airiaClient'
-import { randomizeCSVData } from '@/lib/dataRandomizer'
+import { randomizeCSVData } from '@/utils/dataRandomizer'
 
 export async function POST(request: NextRequest) {
   try {

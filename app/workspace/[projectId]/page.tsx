@@ -22,7 +22,7 @@ import { useSessionStore } from '@/lib/useSessionStore'
 import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2, Users, MessageSquare, X, UserPlus, Copy, Check, Shield, Sparkles, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { encodeBase64 } from '@/lib/base64'
+import { encodeBase64 } from '@/utils/base64'
 import type { Message, DatasetItem, SharedDataset, AiriaMode } from '@/types'
 
 interface WorkspaceMessage extends Message {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { X, Shield, Check, AlertTriangle, Lock, FileText, CheckCircle, Eye, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { redactPHI, getCSVColumns, isColumnPHI } from '@/lib/phiRedactor'
+import { redactPHI, getCSVColumns, isColumnPHI } from '@/utils/phiRedactor'
 
 interface ComplianceReviewModalProps {
   originalData: string

@@ -7,7 +7,7 @@ import { DataPreview } from '@/components/DataPreview'
 import { UserAvatar } from './UserAvatar'
 import { ComplianceReviewModal } from './ComplianceReviewModal'
 import { CSVDataEditor } from './CSVDataEditor'
-import { redactPHI } from '@/lib/phiRedactor'
+import { redactPHI } from '@/utils/phiRedactor'
 import type { DatasetItem, SharedDataset } from '@/types'
 
 // Extended SharedDataset with profile relation for display

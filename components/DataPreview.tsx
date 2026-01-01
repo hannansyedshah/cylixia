@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff, Download, Copy, Check, Maximize2, Minimize2, Table } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { randomizeCSVData } from '@/lib/dataRandomizer'
+import { randomizeCSVData } from '@/utils/dataRandomizer'
 
 interface DataPreviewProps {
   originalData: string

@@ -8,7 +8,7 @@ import { UserAvatar } from './UserAvatar'
 import { Send, Loader2, Trash2, Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/lib/useSessionStore'
-import { playChatSound } from '@/lib/soundNotifications'
+import { playChatSound } from '@/utils/soundNotifications'
 import { ViewerWorkspace } from './ViewerWorkspace'
 import type { ChatMessage } from '@/types'
 
