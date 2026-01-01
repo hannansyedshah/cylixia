@@ -6,7 +6,6 @@ import { Layout } from '@/components/Layout'
 import { ProjectCard } from '@/components/ProjectCard'
 import { CreateProjectModal } from '@/components/CreateProjectModal'
 import { EditProjectModal } from '@/components/EditProjectModal'
-import { CollaborationRequests } from '@/components/CollaborationRequests'
 import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
@@ -320,11 +319,6 @@ export default function DashboardPage() {
             <p className="text-gray-600 dark:text-gray-400">
               Manage your data visualization projects
             </p>
-          </div>
-
-          {/* Collaboration Requests */}
-          <div className="mb-8 animate-fade-in-up animation-delay-200">
-            <CollaborationRequests />
           </div>
 
           {/* Actions + Search */}
