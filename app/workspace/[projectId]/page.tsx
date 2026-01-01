@@ -23,14 +23,9 @@ import { Send, Play, Code2, BarChart3, ArrowLeft, Maximize2, Minimize2, Loader2,
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { encodeBase64 } from '@/lib/base64'
+import type { Message, DatasetItem, SharedDataset, AiriaMode } from '@/types'
 
-interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  code?: string
-  plot_url?: string
-  created_at: string
+interface WorkspaceMessage extends Message {
   user_id?: string
   profiles?: {
     id: string
@@ -50,31 +45,21 @@ export default function WorkspacePage() {
   const [loading, setLoading] = useState(false)
   const [project, setProject] = useState<any>(null)
   const [loadingProject, setLoadingProject] = useState(true)
-  type DatasetItem = { id: string, fileName: string, sizeBytes: number, persisted: boolean, includeChat: boolean, includeRun: boolean, csvText?: string, excludedColumns?: string[] }
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
-  
-  // Shared datasets state
-  interface SharedDataset {
-    id: string
-    project_id: string
-    user_id: string
-    file_name: string
-    csv_text: string
-    size_bytes: number
-    include_chat: boolean
-    include_run: boolean
-    created_at: string
+
+  // Shared datasets state - extended with profile for display
+  interface WorkspaceSharedDataset extends SharedDataset {
     profiles?: {
       id: string
       display_name: string | null
       avatar_url: string | null
     } | null
   }
-  const [sharedDatasets, setSharedDatasets] = useState<SharedDataset[]>([])
+  const [sharedDatasets, setSharedDatasets] = useState<WorkspaceSharedDataset[]>([])
   const [privacyMode, setPrivacyMode] = useState<boolean>(true) // Default to randomized data for privacy
   // Track user preferences for shared datasets (local state, not persisted)
   const [sharedDatasetPreferences, setSharedDatasetPreferences] = useState<Record<string, { includeChat: boolean; includeRun: boolean }>>({})
-  const [airiaMode, setAiriaMode] = useState<'legacy' | 'quick' | 'ask'>('quick')
+  const [airiaMode, setAiriaMode] = useState<AiriaMode>('quick')
   const [stdoutText, setStdoutText] = useState<string>('')
   const [stderrText, setStderrText] = useState<string>('')
   const [showTerminalNextToPlot, setShowTerminalNextToPlot] = useState<boolean>(false)
