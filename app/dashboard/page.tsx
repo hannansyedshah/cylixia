@@ -13,7 +13,6 @@ import { supabase } from '@/lib/supabaseClient'
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
 import type { Project } from '@/types'
 
-// Extended Project type for dashboard with optional fields
 interface DashboardProject extends Project {
   is_shared?: boolean
 }
