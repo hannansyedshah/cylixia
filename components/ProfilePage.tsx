@@ -8,15 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { useSessionStore } from '@/lib/useSessionStore'
 import { Loader2 } from 'lucide-react'
-
-interface Profile {
-  id: string
-  display_name: string | null
-  avatar_url: string | null
-  bio: string | null
-  location: string | null
-  website: string | null
-}
+import type { Profile } from '@/types'
 
 export function ProfilePage() {
   const { user } = useSessionStore()
