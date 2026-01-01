@@ -10,22 +10,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useSessionStore } from '@/lib/useSessionStore'
 import { playChatSound } from '@/lib/soundNotifications'
 import { ViewerWorkspace } from './ViewerWorkspace'
-
-interface ChatMessage {
-  id: string
-  project_id: string
-  user_id: string
-  message: string
-  created_at: string
-  code_selection?: string | null
-  code_selection_start_line?: number | null
-  code_selection_end_line?: number | null
-  profiles?: {
-    id: string
-    display_name: string | null
-    avatar_url: string | null
-  }
-}
+import type { ChatMessage } from '@/types'
 
 interface ProjectChatProps {
   projectId: string
