@@ -5,15 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import type { CodeVersion } from '@/types'
 
-interface CodeVersion {
-  id: string
-  version_number: number
-  code: string
-  plot_url?: string
-  description: string
-  created_at: string
-  user_id?: string
+// Extended CodeVersion with profile relation for display
+interface CodeVersionWithProfile extends CodeVersion {
   profiles?: {
     id: string
     display_name: string | null
@@ -157,7 +152,7 @@ export function VersionHistory({
   onVersionRestore, 
   onSaveVersion 
 }: VersionHistoryProps) {
-  const [versions, setVersions] = useState<CodeVersion[]>([])
+  const [versions, setVersions] = useState<CodeVersionWithProfile[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
@@ -256,7 +251,7 @@ export function VersionHistory({
   }
 
   // Helper function to parse plot URLs - could be single URL or JSON array
-  const parsePlotUrls = (plotUrl?: string): string[] => {
+  const parsePlotUrls = (plotUrl?: string | null): string[] => {
     if (!plotUrl) return []
     
     try {
