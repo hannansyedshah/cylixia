@@ -5,16 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UserAvatar } from './UserAvatar'
 import { Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-interface Profile {
-  id: string
-  display_name: string | null
-  avatar_url: string | null
-  bio: string | null
-  location: string | null
-  website: string | null
-  created_at: string
-}
+import type { Profile } from '@/types'
 
 interface UserProfileModalProps {
   userId: string
@@ -135,11 +126,11 @@ export function UserProfileModal({ userId, isOpen, onClose }: UserProfileModalPr
                 <div>
                   <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Member since</label>
                   <p className="mt-1 text-sm text-darktext dark:text-white">
-                    {new Date(profile.created_at).toLocaleDateString('en-US', {
+                    {profile.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
-                    })}
+                    }) : 'Unknown'}
                   </p>
                 </div>
               </div>
