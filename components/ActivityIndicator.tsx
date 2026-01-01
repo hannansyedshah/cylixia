@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase/client'
 import { useSessionStore } from '@/lib/useSessionStore'
 import { Users } from 'lucide-react'
 import { UserAvatar } from './UserAvatar'

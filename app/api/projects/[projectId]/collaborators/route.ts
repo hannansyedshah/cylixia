@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabaseServer'
+import { createClient } from '@/lib/supabase/server'
 
 // GET list collaborators for a project
 export async function GET(

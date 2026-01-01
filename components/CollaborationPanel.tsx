@@ -8,7 +8,7 @@ import { InviteCollaboratorModal } from './InviteCollaboratorModal'
 import { UserProfileModal } from './UserProfileModal'
 import { UserPlus, Loader2 } from 'lucide-react'
 import { useSessionStore } from '@/lib/useSessionStore'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase/client'
 import type { Collaborator } from '@/types'
 
 interface CollaborationPanelProps {

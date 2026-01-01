@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabaseServer'
+import { createClient } from '@/lib/supabase/server'
 
 // GET all projects for the current user
 export async function GET(request: NextRequest) {

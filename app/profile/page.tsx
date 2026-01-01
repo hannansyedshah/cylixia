@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Layout } from '@/components/Layout'
 import { ProfilePage } from '@/components/ProfilePage'
 import { useSessionStore } from '@/lib/useSessionStore'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase/client'
 
 export default function ProfilePageRoute() {
   const router = useRouter()

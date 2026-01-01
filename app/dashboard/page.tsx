@@ -9,7 +9,7 @@ import { EditProjectModal } from '@/components/EditProjectModal'
 import { CollaborationRequests } from '@/components/CollaborationRequests'
 import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/useSessionStore'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase/client'
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
 import type { Project } from '@/types'
 

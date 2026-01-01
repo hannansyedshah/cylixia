@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabase/client'
 import { useSessionStore } from '@/lib/useSessionStore'
 import type { ProjectUpdate } from '@/types'
 
