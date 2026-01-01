@@ -433,7 +433,7 @@ export default function DashboardPage() {
                   <ProjectCard
                     id={project.id}
                     name={project.name}
-                    description={project.description}
+                    description={project.description ?? ''}
                     createdAt={new Date(project.created_at).getTime()}
                     updatedAt={new Date(project.updated_at).getTime()}
                     isShared={project.is_shared || project.user_id !== user?.id}
@@ -460,7 +460,7 @@ export default function DashboardPage() {
           <EditProjectModal
             projectId={editingProject.id}
             currentName={editingProject.name}
-            currentDescription={editingProject.description}
+            currentDescription={editingProject.description ?? ''}
             onClose={() => setEditingProject(null)}
             onUpdate={handleUpdateProject}
           />
