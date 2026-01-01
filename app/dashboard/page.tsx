@@ -11,27 +11,22 @@ import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/useSessionStore'
 import { supabase } from '@/lib/supabaseClient'
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react'
+import type { Project } from '@/types'
 
-interface Project {
-  id: string
-  name: string
-  description: string
-  created_at: string
-  updated_at: string
+// Extended Project type for dashboard with optional fields
+interface DashboardProject extends Project {
   is_shared?: boolean
-  user_id?: string
-  hipaa_compliant?: boolean
 }
 
 export default function DashboardPage() {
   const router = useRouter()
   const pathname = usePathname()
   const { user, setUser } = useSessionStore()
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<DashboardProject[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'nist' | 'regular'>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [editingProject, setEditingProject] = useState<DashboardProject | null>(null)
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const hasLoadedRef = useRef(false)
