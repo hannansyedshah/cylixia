@@ -5,15 +5,10 @@ import { Input } from '@/components/ui/input'
 import { UserAvatar } from './UserAvatar'
 import { Loader2 } from 'lucide-react'
 import { useSessionStore } from '@/lib/useSessionStore'
-
-interface User {
-  id: string
-  display_name: string | null
-  avatar_url: string | null
-}
+import type { UserSearchResult } from '@/types'
 
 interface UserSearchProps {
-  onSelect: (user: User) => void
+  onSelect: (user: UserSearchResult) => void
   excludeUserIds?: string[]
   className?: string
 }
@@ -21,9 +16,9 @@ interface UserSearchProps {
 export function UserSearch({ onSelect, excludeUserIds = [], className = '' }: UserSearchProps) {
   const { user: currentUser } = useSessionStore()
   const [query, setQuery] = useState('')
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<UserSearchResult[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -44,7 +39,7 @@ export function UserSearch({ onSelect, excludeUserIds = [], className = '' }: Us
         
         const data = await response.json()
         // Filter out excluded users and current user
-        const filtered = data.users.filter((u: User) => 
+        const filtered = data.users.filter((u: UserSearchResult) => 
           u.id !== currentUser?.id && !excludeUserIds.includes(u.id)
         )
         setUsers(filtered)
@@ -63,7 +58,7 @@ export function UserSearch({ onSelect, excludeUserIds = [], className = '' }: Us
     }
   }, [query, excludeUserIds, currentUser])
 
-  const handleSelect = (user: User) => {
+  const handleSelect = (user: UserSearchResult) => {
     setSelectedUser(user)
     setQuery('')
     setUsers([])
