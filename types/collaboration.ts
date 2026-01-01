@@ -1,6 +1,6 @@
 // Collaboration-related types
 
-import type { Profile } from './database'
+import type { Profile, PartialProfile } from './database'
 
 export type CollaboratorRole = 'owner' | 'edit' | 'view'
 export type CollaboratorStatus = 'pending' | 'accepted' | 'rejected'
@@ -32,9 +32,9 @@ export interface ChatMessage {
   project_id: string
   user_id: string
   message: string
-  code_selection: string | null
-  code_selection_start_line: number | null
-  code_selection_end_line: number | null
+  code_selection?: string | null
+  code_selection_start_line?: number | null
+  code_selection_end_line?: number | null
   created_at: string
-  profiles?: Profile | null
+  profiles?: Profile | PartialProfile | null
 }
