@@ -8,3 +8,8 @@ export {
   CONTEXT_SYSTEM_PROMPT,
   getDefaultContextTemplate
 } from './contextPrompts'
+
+export {
+  buildUserMessage,
+  buildContextMessage
+} from './messages'

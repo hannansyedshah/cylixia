@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { callOpenAI } from '@/lib/openaiClient'
+import { callOpenAI } from '@/lib/openai'
 import { randomizeCSVData } from '@/utils/dataRandomizer'
 import type { OpenAIMode } from '@/types'
 
