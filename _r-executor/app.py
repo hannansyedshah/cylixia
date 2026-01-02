@@ -45,12 +45,12 @@ async def run(req: CodeRequest):
         # Write CSV files
         for f in req.csv_files or []:
             path = os.path.join(work_dir, f.filename)
-            with open(path, "w") as file:
+            with open(path, "w", encoding="utf-8") as file:
                 file.write(base64.b64decode(f.data_base64).decode())
 
         # Write R script
         script = os.path.join(work_dir, "script.R")
-        with open(script, "w") as f:
+        with open(script, "w", encoding="utf-8") as f:
             f.write(R_WRAPPER.format(code=req.code))
 
         # Execute
@@ -58,6 +58,7 @@ async def run(req: CodeRequest):
             ["Rscript", "--vanilla", script],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             cwd=work_dir,
             timeout=120,
         )
