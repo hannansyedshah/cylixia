@@ -77,7 +77,7 @@ export function ChatPanel({
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
                   msg.role === 'user'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                    ? 'bg-blue-50 border border-blue-200 text-gray-800'
                     : 'bg-gray-100'
                 }`}
               >
