@@ -25,6 +25,8 @@ export default function WorkspacePage() {
     setShowDatasetsPanel,
     privacyMode,
     setPrivacyMode,
+    focusMode,
+    setFocusMode,
     stdoutText,
     stderrText,
     galleryPlots,
@@ -109,6 +111,8 @@ export default function WorkspacePage() {
               projectId={projectId}
               plotUrl={project.plot_url}
               loading={loading}
+              focusMode={focusMode}
+              onFocusModeChange={setFocusMode}
               onChange={handleCodeChange}
               onRun={handleRunCode}
               onVersionRestore={handleVersionRestore}

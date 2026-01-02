@@ -29,6 +29,7 @@ export function useWorkspace(projectId: string) {
   const [mode, setMode] = useState<OpenAIMode>('generate')
   const [showDatasetsPanel, setShowDatasetsPanel] = useState(false)
   const [privacyMode, setPrivacyMode] = useState(true)
+  const [focusMode, setFocusMode] = useState(false)
 
   // Output state
   const [stdoutText, setStdoutText] = useState('')
@@ -68,6 +69,17 @@ export function useWorkspace(projectId: string) {
       else if (!user) setUser(session.user)
     })
   }, [user, setUser, router])
+
+  // Escape key to exit focus mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && focusMode) {
+        setFocusMode(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [focusMode])
 
   // Load project
   const loadProject = useCallback(async () => {
@@ -231,6 +243,8 @@ export function useWorkspace(projectId: string) {
     setShowDatasetsPanel,
     privacyMode,
     setPrivacyMode,
+    focusMode,
+    setFocusMode,
 
     // Output state
     stdoutText,

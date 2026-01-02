@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CodeEditor } from './CodeEditor'
 import { VersionHistory } from './VersionHistory'
@@ -11,6 +10,8 @@ interface CodePanelProps {
   projectId: string
   plotUrl: string | null
   loading: boolean
+  focusMode: boolean
+  onFocusModeChange: (focusMode: boolean) => void
   onChange: (code: string) => void
   onRun: () => void
   onVersionRestore: (code: string, plotUrl?: string) => void
@@ -22,15 +23,16 @@ export function CodePanel({
   projectId,
   plotUrl,
   loading,
+  focusMode,
+  onFocusModeChange,
   onChange,
   onRun,
   onVersionRestore,
   onSaveVersion
 }: CodePanelProps) {
-  const [focusMode, setFocusMode] = useState(false)
 
   return (
-    <div className={`${focusMode ? 'flex-1' : 'h-1/3'} border-t flex flex-col bg-white dark:bg-gray-800 min-h-0`}>
+    <div className={`${focusMode ? 'fixed inset-0 z-50' : 'h-1/3 border-t'} flex flex-col bg-white dark:bg-gray-800 min-h-0 transition-all duration-200`}>
       {/* Header */}
       <div className="p-3 bg-gray-50 dark:bg-gray-900 border-b flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -47,7 +49,7 @@ export function CodePanel({
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setFocusMode(!focusMode)} size="sm" variant="outline">
+          <Button onClick={() => onFocusModeChange(!focusMode)} size="sm" variant="outline">
             {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
           <Button onClick={onRun} size="sm" disabled={loading}>
