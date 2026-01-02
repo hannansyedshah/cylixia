@@ -43,7 +43,7 @@ export default function Home() {
               </span>
             </div>
             <h1 className="text-7xl md:text-8xl font-bold mb-6 text-darktext animate-fade-in-up">
-              c<span className="text-rstudio animate-gradient inline-block">R</span>eate
+              Cylixia
             </h1>
             <p className="text-3xl md:text-4xl text-gray-600 mb-4 animate-fade-in-up animation-delay-200 font-semibold">
               From question to insight—R code and visuals in seconds
@@ -290,7 +290,7 @@ export default function Home() {
                         <h3 className="font-bold text-lg text-darktext">Upload your data</h3>
                       </div>
                       <p className="text-sm text-gray-600">
-                        CSV or spreadsheet—cReate previews columns and types automatically.
+                        CSV or spreadsheet—Cylixia previews columns and types automatically.
                       </p>
                     </div>
                   </div>

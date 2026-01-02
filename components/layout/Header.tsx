@@ -91,7 +91,7 @@ export function Header() {
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center space-x-2 group">
             <span className="text-2xl font-bold text-darktext transition-all duration-300">
-              c<span className="text-rstudio group-hover:animate-pulse inline-block">R</span>eate
+              Cylixia
             </span>
           </Link>
           {/* Reserve space to prevent layout shift */}
