@@ -87,19 +87,19 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
   }
 
   return (
-    <div className={`border rounded-lg bg-white dark:bg-gray-800 ${expanded && !isModal ? 'fixed inset-4 z-50' : ''} ${isModal ? 'border-0' : ''}`}>
+    <div className={`border rounded-lg bg-white ${expanded && !isModal ? 'fixed inset-4 z-50' : ''} ${isModal ? 'border-0' : ''}`}>
       {/* Header - only show if not in modal */}
       {!isModal && (
-        <div className="p-3 border-b bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+        <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Table className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-700">
               {fileName}
             </span>
             <div className={`px-2 py-1 rounded-full text-xs font-medium ${
               viewMode === 'original' 
-                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' 
-                : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-green-100 text-green-700'
             }`}>
               {viewMode === 'original' ? 'Original Data' : 'Randomized Data'}
             </div>
@@ -127,13 +127,13 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
 
       {/* View Mode Toggle - only show if not in modal */}
       {!isModal && (
-        <div className="p-3 border-b bg-blue-50/50 dark:bg-blue-950/20">
+        <div className="p-3 border-b bg-blue-50/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${
                 viewMode === 'original' ? 'bg-blue-500' : 'bg-green-500'
               }`}></div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium text-gray-700">
                 {viewMode === 'original' ? 'Showing Original Data' : 'Showing Randomized Data'}
               </span>
             </div>
@@ -164,12 +164,12 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
         {headers.length > 0 ? (
           <div className="w-full min-w-max">
             {/* Table Header */}
-            <div className="sticky top-0 bg-gray-100 dark:bg-gray-700 border-b z-10">
+            <div className="sticky top-0 bg-gray-100 border-b z-10">
               <div className="flex w-full min-w-max">
                 {headers.map((header, index) => (
                   <div 
                     key={index} 
-                    className="flex-1 p-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-600 min-w-[120px] whitespace-nowrap"
+                    className="flex-1 p-3 text-sm font-semibold text-gray-700 border-r border-gray-200 min-w-[120px] whitespace-nowrap"
                   >
                     {header}
                   </div>
@@ -180,11 +180,11 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
             {/* Table Rows */}
             <div className="w-full min-w-max">
               {displayRows.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex w-full min-w-max border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div key={rowIndex} className="flex w-full min-w-max border-b border-gray-200 hover:bg-gray-50">
                   {row.map((cell, cellIndex) => (
                     <div 
                       key={cellIndex} 
-                      className="flex-1 p-3 text-sm text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-600 min-w-[120px] overflow-hidden"
+                      className="flex-1 p-3 text-sm text-gray-800 border-r border-gray-200 min-w-[120px] overflow-hidden"
                       title={cell}
                     >
                       <span className="block truncate whitespace-nowrap">{cell}</span>
@@ -196,7 +196,7 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
             
             {/* Show more indicator - only show if not in modal and not all rows are shown */}
             {!isModal && rows.length > maxRows && (
-              <div className="p-3 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+              <div className="p-3 text-center text-sm text-gray-500 bg-gray-50">
                 Showing {maxRows} of {rows.length} rows
                 {!expanded && (
                   <Button
@@ -212,7 +212,7 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
             )}
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-8 text-center text-gray-500">
             <Table className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No data to display</p>
           </div>
@@ -221,12 +221,12 @@ export function DataPreview({ originalData, fileName, privacyMode, controlledVie
 
       {/* Action Buttons - only show if not in modal */}
       {!isModal && (
-        <div className="p-3 border-t bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+        <div className="p-3 border-t bg-gray-50 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-gray-500">
               {rows.length} rows × {headers.length} columns
             </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-gray-500">
               {viewMode === 'original' ? '🔓 Original' : '🔒 Privacy Protected'}
             </span>
           </div>

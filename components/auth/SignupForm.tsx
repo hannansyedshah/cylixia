@@ -161,10 +161,10 @@ export function SignupForm() {
                 }
               }}
               required
-              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
+              className="h-11 border-2 focus:border-rstudio transition-all text-darktext bg-white"
             />
             {remainingAttempts !== null && remainingAttempts > 0 && (
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining
               </p>
             )}
@@ -182,8 +182,8 @@ export function SignupForm() {
                   setEmailError('') // Clear error when user types
                 }}
                 required
-                className={`h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800 ${
-                  emailError ? 'border-red-500 dark:border-red-500' : ''
+                className={`h-11 border-2 focus:border-rstudio transition-all text-darktext bg-white ${
+                  emailError ? 'border-red-500' : ''
                 }`}
               />
               {checkingEmail && (
@@ -193,7 +193,7 @@ export function SignupForm() {
               )}
             </div>
             {emailError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{emailError}</p>
+              <p className="text-sm text-red-600">{emailError}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -205,7 +205,7 @@ export function SignupForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
+              className="h-11 border-2 focus:border-rstudio transition-all text-darktext bg-white"
             />
           </div>
           <div className="space-y-2">
@@ -217,31 +217,31 @@ export function SignupForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
+              className="h-11 border-2 focus:border-rstudio transition-all text-darktext bg-white"
             />
           </div>
           {error && (
             <div className="space-y-2">
-              <p className="text-sm text-destructive bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">{error}</p>
+              <p className="text-sm text-destructive bg-red-50 p-3 rounded-lg">{error}</p>
               {remainingAttempts !== null && remainingAttempts > 0 && (
-                <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg font-semibold">
+                <p className="text-sm text-orange-600 bg-orange-50 p-3 rounded-lg font-semibold">
                   ⚠️ {remainingAttempts} {remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining
                 </p>
               )}
               {remainingAttempts === 0 && (
-                <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg font-semibold">
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg font-semibold">
                   🔒 Account locked. Please wait before trying again.
                 </p>
               )}
             </div>
           )}
           {success && (
-            <p className="text-sm text-green-700 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">{success}</p>
+            <p className="text-sm text-green-700 bg-green-50 p-3 rounded-lg">{success}</p>
           )}
           <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
             {loading ? 'Creating account...' : 'Sign Up'}
           </Button>
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-center text-sm text-gray-600">
             Already have an account? <a href="/login" className="text-rstudio hover:underline font-semibold">Login</a>
           </p>
         </form>

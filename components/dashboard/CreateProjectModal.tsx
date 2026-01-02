@@ -39,42 +39,42 @@ export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProp
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-semibold text-darktext dark:text-white">Project Name</Label>
+              <Label htmlFor="name" className="text-sm font-semibold text-darktext">Project Name</Label>
               <Input
                 id="name"
                 placeholder="My Research Project"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="h-11 border-2 focus:border-rstudio text-darktext dark:text-white bg-white dark:bg-gray-800"
+                className="h-11 border-2 focus:border-rstudio text-darktext bg-white"
                 autoFocus
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold text-darktext dark:text-white">Description (optional)</Label>
+              <Label htmlFor="description" className="text-sm font-semibold text-darktext">Description (optional)</Label>
               <Input
                 id="description"
                 placeholder="What is this project about?"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="h-11 border-2 focus:border-rstudio text-darktext dark:text-white bg-white dark:bg-gray-800"
+                className="h-11 border-2 focus:border-rstudio text-darktext bg-white"
               />
             </div>
-            <div className="space-y-3 pt-2 pb-2 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-start space-x-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+            <div className="space-y-3 pt-2 pb-2 border-t border-gray-200">
+              <div className="flex items-start space-x-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
                 <input
                   type="checkbox"
                   id="hipaaCompliant"
                   checked={hipaaCompliant}
                   onChange={(e) => setHipaaCompliant(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
                 <div className="flex-1">
-                  <Label htmlFor="hipaaCompliant" className="flex items-center gap-2 text-sm font-semibold text-darktext dark:text-white cursor-pointer">
-                    <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <Label htmlFor="hipaaCompliant" className="flex items-center gap-2 text-sm font-semibold text-darktext cursor-pointer">
+                    <Shield className="h-4 w-4 text-blue-600" />
                     NIST Compliant Mode
                   </Label>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-600 mt-1">
                     Automatically redacts PHI (names, SSN, DOB, addresses, etc.) from uploaded datasets. 
                     Original data is never stored - only redacted versions. You are responsible for compliance verification.
                   </p>

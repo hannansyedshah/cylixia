@@ -35,7 +35,7 @@ export function WorkspaceHeader({
   onEditContext
 }: WorkspaceHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b bg-white dark:bg-gray-800">
+    <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
       <div className="flex items-center gap-4">
         <Link href="/dashboard">
           <Button variant="ghost" size="sm">
@@ -88,7 +88,7 @@ export function WorkspaceHeader({
               onClick={() => onModeChange(mode)}
               className={`px-2 py-1 rounded border ${
                 mode === mode
-                  ? 'bg-white dark:bg-gray-800 border-gray-300 font-medium'
+                  ? 'bg-white border-gray-300 font-medium'
                   : 'bg-transparent border-transparent opacity-70'
               }`}
             >

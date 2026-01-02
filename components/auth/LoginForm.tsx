@@ -73,7 +73,7 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
+              className="h-11 border-2 focus:border-rstudio transition-all text-darktext bg-white"
             />
           </div>
           <div className="space-y-2">
@@ -85,16 +85,16 @@ export function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="h-11 border-2 focus:border-rstudio transition-all text-darktext dark:text-white bg-white dark:bg-gray-800"
+              className="h-11 border-2 focus:border-rstudio transition-all text-darktext bg-white"
             />
           </div>
           {error && (
-            <p className="text-sm text-destructive bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">{error}</p>
+            <p className="text-sm text-destructive bg-red-50 p-3 rounded-lg">{error}</p>
           )}
           <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </Button>
-          <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-center text-sm text-gray-600">
             Don&apos;t have an account? <a href="/signup" className="text-rstudio hover:underline font-semibold">Sign up</a>
           </p>
         </form>

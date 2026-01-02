@@ -42,7 +42,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
 
   if (plotUrls.length === 1) {
     return (
-      <div className="p-2 flex items-center justify-center bg-white dark:bg-gray-950">
+      <div className="p-2 flex items-center justify-center bg-white">
         <img
           src={plotUrls[0]}
           alt={`Plot for version ${versionNumber}`}
@@ -62,7 +62,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
   }
 
   return (
-    <div className="relative bg-white dark:bg-gray-950">
+    <div className="relative bg-white">
       {/* Plot Display Area */}
       <div className="p-2 flex items-center justify-center min-h-[240px] max-h-60 relative">
         <img
@@ -74,7 +74,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
       </div>
 
       {/* Navigation Controls */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-2 flex items-center justify-between">
+      <div className="border-t border-gray-200 bg-gray-50 px-2 py-2 flex items-center justify-between">
         {/* Previous Button */}
         <Button
           variant="ghost"
@@ -88,7 +88,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
 
         {/* Plot Indicator */}
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-600 dark:text-gray-400">
+          <span className="text-xs text-gray-600">
             {currentIndex + 1} / {plotUrls.length}
           </span>
           {/* Dot indicators */}
@@ -99,8 +99,8 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
                 onClick={() => setCurrentIndex(index)}
                 className={`w-1.5 h-1.5 rounded-full transition-colors ${
                   index === currentIndex
-                    ? 'bg-rstudio dark:bg-blue-400'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                    ? 'bg-rstudio'
+                    : 'bg-gray-300'
                 }`}
                 aria-label={`Go to plot ${index + 1}`}
               />
@@ -121,7 +121,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
       </div>
 
       {/* Horizontal Scrollable Thumbnails (Optional - below main view) */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-1 overflow-x-auto">
+      <div className="border-t border-gray-200 bg-gray-50 px-2 py-1 overflow-x-auto">
         <div className="flex space-x-2">
           {plotUrls.map((url, index) => (
             <button
@@ -129,8 +129,8 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
               onClick={() => setCurrentIndex(index)}
               className={`flex-shrink-0 border-2 rounded transition-all ${
                 index === currentIndex
-                  ? 'border-rstudio dark:border-blue-400'
-                  : 'border-gray-300 dark:border-gray-600 opacity-60 hover:opacity-100'
+                  ? 'border-rstudio'
+                  : 'border-gray-300 opacity-60 hover:opacity-100'
               }`}
             >
               <img
@@ -293,12 +293,12 @@ export function VersionHistory({
 
       {/* Description Input */}
       {showDescriptionInput && (
-        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+        <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
           <Input
             placeholder="Enter a description for this version..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mb-2 bg-white dark:bg-gray-900 text-darktext dark:text-white border-2 border-gray-300 dark:border-gray-600"
+            className="mb-2 bg-white text-darktext border-2 border-gray-300"
           />
           <div className="flex space-x-2">
             <Button size="sm" onClick={saveCurrentVersion} disabled={saving}>
@@ -329,9 +329,9 @@ export function VersionHistory({
 
           {/* Content */}
           <div className="relative inset-0 w-full h-full flex items-center justify-center p-4">
-            <Card className="w-[95vw] max-w-6xl h-[90vh] bg-white dark:bg-gray-800 border shadow-2xl overflow-hidden">
+            <Card className="w-[95vw] max-w-6xl h-[90vh] bg-white border shadow-2xl overflow-hidden">
               {/* Sticky Header */}
-              <div className="px-4 py-3 border-b bg-white/80 dark:bg-gray-800/80 backdrop-blur flex items-center justify-between sticky top-0 z-10">
+              <div className="px-4 py-3 border-b bg-white/80 backdrop-blur flex items-center justify-between sticky top-0 z-10">
                 <h3 className="text-lg font-semibold flex items-center">
                   <Clock className="h-5 w-5 mr-2" />
                   Version History
@@ -374,7 +374,7 @@ export function VersionHistory({
                     {versions.map((version) => (
                       <div
                         key={version.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="p-3 border rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -393,7 +393,7 @@ export function VersionHistory({
                                   <span className="font-semibold text-sm">
                                     Version {version.version_number}
                                     {version.profiles?.display_name && (
-                                      <span className="text-gray-500 dark:text-gray-400 font-normal ml-2">
+                                      <span className="text-gray-500 font-normal ml-2">
                                         by {version.profiles.display_name}
                                       </span>
                                     )}
@@ -403,18 +403,18 @@ export function VersionHistory({
                                   </span>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm text-gray-600">
                                 {version.description}
                               </p>
                               {!expandedIds.has(version.id) && (
-                                <div className="mt-2 bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono">
-                                  <code className="text-gray-700 dark:text-gray-300">
+                                <div className="mt-2 bg-gray-100 p-2 rounded text-xs font-mono">
+                                  <code className="text-gray-700">
                                     {truncateCode(version.code)}
                                   </code>
                                 </div>
                               )}
                               {!expandedIds.has(version.id) && version.plot_url && (
-                                <div className="mt-2 flex items-center text-xs text-green-600 dark:text-green-400">
+                                <div className="mt-2 flex items-center text-xs text-green-600">
                                   <Eye className="h-3 w-3 mr-1" />
                                   Includes {parsePlotUrls(version.plot_url).length} plot{parsePlotUrls(version.plot_url).length > 1 ? 's' : ''}
                                 </div>
@@ -424,13 +424,13 @@ export function VersionHistory({
                             {expandedIds.has(version.id) && (
                               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div className="border rounded-md overflow-hidden">
-                                  <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500">Code</div>
-                                  <pre className="m-0 p-3 bg-gray-100 dark:bg-gray-800 text-xs overflow-auto max-h-60">
-<code className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{version.code}</code>
+                                  <div className="bg-gray-50 px-2 py-1 text-xs text-gray-500">Code</div>
+                                  <pre className="m-0 p-3 bg-gray-100 text-xs overflow-auto max-h-60">
+<code className="text-gray-800 whitespace-pre-wrap">{version.code}</code>
                                   </pre>
                                 </div>
                                 <div className="border rounded-md overflow-hidden">
-                                  <div className="bg-gray-50 dark:bg-gray-900 px-2 py-1 text-xs text-gray-500 flex items-center justify-between">
+                                  <div className="bg-gray-50 px-2 py-1 text-xs text-gray-500 flex items-center justify-between">
                                     <span>Plot{parsePlotUrls(version.plot_url).length > 1 ? `s (${parsePlotUrls(version.plot_url).length})` : ''}</span>
                                   </div>
                                   {version.plot_url ? (

@@ -60,7 +60,7 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
               variant="ghost"
               size="icon"
               onClick={handleEdit}
-              className="hover:bg-blue-100 dark:hover:bg-blue-900/20"
+              className="hover:bg-blue-100"
               title="Edit project"
             >
               <Edit2 className="h-4 w-4 text-rstudio" />
@@ -70,7 +70,7 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
               size="icon"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="hover:bg-red-100 dark:hover:bg-red-900/20"
+              className="hover:bg-red-100"
               title="Delete project"
             >
               <Trash2 className="h-4 w-4 text-red-600" />
@@ -81,13 +81,13 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
           <span>{name}</span>
           <div className="flex items-center gap-2">
             {isShared && (
-              <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 rounded-full flex items-center space-x-1">
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full flex items-center space-x-1">
                 <Users className="w-3 h-3" />
                 <span>Shared</span>
               </span>
             )}
             {isNistCompliant && (
-              <span className="text-xs bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 dark:from-emerald-900 dark:to-teal-900 dark:text-emerald-200 px-2 py-0.5 rounded-full flex items-center space-x-1 border border-emerald-300 dark:border-emerald-700">
+              <span className="text-xs bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center space-x-1 border border-emerald-300">
                 <Shield className="w-3 h-3" />
                 <span>NIST</span>
               </span>
@@ -99,7 +99,7 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center text-xs text-gray-500">
           <Calendar className="h-3 w-3 mr-1" />
           <span>Updated {formatDate(updatedAt)}</span>
         </div>

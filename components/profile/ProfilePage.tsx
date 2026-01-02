@@ -93,7 +93,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/20 rounded-full blur-3xl animate-pulse"></div>
@@ -104,14 +104,14 @@ export function ProfilePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-2xl relative z-10">
-        <Card className="shadow-2xl border-2 border-rstudio/20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
-          <CardHeader className="bg-gradient-to-r from-rstudio/10 via-purple-500/10 to-blue-500/10 dark:from-rstudio/20 dark:via-purple-500/20 dark:to-blue-500/20 border-b border-rstudio/20 dark:border-rstudio/30">
-            <CardTitle className="text-3xl text-darktext dark:text-white">Profile Settings</CardTitle>
-            <CardDescription className="text-gray-700 dark:text-gray-300">
+        <Card className="shadow-2xl border-2 border-rstudio/20 bg-white/80 backdrop-blur-md">
+          <CardHeader className="bg-gradient-to-r from-rstudio/10 via-purple-500/10 to-blue-500/10 border-b border-rstudio/20">
+            <CardTitle className="text-3xl text-darktext">Profile Settings</CardTitle>
+            <CardDescription className="text-gray-700">
               Manage your profile information and preferences
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 p-6 bg-gradient-to-b from-white/50 to-white/30 dark:from-gray-900/50 dark:to-gray-900/30">
+          <CardContent className="space-y-6 p-6 bg-gradient-to-b from-white/50 to-white/30">
             <div className="flex justify-center pb-4">
               <ProfilePictureUpload
                 currentAvatarUrl={profile?.avatar_url}
@@ -121,7 +121,7 @@ export function ProfilePage() {
 
             <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-darktext dark:text-white">
+                <Label htmlFor="email" className="text-sm font-semibold text-darktext">
                   Email
                 </Label>
                 <Input
@@ -129,13 +129,13 @@ export function ProfilePage() {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="h-11 bg-gray-100 dark:bg-gray-800/50 border-2 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                  className="h-11 bg-gray-100 border-2 border-gray-300 text-gray-600 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-500">Email cannot be changed</p>
+                <p className="text-xs text-gray-500">Email cannot be changed</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="display_name" className="text-sm font-semibold text-darktext dark:text-white">
+                <Label htmlFor="display_name" className="text-sm font-semibold text-darktext">
                   Display Name
                 </Label>
                 <Input
@@ -143,13 +143,13 @@ export function ProfilePage() {
                   value={formData.display_name}
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   placeholder="Your name"
-                  className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
+                  className="h-11 bg-white border-2 border-gray-300 text-darktext placeholder:text-gray-400 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-500">This name will appear in the header instead of your email</p>
+                <p className="text-xs text-gray-500">This name will appear in the header instead of your email</p>
               </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio" className="text-sm font-semibold text-darktext dark:text-white">
+              <Label htmlFor="bio" className="text-sm font-semibold text-darktext">
                 Bio
               </Label>
               <textarea
@@ -158,12 +158,12 @@ export function ProfilePage() {
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell us about yourself"
                 rows={4}
-                className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-md focus:border-rstudio focus:outline-none focus:ring-2 focus:ring-rstudio/20 resize-none bg-white dark:bg-gray-800 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:border-rstudio focus:outline-none focus:ring-2 focus:ring-rstudio/20 resize-none bg-white text-darktext placeholder:text-gray-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location" className="text-sm font-semibold text-darktext dark:text-white">
+              <Label htmlFor="location" className="text-sm font-semibold text-darktext">
                 Location
               </Label>
               <Input
@@ -171,12 +171,12 @@ export function ProfilePage() {
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="City, Country"
-                className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
+                className="h-11 bg-white border-2 border-gray-300 text-darktext placeholder:text-gray-400 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="website" className="text-sm font-semibold text-darktext dark:text-white">
+              <Label htmlFor="website" className="text-sm font-semibold text-darktext">
                 Website
               </Label>
               <Input
@@ -185,12 +185,12 @@ export function ProfilePage() {
                 value={formData.website}
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                 placeholder="https://yourwebsite.com"
-                className="h-11 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-darktext dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
+                className="h-11 bg-white border-2 border-gray-300 text-darktext placeholder:text-gray-400 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
               />
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200">
             <Button
               onClick={handleSave}
               disabled={saving}

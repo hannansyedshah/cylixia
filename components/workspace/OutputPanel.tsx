@@ -17,9 +17,9 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId }
   const [showTerminal, setShowTerminal] = useState(false)
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-900">
+    <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="p-2 bg-gray-50 dark:bg-gray-800 border-b flex items-center justify-between">
+      <div className="p-2 bg-gray-50 border-b flex items-center justify-between">
         <span className="text-sm font-semibold flex items-center">
           <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
           Output

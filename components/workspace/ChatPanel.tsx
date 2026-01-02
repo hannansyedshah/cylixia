@@ -50,7 +50,7 @@ export function ChatPanel({
     <div className="flex flex-col h-full">
       {/* Loading indicator */}
       {loading && (
-        <div className="p-4 border-b bg-blue-50 dark:bg-blue-950">
+        <div className="p-4 border-b bg-blue-50">
           <div className="flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             <div className="flex-1">
@@ -83,7 +83,7 @@ export function ChatPanel({
                 className={`max-w-[80%] rounded-lg p-3 ${
                   msg.role === 'user'
                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800'
+                    : 'bg-gray-100'
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -112,7 +112,7 @@ export function ChatPanel({
 
       {/* Privacy toggle */}
       {hasDatasets && (
-        <div className="px-4 py-2 border-t bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
+        <div className="px-4 py-2 border-t bg-gray-50 flex items-center justify-between">
           <span className="text-xs text-gray-500">
             {privacyMode ? 'Data randomized for privacy' : 'Using original data'}
           </span>
@@ -129,7 +129,7 @@ export function ChatPanel({
       )}
 
       {/* Input */}
-      <div className="p-4 border-t bg-white dark:bg-gray-800">
+      <div className="p-4 border-t bg-white">
         <div className="flex gap-2">
           <Input
             placeholder="Ask about your data..."

@@ -192,9 +192,9 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border-4 border-blue-600 dark:border-blue-500">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border-4 border-blue-600">
         {/* NIST-Style Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-blue-900 dark:from-blue-800 dark:to-blue-950 flex items-center justify-between">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-blue-900 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 rounded bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
               <Shield className="w-7 h-7 text-white" />
@@ -219,15 +219,15 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
         </div>
 
         {/* Content - Fixed height scrollable area */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 dark:bg-gray-900 min-h-0">
+        <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50 min-h-0">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="w-16 h-16 text-blue-600 animate-spin" />
               <div className="text-center">
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                <p className="text-lg font-semibold text-gray-900">
                   Analyzing Dataset Structure...
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                <p className="text-sm text-gray-600 mt-2">
                   AI is generating NIST-compliant research context and auto-filling fields
                 </p>
               </div>
@@ -249,67 +249,67 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               </div>
 
               {/* Study Type */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2 uppercase tracking-wide">
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                <label className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
                   1. Study Type <span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={fields.studyType}
                   onChange={(e) => setFields(prev => ({ ...prev, studyType: e.target.value }))}
                   placeholder="e.g., Clinical trial, Observational study, Epidemiological research"
-                  className="w-full border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="w-full border-2 border-gray-300 focus:border-blue-500 bg-white text-gray-900"
                 />
               </div>
 
               {/* Objective */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2 uppercase tracking-wide">
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                <label className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
                   2. Research Objective <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={fields.objective}
                   onChange={(e) => setFields(prev => ({ ...prev, objective: e.target.value }))}
                   placeholder="e.g., Analyze the relationship between treatment and patient outcomes in post-MI recovery"
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white text-gray-900 resize-none"
                   rows={3}
                 />
               </div>
 
               {/* Dataset Key Fields */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2 uppercase tracking-wide">
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                <label className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
                   3. Dataset Key Fields
                 </label>
                 <Input
                   value={fields.keyFields}
                   onChange={(e) => setFields(prev => ({ ...prev, keyFields: e.target.value }))}
                   placeholder="e.g., Patient_ID, Age, Treatment, Outcome"
-                  className="w-full border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  className="w-full border-2 border-gray-300 focus:border-blue-500 bg-white text-gray-900"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   Detected files: {csvFiles.map(f => f.fileName).join(', ')}
                 </p>
               </div>
 
               {/* Field Exclusion Manager - Compact view without scrolling */}
               {availableColumns.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-red-200 dark:border-red-700">
+                <div className="bg-white p-4 rounded-lg border-2 border-red-200">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide">
+                      <label className="block text-sm font-semibold text-gray-900 uppercase tracking-wide">
                         3b. Exclude Sensitive Fields
                       </label>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-xs text-gray-600 mt-1">
                         Mark fields that should NOT be shared or analyzed (NIST requirement)
                       </p>
                     </div>
-                    <div className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-1 rounded font-semibold">
+                    <div className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-semibold">
                       {fields.excludedFields.length} Excluded
                     </div>
                   </div>
                   
                   {/* Column/Field Grid - Compact 4 columns, no scrolling */}
-                  <div className="grid grid-cols-4 gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-4 gap-2 p-2 bg-gray-50 rounded border border-gray-200">
                     {availableColumns.map((column, index) => {
                       const isExcluded = fields.excludedFields.includes(column)
                       return (
@@ -321,7 +321,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                             px-2 py-1.5 rounded border-2 text-xs font-medium transition-all
                             ${isExcluded
                               ? 'bg-red-600 text-white border-red-700 hover:bg-red-700 shadow-md'
-                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-red-400'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-red-400'
                             }
                           `}
                         >
@@ -340,7 +340,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                   
                   {/* Excluded fields summary */}
                   {fields.excludedFields.length > 0 && (
-                    <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-800 dark:text-red-200">
+                    <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-800">
                       <strong>⚠️ Excluded:</strong> {fields.excludedFields.join(', ')}
                     </div>
                   )}
@@ -348,8 +348,8 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               )}
 
               {/* Preferred Analysis Types */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3 uppercase tracking-wide">
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                <label className="block text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">
                   4. Preferred Analysis Types
                 </label>
                 <div className="space-y-2">
@@ -359,14 +359,14 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                         value={type}
                         onChange={(e) => updateAnalysisType(index, e.target.value)}
                         placeholder="e.g., Linear regression, ANOVA, Survival analysis"
-                        className="flex-1 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                        className="flex-1 border-2 border-gray-300 bg-white text-gray-900"
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         onClick={() => removeAnalysisType(index)}
-                        className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -376,7 +376,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                     type="button"
                     variant="outline"
                     onClick={addAnalysisType}
-                    className="w-full border-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                    className="w-full border-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Analysis Type
@@ -385,23 +385,23 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               </div>
 
               {/* Additional Notes */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2 uppercase tracking-wide">
+              <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
+                <label className="block text-sm font-semibold text-gray-900 mb-2 uppercase tracking-wide">
                   5. Additional Notes
                 </label>
                 <textarea
                   value={fields.additionalNotes}
                   onChange={(e) => setFields(prev => ({ ...prev, additionalNotes: e.target.value }))}
                   placeholder="Any specific requirements, constraints, or context about this research project"
-                  className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white text-gray-900 resize-none"
                   rows={3}
                 />
               </div>
 
               {/* Privacy Notice */}
-              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border-l-4 border-green-500 flex items-start gap-2">
-                <Shield className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-green-800 dark:text-green-200">
+              <div className="bg-green-50 p-3 rounded border-l-4 border-green-500 flex items-start gap-2">
+                <Shield className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-green-800">
                   <strong>NIST Compliance:</strong> All PHI fields are automatically de-identified. 
                   No raw identifiers (names, DOBs, SSNs) are logged or exported.
                 </p>
@@ -411,7 +411,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-100 dark:bg-gray-800 border-t-2 border-blue-600 dark:border-blue-500 flex items-center justify-between">
+        <div className="px-6 py-4 bg-gray-100 border-t-2 border-blue-600 flex items-center justify-between">
           <Button
             variant="outline"
             onClick={generateContext}
@@ -426,7 +426,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
               variant="ghost"
               onClick={onCancel}
               disabled={isGenerating}
-              className="hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="hover:bg-gray-200"
             >
               Cancel
             </Button>

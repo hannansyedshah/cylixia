@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useSessionStore } from '@/lib/stores/sessionStore'
-import { ThemeToggle } from './ThemeToggle'
 import { supabase } from '@/lib/supabase/client'
 import { getProfile } from '@/lib/db/profile'
 
@@ -87,11 +86,11 @@ export function Header() {
   }
 
   return (
-    <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+    <header className="border-b bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center space-x-2 group">
-            <span className="text-2xl font-bold text-darktext dark:text-white transition-all duration-300">
+            <span className="text-2xl font-bold text-darktext transition-all duration-300">
               c<span className="text-rstudio group-hover:animate-pulse inline-block">R</span>eate
             </span>
           </Link>
@@ -114,8 +113,6 @@ export function Header() {
         </div>
 
         <div className="flex items-center space-x-4 min-w-[220px] justify-end">
-          <ThemeToggle />
-          
           {/* Reserve space for buttons to prevent layout shift - always reserve max width */}
           <div className="flex items-center space-x-2 min-w-[180px]">
             {pathname.startsWith('/workspace') || pathname === '/dashboard' ? (

@@ -47,7 +47,7 @@ export function EditProjectModal({
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name" className="text-sm font-semibold text-darktext dark:text-white">
+              <Label htmlFor="edit-name" className="text-sm font-semibold text-darktext">
                 Project Name
               </Label>
               <Input
@@ -56,12 +56,12 @@ export function EditProjectModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="h-11 border-2 focus:border-rstudio text-darktext dark:text-white bg-white dark:bg-gray-800"
+                className="h-11 border-2 focus:border-rstudio text-darktext bg-white"
                 autoFocus
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description" className="text-sm font-semibold text-darktext dark:text-white">
+              <Label htmlFor="edit-description" className="text-sm font-semibold text-darktext">
                 Description (optional)
               </Label>
               <Input
@@ -69,7 +69,7 @@ export function EditProjectModal({
                 placeholder="What is this project about?"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="h-11 border-2 focus:border-rstudio text-darktext dark:text-white bg-white dark:bg-gray-800"
+                className="h-11 border-2 focus:border-rstudio text-darktext bg-white"
               />
             </div>
             <div className="flex space-x-3 pt-2">
