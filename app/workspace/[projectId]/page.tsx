@@ -19,8 +19,8 @@ export default function WorkspacePage() {
     project,
     loading,
     loadingProject,
-    airiaMode,
-    setAiriaMode,
+    mode,
+    setMode,
     showDatasetsPanel,
     setShowDatasetsPanel,
     privacyMode,
@@ -68,11 +68,11 @@ export default function WorkspacePage() {
           hasContext={!!contextWindow}
           hasDatasets={datasets.length > 0}
           privacyMode={privacyMode}
-          airiaMode={airiaMode}
+          mode={mode}
           showDatasetsPanel={showDatasetsPanel}
           datasetsCount={datasets.length}
           datasetsNeedReupload={datasetsNeedReupload}
-          onAiriaModeChange={setAiriaMode}
+          onModeChange={setMode}
           onToggleDatasetsPanel={() => setShowDatasetsPanel(v => !v)}
           onEditContext={() => setShowContextModal(true)}
         />
