@@ -27,20 +27,8 @@ class CodeRequest(BaseModel):
 
 
 R_WRAPPER = """
-library(ggplot2)
 png("plot_%03d.png", width=800, height=600, res=120)
-
-# Execute user code
 {code}
-
-# Auto-print any ggplot objects left in the environment
-for (obj_name in ls()) {{
-  obj <- get(obj_name)
-  if (inherits(obj, "ggplot") || inherits(obj, "gg")) {{
-    print(obj)
-  }}
-}}
-
 while (dev.cur() > 1) dev.off()
 """
 
