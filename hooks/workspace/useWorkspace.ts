@@ -14,7 +14,7 @@ import { useElapsedTimer } from '@/hooks/workspace/useElapsedTimer'
 import { useRealtimeMessages } from '@/hooks/workspace/useRealtimeMessages'
 import type { Message } from '@/types/database'
 import type { DatasetItem } from '@/types/dataset'
-import type { AiriaMode } from '@/types/api'
+import type { OpenAIMode } from '@/types/openai'
 
 export function useWorkspace(projectId: string) {
   const router = useRouter()
@@ -26,7 +26,7 @@ export function useWorkspace(projectId: string) {
   const [loadingProject, setLoadingProject] = useState(true)
 
   // UI state
-  const [airiaMode, setAiriaMode] = useState<AiriaMode>('generate')
+  const [mode, setMode] = useState<OpenAIMode>('generate')
   const [showDatasetsPanel, setShowDatasetsPanel] = useState(false)
   const [privacyMode, setPrivacyMode] = useState(true)
 
@@ -49,7 +49,7 @@ export function useWorkspace(projectId: string) {
 
   // Hooks
   const elapsedSeconds = useElapsedTimer(loading)
-  const estimatedSeconds = airiaMode === 'ask' ? 60 : 40
+  const estimatedSeconds = mode === 'ask' ? 60 : 40
 
   // Real-time messages handler
   const handleNewMessage = useCallback((newMsg: Message) => {
@@ -130,7 +130,7 @@ export function useWorkspace(projectId: string) {
 
       const data = await sendChat({
         prompt,
-        mode: airiaMode,
+        mode: mode,
         existingCode: project.code,
         csvFiles,
         privacyMode,
@@ -138,7 +138,7 @@ export function useWorkspace(projectId: string) {
         isNistProject: project.hipaa_compliant
       })
 
-      if (airiaMode !== 'ask' && data.code) {
+      if (mode !== 'ask' && data.code) {
         handleCodeChange(data.code)
       }
 
@@ -225,8 +225,8 @@ export function useWorkspace(projectId: string) {
     loadingProject,
 
     // UI state
-    airiaMode,
-    setAiriaMode,
+    mode,
+    setMode,
     showDatasetsPanel,
     setShowDatasetsPanel,
     privacyMode,
