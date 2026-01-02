@@ -82,17 +82,17 @@ export function WorkspaceHeader({
         </Button>
 
         <div className="flex gap-1 text-xs">
-          {(['generate', 'ask'] as const).map((mode) => (
+          {(['generate', 'ask'] as const).map((m) => (
             <button
-              key={mode}
-              onClick={() => onModeChange(mode)}
+              key={m}
+              onClick={() => onModeChange(m)}
               className={`px-2 py-1 rounded border ${
-                mode === mode
+                m === mode
                   ? 'bg-white border-gray-300 font-medium'
                   : 'bg-transparent border-transparent opacity-70'
               }`}
             >
-              {mode === 'generate' ? 'Generate' : 'Ask Data'}
+              {m === 'generate' ? 'Generate' : 'Ask Data'}
             </button>
           ))}
         </div>
