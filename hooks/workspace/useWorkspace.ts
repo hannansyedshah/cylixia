@@ -134,7 +134,13 @@ export function useWorkspace(projectId: string) {
 
     setLoading(true)
     try {
-      await createMessage(projectId, { role: 'user', content: prompt })
+      const userMessage = await createMessage(projectId, { role: 'user', content: prompt })
+      if (userMessage) {
+        setProject((prev: any) => prev ? {
+          ...prev,
+          messages: [...(prev.messages || []), userMessage]
+        } : prev)
+      }
 
       const csvFiles = datasets
         .filter(d => d.csvText)
@@ -154,11 +160,17 @@ export function useWorkspace(projectId: string) {
         handleCodeChange(data.code)
       }
 
-      await createMessage(projectId, {
+      const assistantMessage = await createMessage(projectId, {
         role: 'assistant',
         content: data.message || data.explanation || 'Generated code.',
         code: data.code
       })
+      if (assistantMessage) {
+        setProject((prev: any) => prev ? {
+          ...prev,
+          messages: [...(prev.messages || []), assistantMessage]
+        } : prev)
+      }
     } catch (e) {
       console.error('Chat error:', e)
     } finally {
