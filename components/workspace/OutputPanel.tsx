@@ -15,7 +15,6 @@ interface OutputPanelProps {
 
 export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId }: OutputPanelProps) {
   const [showTerminal, setShowTerminal] = useState(false)
-  const [viewMode, setViewMode] = useState<'plot' | 'graph'>('plot')
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-900">
@@ -25,35 +24,19 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId }
           <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
           Output
         </span>
-        <div className="flex gap-2">
-          <div className="flex text-xs">
-            <button
-              onClick={() => setViewMode('plot')}
-              className={`px-2 py-1 rounded-l border ${viewMode === 'plot' ? 'bg-white font-medium' : 'bg-gray-100'}`}
-            >
-              Plot
-            </button>
-            <button
-              onClick={() => setViewMode('graph')}
-              className={`px-2 py-1 rounded-r border-t border-r border-b ${viewMode === 'graph' ? 'bg-white font-medium' : 'bg-gray-100'}`}
-            >
-              Graph
-            </button>
-          </div>
-          <div className="flex text-xs">
-            <button
-              onClick={() => setShowTerminal(false)}
-              className={`px-2 py-1 rounded-l border ${!showTerminal ? 'bg-white font-medium' : 'bg-gray-100'}`}
-            >
-              Plot Only
-            </button>
-            <button
-              onClick={() => setShowTerminal(true)}
-              className={`px-2 py-1 rounded-r border-t border-r border-b ${showTerminal ? 'bg-white font-medium' : 'bg-gray-100'}`}
-            >
-              + Terminal
-            </button>
-          </div>
+        <div className="flex text-xs">
+          <button
+            onClick={() => setShowTerminal(false)}
+            className={`px-2 py-1 rounded-l border ${!showTerminal ? 'bg-white font-medium' : 'bg-gray-100'}`}
+          >
+            Plot Only
+          </button>
+          <button
+            onClick={() => setShowTerminal(true)}
+            className={`px-2 py-1 rounded-r border-t border-r border-b ${showTerminal ? 'bg-white font-medium' : 'bg-gray-100'}`}
+          >
+            + Terminal
+          </button>
         </div>
       </div>
 
@@ -67,7 +50,7 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId }
         <div className={showTerminal ? 'w-1/2' : 'w-full'}>
           <PlotViewer
             plotUrl={plotUrl}
-            plotUrls={viewMode === 'graph' ? galleryPlots : undefined}
+            plotUrls={galleryPlots}
           />
         </div>
       </div>
