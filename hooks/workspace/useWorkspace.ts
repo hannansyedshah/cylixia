@@ -161,9 +161,9 @@ export function useWorkspace(projectId: string) {
     try {
       const csvFiles = datasets
         .filter(d => d.csvText)
-        .map(d => ({ fileName: d.fileName, csvData: encodeBase64(d.csvText!) }))
+        .map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) }))
 
-      const data = await executeCode({ code: project.code, csvFiles })
+      const data = await executeCode({ code: project.code, csv_files: csvFiles })
 
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')

@@ -2,7 +2,7 @@
 
 interface ExecuteRequest {
   code: string
-  csvFiles?: Array<{ fileName: string; csvData: string }>
+  csv_files?: Array<{ filename: string; data_base64: string }>
 }
 
 interface ExecuteResponse {
