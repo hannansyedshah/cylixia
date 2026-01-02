@@ -36,19 +36,13 @@ export default function Home() {
         {/* Hero Section */}
         <div className="container mx-auto px-4 py-20 relative z-10">
           <div className="text-center max-w-5xl mx-auto">
-            <div className="inline-block mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-700 text-sm font-medium animate-fade-in">
-                <Zap className="w-4 h-4" />
-                AI-Powered R Code Generation
-              </span>
-            </div>
             <h1 className="text-7xl md:text-8xl font-bold mb-6 text-darktext animate-fade-in-up">
               Cylixia
             </h1>
-            <p className="text-3xl md:text-4xl text-gray-600 mb-4 animate-fade-in-up animation-delay-200 font-semibold">
+            <p className="text-3xl md:text-4xl text-black mb-4 animate-fade-in-up animation-delay-200 font-semibold">
               From question to insight—R code and visuals in seconds
             </p>
-            <p className="text-lg md:text-xl text-gray-500 mb-12 max-w-3xl mx-auto animate-fade-in-up animation-delay-400 leading-relaxed">
+            <p className="text-lg md:text-xl text-black mb-12 max-w-3xl mx-auto animate-fade-in-up animation-delay-400 leading-relaxed">
               Upload a dataset, ask in plain English, and get clean R code with publication‑ready plots. 
               Collaborate in real-time with your team, share datasets, and track every version.
             </p>
@@ -57,7 +51,7 @@ export default function Home() {
             </div>
             
             {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-gray-600 animate-fade-in-up animation-delay-800">
+            <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-black animate-fade-in-up animation-delay-800">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-blue-500" />
                 <span>Free to start</span>
@@ -80,7 +74,7 @@ export default function Home() {
             <h2 className="text-4xl md:text-5xl font-bold text-darktext mb-4">
               Everything you need for data analysis
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-black max-w-2xl mx-auto">
               Powerful features designed to make your research faster and more collaborative
             </p>
           </div>
@@ -94,7 +88,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-3 text-darktext">
                 AI-Powered Chat
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-black leading-relaxed">
                 Ask questions in plain English. Get tailored R code that fits your data and intent instantly.
               </p>
             </div>
@@ -107,7 +101,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-3 text-darktext">
                 Real-time Collaboration
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-black leading-relaxed">
                 Work together seamlessly with live edits, team chat, and real-time code collaboration.
               </p>
             </div>
@@ -120,7 +114,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-3 text-darktext">
                 Shared Datasets
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-black leading-relaxed">
                 Share datasets with your team for consistent analysis across projects.
               </p>
             </div>
@@ -133,7 +127,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-3 text-darktext">
                 Version History
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-black leading-relaxed">
                 Never lose your work. Full version history with plots, code snapshots, and easy restoration.
               </p>
             </div>
@@ -146,7 +140,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-3 text-darktext">
                 Privacy First
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-black leading-relaxed">
                 Your data stays yours. Private by default with optional data randomization for extra security.
               </p>
             </div>
@@ -159,7 +153,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold mb-3 text-darktext">
                 Clean, Editable Code
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-black leading-relaxed">
                 Transparent outputs you can tweak, run, and reproduce. No black boxes—just clean, readable R code.
               </p>
             </div>
@@ -173,7 +167,7 @@ export default function Home() {
               <h2 className="text-4xl md:text-5xl font-bold text-darktext mb-4">
                 Built for teams
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-xl text-black max-w-2xl mx-auto">
                 Collaborate seamlessly with powerful team features
               </p>
             </div>
@@ -187,7 +181,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 text-darktext">Invite Collaborators</h3>
-                    <p className="text-gray-600">
+                    <p className="text-black">
                       Invite team members with edit or view-only access. Manage permissions and roles easily.
                     </p>
                   </div>
@@ -199,7 +193,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 text-darktext">Team Chat</h3>
-                    <p className="text-gray-600">
+                    <p className="text-black">
                       Built-in collaboration chat. Share code selections, discuss changes, and communicate in real-time.
                     </p>
                   </div>
@@ -211,7 +205,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 text-darktext">Shared Datasets</h3>
-                    <p className="text-gray-600">
+                    <p className="text-black">
                       Share CSV files with your team for consistent analysis.
                     </p>
                   </div>
@@ -223,7 +217,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-2 text-darktext">Live Editing</h3>
-                    <p className="text-gray-600">
+                    <p className="text-black">
                       See who&apos;s editing in real-time. Typing indicators and live cursors keep everyone in sync.
                     </p>
                   </div>
@@ -240,21 +234,21 @@ export default function Home() {
                       </div>
                       <div>
                         <div className="font-semibold text-darktext">Active Collaborators</div>
-                        <div className="text-sm text-gray-500">3 people editing</div>
+                        <div className="text-sm text-black">3 people editing</div>
                       </div>
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm">
                         <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                        <span className="text-gray-700">Sarah is typing...</span>
+                        <span className="text-black">Sarah is typing...</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                        <span className="text-gray-700">Mike is editing code</span>
+                        <span className="text-black">Mike is editing code</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-                        <span className="text-gray-700">Emma shared a dataset</span>
+                        <span className="text-black">Emma shared a dataset</span>
                       </div>
                     </div>
                   </div>
@@ -271,7 +265,7 @@ export default function Home() {
               <h2 className="text-4xl md:text-5xl font-bold text-darktext mb-4">
                 How it works
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-xl text-black max-w-2xl mx-auto">
                 Four simple steps from raw data to publication‑ready visuals
               </p>
             </div>
@@ -289,7 +283,7 @@ export default function Home() {
                         <span className="text-xs font-bold text-blue-600 bg-blue-100 border border-blue-200 px-2 py-1 rounded">STEP 1</span>
                         <h3 className="font-bold text-lg text-darktext">Upload your data</h3>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-black">
                         CSV or spreadsheet—Cylixia previews columns and types automatically.
                       </p>
                     </div>
@@ -305,7 +299,7 @@ export default function Home() {
                         <span className="text-xs font-bold text-blue-600 bg-blue-100 border border-blue-200 px-2 py-1 rounded">STEP 2</span>
                         <h3 className="font-bold text-lg text-darktext">Ask in plain English</h3>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-black">
                         Describe the plot or analysis you need. No R experience required.
                       </p>
                     </div>
@@ -321,7 +315,7 @@ export default function Home() {
                         <span className="text-xs font-bold text-blue-600 bg-blue-100 border border-blue-200 px-2 py-1 rounded">STEP 3</span>
                         <h3 className="font-bold text-lg text-darktext">Review editable R code</h3>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-black">
                         Transparent, clean code you can tweak, run, and reuse.
                       </p>
                     </div>
@@ -337,7 +331,7 @@ export default function Home() {
                         <span className="text-xs font-bold text-blue-600 bg-blue-100 border border-blue-200 px-2 py-1 rounded">STEP 4</span>
                         <h3 className="font-bold text-lg text-darktext">Get beautiful visuals</h3>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-black">
                         Publication‑ready plots with consistent themes and accessibility in mind. Save versions and restore anytime.
                       </p>
                     </div>
@@ -346,7 +340,7 @@ export default function Home() {
 
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
                   <History className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-black">
                     Everything autosaves. Browse full version history anytime.
                   </span>
                 </div>
@@ -356,15 +350,15 @@ export default function Home() {
               <div className="bg-blue-50 rounded-2xl border border-blue-200 p-8 flex flex-col">
                 <div className="text-xs uppercase tracking-wide text-blue-600 mb-4 font-semibold">Example</div>
                 <div className="bg-white rounded-xl p-5 border border-blue-200 mb-6">
-                  <div className="text-sm font-semibold text-gray-700 mb-2">Prompt</div>
-                  <p className="text-sm text-gray-600 font-medium">
+                  <div className="text-sm font-semibold text-black mb-2">Prompt</div>
+                  <p className="text-sm text-black font-medium">
                     &quot;Make a bar chart of average mpg by cylinder count.&quot;
                   </p>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4 flex-1">
                   <div className="bg-white rounded-xl p-5 border border-blue-200 overflow-hidden">
-                    <div className="text-sm font-semibold text-gray-700 mb-3">Generated R</div>
-                    <pre className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed font-mono">
+                    <div className="text-sm font-semibold text-black mb-3">Generated R</div>
+                    <pre className="text-xs text-black whitespace-pre-wrap leading-relaxed font-mono">
 {`library(dplyr)
 library(ggplot2)
 mtcars %>%
@@ -412,7 +406,7 @@ mtcars %>%
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-darktext animate-fade-in-up">
                 Ready to accelerate your research?
               </h2>
-              <p className="text-xl md:text-2xl mb-8 text-gray-600 animate-fade-in-up animation-delay-200">
+              <p className="text-xl md:text-2xl mb-8 text-black animate-fade-in-up animation-delay-200">
                 Join researchers who are saving hours on data visualization and collaboration
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-400">
