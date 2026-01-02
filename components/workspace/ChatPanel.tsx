@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, Sparkles, Copy, Check, Loader2 } from 'lucide-react'
+import { Send, Sparkles, Copy, Check, Loader2, Maximize2, Minimize2 } from 'lucide-react'
+import { useChatPanel } from '@/hooks/workspace/useChatPanel'
 import type { Message } from '@/types/database'
 
 interface ChatPanelProps {
@@ -31,20 +31,15 @@ export function ChatPanel({
   onPrivacyModeChange,
   onSendMessage
 }: ChatPanelProps) {
-  const [prompt, setPrompt] = useState('')
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  const handleSend = () => {
-    if (!prompt.trim() || loading) return
-    onSendMessage(prompt)
-    setPrompt('')
-  }
-
-  const handleCopy = async (code: string, id: string) => {
-    await navigator.clipboard.writeText(code)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
+  const {
+    prompt,
+    setPrompt,
+    copiedId,
+    isExpanded,
+    toggleExpand,
+    handleSend,
+    handleCopy
+  } = useChatPanel({ loading, onSendMessage })
 
   return (
     <div className="flex flex-col h-full">
@@ -88,20 +83,45 @@ export function ChatPanel({
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 {msg.code && (
-                  <div className="mt-2 bg-gray-900 rounded p-2 relative">
-                    <button
-                      onClick={() => handleCopy(msg.code!, msg.id)}
-                      className="absolute top-1 right-1 p-1 hover:bg-gray-700 rounded"
-                    >
-                      {copiedId === msg.id ? (
-                        <Check className="h-3 w-3 text-green-400" />
-                      ) : (
-                        <Copy className="h-3 w-3 text-gray-400" />
-                      )}
-                    </button>
-                    <pre className="text-xs text-green-400 overflow-x-auto">
-                      {msg.code.length > 300 ? msg.code.slice(0, 300) + '...' : msg.code}
+                  <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3 relative">
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <button
+                        onClick={() => toggleExpand(msg.id)}
+                        className="p-1.5 hover:bg-blue-100 rounded-md transition-colors"
+                        title={isExpanded(msg.id) ? 'Collapse' : 'Expand'}
+                      >
+                        {isExpanded(msg.id) ? (
+                          <Minimize2 className="h-3.5 w-3.5 text-blue-600" />
+                        ) : (
+                          <Maximize2 className="h-3.5 w-3.5 text-blue-600" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleCopy(msg.code!, msg.id)}
+                        className="p-1.5 hover:bg-blue-100 rounded-md transition-colors"
+                        title="Copy code"
+                      >
+                        {copiedId === msg.id ? (
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-blue-600" />
+                        )}
+                      </button>
+                    </div>
+                    <pre className={`text-xs text-gray-800 overflow-x-auto pr-16 ${isExpanded(msg.id) ? 'max-h-none' : 'max-h-32 overflow-y-hidden'}`}>
+                      {isExpanded(msg.id)
+                        ? msg.code
+                        : (msg.code.length > 300 ? msg.code.slice(0, 300) + '...' : msg.code)
+                      }
                     </pre>
+                    {!isExpanded(msg.id) && msg.code.length > 300 && (
+                      <button
+                        onClick={() => toggleExpand(msg.id)}
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Show full code
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
