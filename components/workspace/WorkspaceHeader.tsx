@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shield, Edit3 } from 'lucide-react'
-import type { AiriaMode } from '@/types/api'
+import type { OpenAIMode } from '@/types/openai'
 
 interface WorkspaceHeaderProps {
   projectName: string
@@ -11,11 +11,11 @@ interface WorkspaceHeaderProps {
   hasContext: boolean
   hasDatasets: boolean
   privacyMode: boolean
-  airiaMode: AiriaMode
+  mode: OpenAIMode
   showDatasetsPanel: boolean
   datasetsCount: number
   datasetsNeedReupload: number
-  onAiriaModeChange: (mode: AiriaMode) => void
+  onModeChange: (mode: OpenAIMode) => void
   onToggleDatasetsPanel: () => void
   onEditContext: () => void
 }
@@ -26,11 +26,11 @@ export function WorkspaceHeader({
   hasContext,
   hasDatasets,
   privacyMode,
-  airiaMode,
+  mode,
   showDatasetsPanel,
   datasetsCount,
   datasetsNeedReupload,
-  onAiriaModeChange,
+  onModeChange,
   onToggleDatasetsPanel,
   onEditContext
 }: WorkspaceHeaderProps) {
@@ -85,9 +85,9 @@ export function WorkspaceHeader({
           {(['generate', 'ask'] as const).map((mode) => (
             <button
               key={mode}
-              onClick={() => onAiriaModeChange(mode)}
+              onClick={() => onModeChange(mode)}
               className={`px-2 py-1 rounded border ${
-                airiaMode === mode
+                mode === mode
                   ? 'bg-white dark:bg-gray-800 border-gray-300 font-medium'
                   : 'bg-transparent border-transparent opacity-70'
               }`}
