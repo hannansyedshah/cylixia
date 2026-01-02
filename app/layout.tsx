@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Cylixia - AI-Driven R Data Visualization",
+  title: "Cylixia",
   description: "Turn your research questions into R code and visuals",
   icons: {
     icon: '/icon.svg',
