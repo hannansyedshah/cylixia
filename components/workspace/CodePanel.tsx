@@ -32,7 +32,7 @@ export function CodePanel({
 }: CodePanelProps) {
 
   return (
-    <div className={`${focusMode ? 'fixed inset-0 z-50' : 'h-1/3 border-t'} flex flex-col bg-white dark:bg-gray-800 min-h-0 transition-all duration-200`}>
+    <div className={`${focusMode ? 'absolute inset-0 z-10' : 'h-1/3 border-t'} flex flex-col bg-white dark:bg-gray-800 min-h-0 transition-all duration-200`}>
       {/* Header */}
       <div className="p-3 bg-gray-50 dark:bg-gray-900 border-b flex items-center justify-between">
         <div className="flex items-center gap-4">

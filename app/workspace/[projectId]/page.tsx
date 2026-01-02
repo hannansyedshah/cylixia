@@ -91,7 +91,7 @@ export default function WorkspacePage() {
         )}
 
         <div className="flex-1 flex min-h-0">
-          <div className="w-1/2 flex flex-col border-r">
+          <div className="w-1/2 flex flex-col border-r relative">
             <div className="flex-1 min-h-0">
               <ChatPanel
                 messages={project.messages || []}
