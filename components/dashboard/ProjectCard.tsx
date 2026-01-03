@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, FolderOpen, Edit2, Calendar, Users, Shield } from 'lucide-react'
+import { Trash2, FolderOpen, Edit2, Calendar, Users, Shield, Layers } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface ProjectCardProps {
@@ -48,63 +47,69 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
   }
 
   return (
-    <Card 
-      className="group hover:shadow-2xl hover:border-rstudio/50 transition-all duration-300 transform hover:scale-105 cursor-pointer border-2 border-transparent"
+    <div
+      className="group relative bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-emerald-500/5"
       onClick={handleOpen}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <FolderOpen className="h-8 w-8 text-rstudio mb-2 group-hover:animate-bounce" />
-          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleEdit}
-              className="hover:bg-blue-100"
-              title="Edit project"
-            >
-              <Edit2 className="h-4 w-4 text-rstudio" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="hover:bg-red-100"
-              title="Delete project"
-            >
-              <Trash2 className="h-4 w-4 text-red-600" />
-            </Button>
-          </div>
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+          <FolderOpen className="h-6 w-6 text-emerald-500" />
         </div>
-        <CardTitle className="text-xl group-hover:text-rstudio transition-colors flex items-center flex-wrap gap-2">
-          <span>{name}</span>
-          <div className="flex items-center gap-2">
-            {isShared && (
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full flex items-center space-x-1">
-                <Users className="w-3 h-3" />
-                <span>Shared</span>
-              </span>
-            )}
-            {isNistCompliant && (
-              <span className="text-xs bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center space-x-1 border border-emerald-300">
-                <Shield className="w-3 h-3" />
-                <span>NIST</span>
-              </span>
-            )}
-          </div>
-        </CardTitle>
-        <CardDescription className="line-clamp-2">
-          {description || 'No description'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center text-xs text-gray-500">
-          <Calendar className="h-3 w-3 mr-1" />
-          <span>Updated {formatDate(updatedAt)}</span>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleEdit}
+            className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800"
+            title="Edit project"
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="h-8 w-8 text-zinc-400 hover:text-red-400 hover:bg-red-500/10"
+            title="Delete project"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-emerald-400 transition-colors">
+        {name}
+      </h3>
+
+      <div className="flex items-center gap-2 mb-3">
+        {isShared && (
+          <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-blue-500/20">
+            <Users className="w-3 h-3" />
+            <span>Shared</span>
+          </span>
+        )}
+        {isNistCompliant ? (
+          <span className="text-xs bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-teal-500/20">
+            <Shield className="w-3 h-3" />
+            <span>NIST</span>
+          </span>
+        ) : (
+          <span className="text-xs bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-orange-500/20">
+            <Layers className="w-3 h-3" />
+            <span>Standard</span>
+          </span>
+        )}
+      </div>
+
+      <p className="text-sm text-zinc-500 line-clamp-2 mb-4">
+        {description || 'No description'}
+      </p>
+
+      <div className="flex items-center text-xs text-zinc-600">
+        <Calendar className="h-3 w-3 mr-1" />
+        <span>Updated {formatDate(updatedAt)}</span>
+      </div>
+    </div>
   )
 }
-
