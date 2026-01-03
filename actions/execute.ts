@@ -31,8 +31,7 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
 
     let plotUrls: string[] = []
     if (request.projectId && data.plot_base64?.length) {
-      const plotsBase64 = data.plot_base64.map(p => p.data)
-      plotUrls = await savePlots(request.projectId, plotsBase64)
+      plotUrls = await savePlots(request.projectId, data.plot_base64.map(p => p.data))
     }
 
     return {

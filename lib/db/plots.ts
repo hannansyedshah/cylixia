@@ -31,7 +31,7 @@ export async function savePlot(params: SavePlotParams): Promise<string | null> {
     bytes[i] = binaryString.charCodeAt(i)
   }
 
-  const { error: uploadError } = await supabase.storage
+  const { error } = await supabase.storage
     .from('plots')
     .upload(storagePath, bytes, {
       contentType: 'image/png',
@@ -39,10 +39,7 @@ export async function savePlot(params: SavePlotParams): Promise<string | null> {
       upsert: false
     })
 
-  if (uploadError) {
-    console.error('Plot upload error:', uploadError)
-    return null
-  }
+  if (error) return null
 
   const { data: { publicUrl } } = supabase.storage
     .from('plots')

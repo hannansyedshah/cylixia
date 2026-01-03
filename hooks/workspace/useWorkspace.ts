@@ -102,6 +102,15 @@ export function useWorkspace(projectId: string) {
       if (p.stdout) setStdoutText(p.stdout)
       if (p.stderr) setStderrText(p.stderr)
 
+      if (p.plot_url) {
+        try {
+          const parsed = JSON.parse(p.plot_url)
+          setGalleryPlots(Array.isArray(parsed) ? parsed : [p.plot_url])
+        } catch {
+          setGalleryPlots([p.plot_url])
+        }
+      }
+
       if (p.hipaa_compliant && !localStorage.getItem(`nist-acknowledged-${p.name}`)) {
         setShowNistModal(true)
       }
@@ -218,11 +227,12 @@ export function useWorkspace(projectId: string) {
       setStderrText(data.stderr || '')
 
       const plots = data.plot_urls || []
-
       if (plots.length) {
-        setGalleryPlots(plots)
-        const plotUrl = plots.length > 1 ? JSON.stringify(plots) : plots[0]
+        const newGallery = [...galleryPlots, ...plots]
+        setGalleryPlots(newGallery)
+        const plotUrl = newGallery.length > 1 ? JSON.stringify(newGallery) : newGallery[0]
         setProject((p: any) => p ? { ...p, plot_url: plotUrl } : p)
+        await updateProject(projectId, { plot_url: plotUrl })
       }
 
       await saveOutput(projectId, data.stdout || '', data.stderr || '')
@@ -236,7 +246,20 @@ export function useWorkspace(projectId: string) {
 
   const handleVersionRestore = (code: string, plotUrl?: string) => {
     setProject((p: any) => p ? { ...p, code, plot_url: plotUrl || null } : p)
-    if (plotUrl) setGalleryPlots([plotUrl])
+    if (plotUrl) {
+      try {
+        const parsed = JSON.parse(plotUrl)
+        if (Array.isArray(parsed)) {
+          setGalleryPlots(parsed)
+        } else {
+          setGalleryPlots([plotUrl])
+        }
+      } catch {
+        setGalleryPlots([plotUrl])
+      }
+    } else {
+      setGalleryPlots([])
+    }
   }
 
   const handleDeletePlot = async (index: number) => {
