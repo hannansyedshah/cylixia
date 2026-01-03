@@ -1,7 +1,6 @@
 'use client'
 
-import { ImageIcon, Download, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ImageIcon, X } from 'lucide-react'
 
 interface PlotViewerProps {
   plotUrl?: string | null
@@ -15,17 +14,6 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
   const images: string[] = Array.isArray(plotUrls) && plotUrls.length > 0
     ? plotUrls
     : (plotUrl ? [plotUrl] : [])
-
-  const handleDownload = () => {
-    if (!images.length) return
-
-    const link = document.createElement('a')
-    link.href = images[0]
-    link.download = `plot-${projectName}-${new Date().toISOString().split('T')[0]}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
 
   const handleDownloadUrl = (url: string, index?: number) => {
     const link = document.createElement('a')
@@ -47,19 +35,6 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
 
       {images.length > 0 ? (
         <div className="relative z-10 flex flex-col h-full w-full">
-          {/* Download button overlay */}
-          <div className="absolute top-2 right-2 z-20">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDownload}
-              className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow-lg"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-          </div>
-
           {/* Dedicated Plot Container Box - Scrollable and flexible */}
           <div className="flex-1 flex items-start justify-center p-4 overflow-auto gap-4 flex-wrap">
             {images.map((url, idx) => (
