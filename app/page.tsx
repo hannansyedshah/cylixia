@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { HomeLayout } from '@/components/homepage/HomeLayout'
 import { Button } from '@/components/ui/button'
-import { Mascot } from '@/components/brand'
-import { TextRotate } from '@/components/effects'
-import { TypewriterText } from '@/components/ui/typewriter-text'
-import { GlowingEffect } from '@/components/ui/glowing-effect'
+import { Mascot } from '@/components/homepage/Mascot'
+import { TextRotate } from '@/components/homepage/TextRotate'
+import { TypewriterText } from '@/components/homepage/typewriter-text'
+import { GlowingEffect } from '@/components/homepage/glowing-effect'
 import {
   ArrowRight,
   Upload,

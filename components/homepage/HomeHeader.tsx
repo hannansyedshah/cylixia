@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Mascot } from '@/components/brand'
+import { Mascot } from './Mascot'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { getProfile } from '@/lib/db/profile'
@@ -138,9 +138,7 @@ export function HomeHeader() {
             ) : actualUser ? (
               <>
                 <Link href="/profile" className="flex-shrink-0">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white">
-                    Profile
-                  </Button>
+                  <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black">Profile</Button>
                 </Link>
                 <Link href="/dashboard" className="w-full sm:w-auto">
                   <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black">Dashboard</Button>
