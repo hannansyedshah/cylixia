@@ -51,7 +51,7 @@ export default function WorkspacePage() {
 
   if (!user || loadingProject) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="h-screen bg-black flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-emerald-500" />
       </div>
     )
@@ -74,7 +74,7 @@ export default function WorkspacePage() {
       onToggleDatasetsPanel={() => setShowDatasetsPanel(v => !v)}
       onEditContext={() => setShowContextModal(true)}
     >
-      <div className="h-[calc(100vh-80px)] flex flex-col bg-black">
+      <div className="h-full flex flex-col">
         {showDatasetsPanel && (
           <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
             <UploadPanel

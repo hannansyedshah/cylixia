@@ -35,7 +35,7 @@ export function WorkspaceLayout({
   onEditContext
 }: WorkspaceLayoutProps) {
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen flex flex-col bg-black overflow-hidden">
       <WorkspaceHeader
         projectName={projectName}
         isNist={isNist}
@@ -50,7 +50,7 @@ export function WorkspaceLayout({
         onToggleDatasetsPanel={onToggleDatasetsPanel}
         onEditContext={onEditContext}
       />
-      <main className="pt-32">{children}</main>
+      <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
     </div>
   )
 }
