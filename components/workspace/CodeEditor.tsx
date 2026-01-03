@@ -15,7 +15,7 @@ export function CodeEditor({ value, onChange, readOnly = false }: CodeEditorProp
       defaultLanguage="r"
       value={value}
       onChange={(value) => onChange(value || '')}
-      theme="light"
+      theme="vs-dark"
       options={{
         minimap: { enabled: false },
         fontSize: 14,
@@ -23,8 +23,8 @@ export function CodeEditor({ value, onChange, readOnly = false }: CodeEditorProp
         scrollBeyondLastLine: false,
         automaticLayout: true,
         readOnly: readOnly,
+        padding: { top: 16, bottom: 16 },
       }}
     />
   )
 }
-

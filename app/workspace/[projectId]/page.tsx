@@ -1,8 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { Layout } from '@/components/layout/Layout'
-import { WorkspaceHeader } from '@/components/workspace/WorkspaceHeader'
+import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
 import { ChatPanel } from '@/components/workspace/ChatPanel'
 import { CodePanel } from '@/components/workspace/CodePanel'
 import { OutputPanel } from '@/components/workspace/OutputPanel'
@@ -11,6 +10,7 @@ import { ContextWindowModal } from '@/components/workspace/ContextWindowModal'
 import { NistComplianceModal } from '@/components/workspace/NistComplianceModal'
 import { generateContext } from '@/actions/context'
 import { useWorkspace } from '@/hooks/workspace/useWorkspace'
+import { Loader2 } from 'lucide-react'
 
 export default function WorkspacePage() {
   const { projectId } = useParams() as { projectId: string }
@@ -51,36 +51,32 @@ export default function WorkspacePage() {
 
   if (!user || loadingProject) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-        </div>
-      </Layout>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-emerald-500" />
+      </div>
     )
   }
 
   if (!project) return null
 
   return (
-    <Layout>
-      <div className="h-[calc(100vh-80px)] flex flex-col">
-        <WorkspaceHeader
-          projectName={project.name}
-          isNist={project.hipaa_compliant}
-          hasContext={!!contextWindow}
-          hasDatasets={datasets.length > 0}
-          privacyMode={privacyMode}
-          mode={mode}
-          showDatasetsPanel={showDatasetsPanel}
-          datasetsCount={datasets.length}
-          datasetsNeedReupload={datasetsNeedReupload}
-          onModeChange={setMode}
-          onToggleDatasetsPanel={() => setShowDatasetsPanel(v => !v)}
-          onEditContext={() => setShowContextModal(true)}
-        />
-
+    <WorkspaceLayout
+      projectName={project.name}
+      isNist={project.hipaa_compliant}
+      hasContext={!!contextWindow}
+      hasDatasets={datasets.length > 0}
+      privacyMode={privacyMode}
+      mode={mode}
+      showDatasetsPanel={showDatasetsPanel}
+      datasetsCount={datasets.length}
+      datasetsNeedReupload={datasetsNeedReupload}
+      onModeChange={setMode}
+      onToggleDatasetsPanel={() => setShowDatasetsPanel(v => !v)}
+      onEditContext={() => setShowContextModal(true)}
+    >
+      <div className="h-[calc(100vh-80px)] flex flex-col bg-black">
         {showDatasetsPanel && (
-          <div className="p-4 border-b bg-gray-50">
+          <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
             <UploadPanel
               projectId={projectId}
               privacyMode={privacyMode}
@@ -92,7 +88,7 @@ export default function WorkspacePage() {
         )}
 
         <div className="flex-1 flex min-h-0">
-          <div className="w-1/2 flex flex-col border-r relative">
+          <div className="w-1/2 flex flex-col border-r border-zinc-800 relative">
             <div className="flex-1 min-h-0">
               <ChatPanel
                 messages={project.messages || []}
@@ -152,6 +148,6 @@ export default function WorkspacePage() {
           />
         )}
       </div>
-    </Layout>
+    </WorkspaceLayout>
   )
 }

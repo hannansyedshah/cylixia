@@ -17,7 +17,7 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
 
   const handleDownload = () => {
     if (!images.length) return
-    
+
     const link = document.createElement('a')
     link.href = images[0]
     link.download = `plot-${projectName}-${new Date().toISOString().split('T')[0]}.png`
@@ -37,11 +37,11 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
   }
 
   return (
-    <div className="min-h-[400px] flex flex-col bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 relative overflow-hidden border-2 border-gray-200 rounded-lg m-2">
+    <div className="min-h-[400px] flex flex-col bg-zinc-900 relative overflow-hidden border border-zinc-800 rounded-lg m-2">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-rstudio/5 rounded-full blur-2xl animate-pulse"></div>
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-400/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-10 left-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-emerald-600/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
       </div>
 
       {images.length > 0 ? (
@@ -52,20 +52,20 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
               size="sm"
               variant="outline"
               onClick={handleDownload}
-              className="bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white"
+              className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow-lg"
             >
               <Download className="h-4 w-4 mr-1" />
               Download
             </Button>
           </div>
-          
+
           {/* Dedicated Plot Container Box - Scrollable and flexible */}
           <div className="flex-1 flex items-start justify-center p-4 overflow-auto gap-4 flex-wrap">
             {images.map((url, idx) => (
-              <div key={idx} className="relative bg-white rounded-lg shadow-lg border border-gray-200 flex items-center justify-center overflow-visible max-w-full">
+              <div key={idx} className="relative bg-zinc-800 rounded-lg shadow-lg border border-zinc-700 flex items-center justify-center overflow-visible max-w-full">
                 <button
                   onClick={() => handleDownloadUrl(url, idx)}
-                  className="absolute top-2 right-2 z-10 text-xs px-2 py-1 rounded border bg-white/90 backdrop-blur-sm shadow hover:bg-white"
+                  className="absolute top-2 right-2 z-10 text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
                   aria-label={`Download plot ${idx + 1}`}
                 >
                   Download
@@ -74,7 +74,7 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
                   src={url}
                   alt={`Generated plot ${idx + 1}`}
                   className="object-contain rounded-lg animate-fade-in-up"
-                  style={{ 
+                  style={{
                     maxWidth: '100%',
                     width: 'auto',
                     height: 'auto',
@@ -86,15 +86,14 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
           </div>
         </div>
       ) : (
-        <div className="text-center text-muted-foreground animate-fade-in-up relative z-10 p-4 flex-1 flex flex-col items-center justify-center">
+        <div className="text-center text-zinc-500 animate-fade-in-up relative z-10 p-4 flex-1 flex flex-col items-center justify-center">
           <div className="animate-float mb-4">
             <ImageIcon className="h-20 w-20 mx-auto opacity-20" />
           </div>
-          <p className="text-lg font-medium">Your generated plots will appear here</p>
-          <p className="text-sm mt-2 opacity-70">Run your R code to see visualizations</p>
+          <p className="text-lg font-medium text-zinc-400">Your generated plots will appear here</p>
+          <p className="text-sm mt-2 text-zinc-500">Run your R code to see visualizations</p>
         </div>
       )}
     </div>
   )
 }
-
