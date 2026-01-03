@@ -29,7 +29,7 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-[#09090b] text-white">
+      <div className="min-h-screen bg-black text-white">
         {/* Hero */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
           {/* Gradient orbs */}
