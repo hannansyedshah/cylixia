@@ -246,16 +246,13 @@ export function useWorkspace(projectId: string) {
     if (!plotUrl) return
 
     try {
-      // Delete from storage (only for storage URLs, not data URLs)
       if (!plotUrl.startsWith('data:')) {
         await deletePlot(plotUrl)
       }
 
-      // Update gallery state
       const newPlots = galleryPlots.filter((_, i) => i !== index)
       setGalleryPlots(newPlots)
 
-      // Update project plot_url
       const newPlotUrl = newPlots.length > 1
         ? JSON.stringify(newPlots)
         : newPlots.length === 1
