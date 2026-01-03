@@ -36,13 +36,13 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
 
   if (plotUrls.length === 0) {
     return (
-      <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
+      <div className="p-3 text-xs text-zinc-500">No plot for this version.</div>
     )
   }
 
   if (plotUrls.length === 1) {
     return (
-      <div className="p-2 flex items-center justify-center bg-white">
+      <div className="p-2 flex items-center justify-center bg-zinc-800/50">
         <img
           src={plotUrls[0]}
           alt={`Plot for version ${versionNumber}`}
@@ -62,7 +62,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
   }
 
   return (
-    <div className="relative bg-white">
+    <div className="relative bg-zinc-800/50">
       {/* Plot Display Area */}
       <div className="p-2 flex items-center justify-center min-h-[240px] max-h-60 relative">
         <img
@@ -74,13 +74,13 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
       </div>
 
       {/* Navigation Controls */}
-      <div className="border-t border-gray-200 bg-gray-50 px-2 py-2 flex items-center justify-between">
+      <div className="border-t border-zinc-700 bg-zinc-800 px-2 py-2 flex items-center justify-between">
         {/* Previous Button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={goToPrevious}
-          className="h-7 w-7 p-0"
+          className="h-7 w-7 p-0 text-zinc-400 hover:text-white hover:bg-zinc-700"
           aria-label="Previous plot"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -88,7 +88,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
 
         {/* Plot Indicator */}
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-zinc-400">
             {currentIndex + 1} / {plotUrls.length}
           </span>
           {/* Dot indicators */}
@@ -99,8 +99,8 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
                 onClick={() => setCurrentIndex(index)}
                 className={`w-1.5 h-1.5 rounded-full transition-colors ${
                   index === currentIndex
-                    ? 'bg-rstudio'
-                    : 'bg-gray-300'
+                    ? 'bg-emerald-500'
+                    : 'bg-zinc-600'
                 }`}
                 aria-label={`Go to plot ${index + 1}`}
               />
@@ -113,7 +113,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
           variant="ghost"
           size="sm"
           onClick={goToNext}
-          className="h-7 w-7 p-0"
+          className="h-7 w-7 p-0 text-zinc-400 hover:text-white hover:bg-zinc-700"
           aria-label="Next plot"
         >
           <ChevronRight className="h-4 w-4" />
@@ -121,7 +121,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
       </div>
 
       {/* Horizontal Scrollable Thumbnails (Optional - below main view) */}
-      <div className="border-t border-gray-200 bg-gray-50 px-2 py-1 overflow-x-auto">
+      <div className="border-t border-zinc-700 bg-zinc-800 px-2 py-1 overflow-x-auto">
         <div className="flex space-x-2">
           {plotUrls.map((url, index) => (
             <button
@@ -129,8 +129,8 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
               onClick={() => setCurrentIndex(index)}
               className={`flex-shrink-0 border-2 rounded transition-all ${
                 index === currentIndex
-                  ? 'border-rstudio'
-                  : 'border-gray-300 opacity-60 hover:opacity-100'
+                  ? 'border-emerald-500'
+                  : 'border-zinc-600 opacity-60 hover:opacity-100'
               }`}
             >
               <img
@@ -271,19 +271,19 @@ export function VersionHistory({
           variant="outline"
           size="sm"
           onClick={() => setShowHistory(!showHistory)}
-          className="flex items-center space-x-1"
+          className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
         >
           <History className="h-4 w-4" />
           <span>History</span>
         </Button>
-        
+
         {onSaveVersion && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowDescriptionInput(!showDescriptionInput)}
             disabled={saving}
-            className="flex items-center space-x-1"
+            className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
           >
             <Save className="h-4 w-4" />
             <span>{saving ? 'Saving...' : 'Save Version'}</span>
@@ -293,24 +293,30 @@ export function VersionHistory({
 
       {/* Description Input */}
       {showDescriptionInput && (
-        <div className="mt-2 p-3 bg-gray-50 rounded-lg border">
+        <div className="mt-2 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
           <Input
             placeholder="Enter a description for this version..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mb-2 bg-white text-darktext border-2 border-gray-300"
+            className="mb-2 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
           />
           <div className="flex space-x-2">
-            <Button size="sm" onClick={saveCurrentVersion} disabled={saving}>
+            <Button
+              size="sm"
+              onClick={saveCurrentVersion}
+              disabled={saving}
+              className="bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+            >
               Save Version
             </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => {
                 setShowDescriptionInput(false)
                 setDescription('')
               }}
+              className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
             >
               Cancel
             </Button>
@@ -323,27 +329,27 @@ export function VersionHistory({
         <div className="fixed inset-0 z-[100]">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setShowHistory(false)}
           />
 
           {/* Content */}
           <div className="relative inset-0 w-full h-full flex items-center justify-center p-4">
-            <Card className="w-[95vw] max-w-6xl h-[90vh] bg-white border shadow-2xl overflow-hidden">
+            <Card className="w-[95vw] max-w-6xl h-[90vh] bg-zinc-900 border border-zinc-800 shadow-2xl overflow-hidden">
               {/* Sticky Header */}
-              <div className="px-4 py-3 border-b bg-white/80 backdrop-blur flex items-center justify-between sticky top-0 z-10">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
+              <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur flex items-center justify-between sticky top-0 z-10">
+                <h3 className="text-lg font-semibold flex items-center text-white">
+                  <Clock className="h-5 w-5 mr-2 text-emerald-500" />
                   Version History
                 </h3>
                 <div className="flex items-center gap-2">
                   {versions.length > 0 && expandedIds.size !== versions.length && (
-                    <Button variant="outline" size="sm" onClick={expandAll}>
+                    <Button variant="outline" size="sm" onClick={expandAll} className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white">
                       Expand all
                     </Button>
                   )}
                   {expandedIds.size > 0 && (
-                    <Button variant="outline" size="sm" onClick={collapseAll}>
+                    <Button variant="outline" size="sm" onClick={collapseAll} className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white">
                       Collapse all
                     </Button>
                   )}
@@ -351,6 +357,7 @@ export function VersionHistory({
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowHistory(false)}
+                    className="text-zinc-400 hover:text-white hover:bg-zinc-800"
                   >
                     ×
                   </Button>
@@ -358,13 +365,13 @@ export function VersionHistory({
               </div>
 
               {/* Scrollable Body */}
-              <div className="p-4 overflow-y-auto h-[calc(90vh-3rem)]">
+              <div className="p-4 overflow-y-auto h-[calc(90vh-3rem)] bg-zinc-900">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rstudio"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
                   </div>
                 ) : versions.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-zinc-500">
                     <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No versions saved yet</p>
                     <p className="text-sm">Save your first version to get started</p>
@@ -374,7 +381,7 @@ export function VersionHistory({
                     {versions.map((version) => (
                       <div
                         key={version.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                        className="p-3 border border-zinc-800 rounded-lg hover:bg-zinc-800/50 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -386,35 +393,35 @@ export function VersionHistory({
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center space-x-2">
                                   {expandedIds.has(version.id) ? (
-                                    <ChevronDown className="h-4 w-4" />
+                                    <ChevronDown className="h-4 w-4 text-zinc-400" />
                                   ) : (
-                                    <ChevronRight className="h-4 w-4" />
+                                    <ChevronRight className="h-4 w-4 text-zinc-400" />
                                   )}
-                                  <span className="font-semibold text-sm">
+                                  <span className="font-semibold text-sm text-white">
                                     Version {version.version_number}
                                     {version.profiles?.display_name && (
-                                      <span className="text-gray-500 font-normal ml-2">
+                                      <span className="text-zinc-500 font-normal ml-2">
                                         by {version.profiles.display_name}
                                       </span>
                                     )}
                                   </span>
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-zinc-500">
                                     {formatDate(version.created_at)}
                                   </span>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-zinc-400">
                                 {version.description}
                               </p>
                               {!expandedIds.has(version.id) && (
-                                <div className="mt-2 bg-gray-100 p-2 rounded text-xs font-mono">
-                                  <code className="text-gray-700">
+                                <div className="mt-2 bg-zinc-800 p-2 rounded text-xs font-mono">
+                                  <code className="text-zinc-300">
                                     {truncateCode(version.code)}
                                   </code>
                                 </div>
                               )}
                               {!expandedIds.has(version.id) && version.plot_url && (
-                                <div className="mt-2 flex items-center text-xs text-green-600">
+                                <div className="mt-2 flex items-center text-xs text-emerald-400">
                                   <Eye className="h-3 w-3 mr-1" />
                                   Includes {parsePlotUrls(version.plot_url).length} plot{parsePlotUrls(version.plot_url).length > 1 ? 's' : ''}
                                 </div>
@@ -423,20 +430,20 @@ export function VersionHistory({
 
                             {expandedIds.has(version.id) && (
                               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="border rounded-md overflow-hidden">
-                                  <div className="bg-gray-50 px-2 py-1 text-xs text-gray-500">Code</div>
-                                  <pre className="m-0 p-3 bg-gray-100 text-xs overflow-auto max-h-60">
-<code className="text-gray-800 whitespace-pre-wrap">{version.code}</code>
+                                <div className="border border-zinc-700 rounded-md overflow-hidden">
+                                  <div className="bg-zinc-800 px-2 py-1 text-xs text-zinc-400">Code</div>
+                                  <pre className="m-0 p-3 bg-zinc-800/50 text-xs overflow-auto max-h-60">
+<code className="text-zinc-300 whitespace-pre-wrap">{version.code}</code>
                                   </pre>
                                 </div>
-                                <div className="border rounded-md overflow-hidden">
-                                  <div className="bg-gray-50 px-2 py-1 text-xs text-gray-500 flex items-center justify-between">
+                                <div className="border border-zinc-700 rounded-md overflow-hidden">
+                                  <div className="bg-zinc-800 px-2 py-1 text-xs text-zinc-400 flex items-center justify-between">
                                     <span>Plot{parsePlotUrls(version.plot_url).length > 1 ? `s (${parsePlotUrls(version.plot_url).length})` : ''}</span>
                                   </div>
                                   {version.plot_url ? (
                                     <PlotGallery plotUrls={parsePlotUrls(version.plot_url)} versionNumber={version.version_number} />
                                   ) : (
-                                    <div className="p-3 text-xs text-gray-500">No plot for this version.</div>
+                                    <div className="p-3 text-xs text-zinc-500">No plot for this version.</div>
                                   )}
                                 </div>
                               </div>
@@ -449,7 +456,7 @@ export function VersionHistory({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleRestoreVersion(version.id)}
-                                className="flex items-center space-x-1"
+                                className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/50"
                               >
                                 <RotateCcw className="h-3 w-3" />
                                 <span>Restore</span>

@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { getProfile, updateProfile } from '@/lib/db/profile'
-import { Loader2 } from 'lucide-react'
+import { Loader2, User, MapPin, Globe, FileText, Mail } from 'lucide-react'
 import type { Profile } from '@/types/database'
 
 export function ProfilePage() {
@@ -55,9 +54,7 @@ export function ProfilePage() {
         throw new Error('Failed to save profile')
       }
       setProfile(profileData)
-      // Trigger a page refresh to update the header with new display name
       window.location.reload()
-      alert('Profile updated successfully!')
     } catch (error: any) {
       alert(error.message || 'Failed to save profile')
     } finally {
@@ -86,42 +83,46 @@ export function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-rstudio" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-rstudio/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1000ms' }}></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2000ms' }}></div>
-        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-rstudio/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '500ms' }}></div>
-        <div className="absolute bottom-1/4 left-1/4 w-72 h-72 bg-indigo-400/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1500ms' }}></div>
-      </div>
+    <div className="min-h-screen relative overflow-hidden pt-24">
+      {/* Background gradient orbs */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px]" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-600/5 rounded-full blur-[100px]" />
 
-      <div className="container mx-auto px-4 py-8 max-w-2xl relative z-10">
-        <Card className="shadow-2xl border-2 border-rstudio/20 bg-white/80 backdrop-blur-md">
-          <CardHeader className="bg-gradient-to-r from-rstudio/10 via-purple-500/10 to-blue-500/10 border-b border-rstudio/20">
-            <CardTitle className="text-3xl text-darktext">Profile Settings</CardTitle>
-            <CardDescription className="text-gray-700">
-              Manage your profile information and preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 p-6 bg-gradient-to-b from-white/50 to-white/30">
-            <div className="flex justify-center pb-4">
+      <div className="container mx-auto px-6 py-8 max-w-2xl relative z-10">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            Profile Settings
+          </h1>
+          <p className="text-zinc-400">
+            Manage your profile information and preferences
+          </p>
+        </div>
+
+        {/* Profile Card */}
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-2xl blur-xl" />
+          <div className="relative bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden">
+            {/* Avatar Section */}
+            <div className="p-8 border-b border-zinc-800 flex justify-center">
               <ProfilePictureUpload
                 currentAvatarUrl={profile?.avatar_url}
                 onUpload={handleAvatarUpload}
               />
             </div>
 
-            <div className="space-y-5">
+            {/* Form Section */}
+            <div className="p-8 space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-darktext">
+                <Label htmlFor="email" className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-zinc-500" />
                   Email
                 </Label>
                 <Input
@@ -129,13 +130,14 @@ export function ProfilePage() {
                   type="email"
                   value={user?.email || ''}
                   disabled
-                  className="h-11 bg-gray-100 border-2 border-gray-300 text-gray-600 cursor-not-allowed"
+                  className="h-12 bg-zinc-800/30 border-zinc-700 text-zinc-500 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500">Email cannot be changed</p>
+                <p className="text-xs text-zinc-600">Email cannot be changed</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="display_name" className="text-sm font-semibold text-darktext">
+                <Label htmlFor="display_name" className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <User className="w-4 h-4 text-zinc-500" />
                   Display Name
                 </Label>
                 <Input
@@ -143,73 +145,75 @@ export function ProfilePage() {
                   value={formData.display_name}
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   placeholder="Your name"
-                  className="h-11 bg-white border-2 border-gray-300 text-darktext placeholder:text-gray-400 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
+                  className="h-12 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
                 />
-                <p className="text-xs text-gray-500">This name will appear in the header instead of your email</p>
+                <p className="text-xs text-zinc-600">This name will appear in the header instead of your email</p>
               </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="bio" className="text-sm font-semibold text-darktext">
-                Bio
-              </Label>
-              <textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Tell us about yourself"
-                rows={4}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:border-rstudio focus:outline-none focus:ring-2 focus:ring-rstudio/20 resize-none bg-white text-darktext placeholder:text-gray-400"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="bio" className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-zinc-500" />
+                  Bio
+                </Label>
+                <textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  placeholder="Tell us about yourself"
+                  rows={4}
+                  className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-xl text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location" className="text-sm font-semibold text-darktext">
-                Location
-              </Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="City, Country"
-                className="h-11 bg-white border-2 border-gray-300 text-darktext placeholder:text-gray-400 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-zinc-500" />
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="City, Country"
+                  className="h-12 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="website" className="text-sm font-semibold text-darktext">
-                Website
-              </Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://yourwebsite.com"
-                className="h-11 bg-white border-2 border-gray-300 text-darktext placeholder:text-gray-400 focus:border-rstudio focus:ring-2 focus:ring-rstudio/20"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="website" className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-zinc-500" />
+                  Website
+                </Label>
+                <Input
+                  id="website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://yourwebsite.com"
+                  className="h-12 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-zinc-800">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="min-w-[140px] h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-
-          <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="min-w-[120px] bg-rstudio hover:bg-rstudio/90 text-white"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
       </div>
     </div>
   )
 }
-

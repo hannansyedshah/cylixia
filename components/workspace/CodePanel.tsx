@@ -32,12 +32,12 @@ export function CodePanel({
 }: CodePanelProps) {
 
   return (
-    <div className={`${focusMode ? 'absolute inset-0 z-10' : 'h-1/3 border-t'} flex flex-col bg-white min-h-0 transition-all duration-200`}>
+    <div className={`${focusMode ? 'absolute inset-0 z-10' : 'h-1/3 border-t border-zinc-800'} flex flex-col bg-zinc-900 min-h-0 transition-all duration-200`}>
       {/* Header */}
-      <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
+      <div className="p-3 bg-zinc-800/50 border-b border-zinc-700 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <span className="text-sm font-semibold flex items-center">
-            <Code2 className="h-4 w-4 mr-2 text-blue-600" />
+          <span className="text-sm font-semibold flex items-center text-white">
+            <Code2 className="h-4 w-4 mr-2 text-emerald-500" />
             R Code Editor
           </span>
           <VersionHistory
@@ -49,10 +49,20 @@ export function CodePanel({
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => onFocusModeChange(!focusMode)} size="sm" variant="outline">
+          <Button
+            onClick={() => onFocusModeChange(!focusMode)}
+            size="sm"
+            variant="outline"
+            className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+          >
             {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
-          <Button onClick={onRun} size="sm" disabled={loading}>
+          <Button
+            onClick={onRun}
+            size="sm"
+            disabled={loading}
+            className="bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+          >
             <Play className="h-4 w-4 mr-2" />
             Run
           </Button>

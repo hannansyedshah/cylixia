@@ -7,9 +7,9 @@ import { Mascot } from '@/components/homepage/Mascot'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { getProfile } from '@/lib/db/profile'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, LayoutDashboard } from 'lucide-react'
 
-export function DashboardHeader() {
+export function ProfileHeader() {
   const { user, setUser } = useSessionStore()
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null)
   const [now, setNow] = useState<Date>(new Date())
@@ -68,10 +68,10 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/profile">
+          <Link href="/dashboard">
             <Button variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
-              <User className="w-4 h-4 mr-2" />
-              Profile
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              Dashboard
             </Button>
           </Link>
           <Button

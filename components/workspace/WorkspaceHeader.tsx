@@ -1,8 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Shield, Edit3 } from 'lucide-react'
+import { Mascot } from '@/components/homepage/Mascot'
+import { useSessionStore } from '@/lib/stores/sessionStore'
+import { getProfile } from '@/lib/db/profile'
+import { ArrowLeft, Shield, Edit3, Database } from 'lucide-react'
 import type { OpenAIMode } from '@/types/openai'
 
 interface WorkspaceHeaderProps {
@@ -34,67 +38,134 @@ export function WorkspaceHeader({
   onToggleDatasetsPanel,
   onEditContext
 }: WorkspaceHeaderProps) {
+  const { user } = useSessionStore()
+  const [profile, setProfile] = useState<{ display_name: string | null } | null>(null)
+  const [now, setNow] = useState<Date>(new Date())
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.id) {
+        try {
+          const profileData = await getProfile()
+          setProfile(profileData)
+        } catch (error) {
+          console.error('Failed to load profile:', error)
+        }
+      }
+    }
+    loadProfile()
+  }, [user?.id])
+
+  // Live clock
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const formattedNow = new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(now)
+
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-        </Link>
-        <h1 className="text-lg font-semibold truncate max-w-[300px]">{projectName}</h1>
-        {isNist && (
-          <span className="px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full flex items-center gap-1">
-            <Shield className="h-3 w-3" /> NIST
-          </span>
-        )}
-        {hasContext && (
-          <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Context Set</span>
-        )}
-        {hasDatasets && (
-          <span className={`px-2 py-0.5 text-xs rounded-full ${privacyMode ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-            {privacyMode ? 'Privacy ON' : 'Privacy OFF'}
-          </span>
-        )}
+    <div className="flex-shrink-0">
+      {/* Main Floating Toolbar */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="relative container mx-auto">
+          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl blur-xl" />
+          <div className="relative bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 rounded-2xl shadow-lg shadow-emerald-900/10 px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              </Link>
+              <div className="h-6 w-px bg-zinc-700" />
+              <Link href="/" className="flex items-center w-fit group">
+                <Mascot size={32} className="transition-transform group-hover:scale-110" />
+              </Link>
+              {user && (
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-zinc-500">
+                  <span className="truncate max-w-[180px] sm:max-w-[240px]">
+                    {profile?.display_name || user.email}
+                  </span>
+                  <span className="opacity-50">•</span>
+                  <span className="whitespace-nowrap">{formattedNow}</span>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {isNist && (
-          <Button size="sm" variant="outline" onClick={onEditContext} className="h-8">
-            <Edit3 className="w-3.5 h-3.5 mr-1" />
-            {hasContext ? 'Edit Context' : 'Set Context'}
-          </Button>
-        )}
-
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onToggleDatasetsPanel}
-          className={`h-8 ${datasetsNeedReupload > 0 ? 'border-yellow-400 bg-yellow-50' : ''}`}
-        >
-          Datasets ({datasetsCount})
-          {datasetsNeedReupload > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-yellow-900">
-              {datasetsNeedReupload}
+      {/* Secondary Bar - Project Info & Controls */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/50">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold text-white truncate max-w-[300px]">{projectName}</h1>
+          {isNist ? (
+            <span className="px-2 py-0.5 text-xs font-medium bg-teal-500/20 text-teal-400 rounded-full flex items-center gap-1 border border-teal-500/30">
+              <Shield className="h-3 w-3" /> NIST
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 text-xs font-medium bg-orange-500/20 text-orange-400 rounded-full border border-orange-500/30">
+              Standard
             </span>
           )}
-        </Button>
+          {hasContext && (
+            <span className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">Context Set</span>
+          )}
+          {hasDatasets && (
+            <span className={`px-2 py-0.5 text-xs rounded-full border ${privacyMode ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
+              {privacyMode ? 'Privacy ON' : 'Privacy OFF'}
+            </span>
+          )}
+        </div>
 
-        <div className="flex gap-1 text-xs">
-          {(['generate', 'ask'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => onModeChange(m)}
-              className={`px-2 py-1 rounded border ${
-                m === mode
-                  ? 'bg-white border-gray-300 font-medium'
-                  : 'bg-transparent border-transparent opacity-70'
-              }`}
+        <div className="flex items-center gap-2">
+          {isNist && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onEditContext}
+              className="h-8 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
             >
-              {m === 'generate' ? 'Generate' : 'Ask Data'}
-            </button>
-          ))}
+              <Edit3 className="w-3.5 h-3.5 mr-1" />
+              {hasContext ? 'Edit Context' : 'Set Context'}
+            </Button>
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onToggleDatasetsPanel}
+            className={`h-8 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white ${datasetsNeedReupload > 0 ? 'border-yellow-500/50' : ''}`}
+          >
+            <Database className="w-3.5 h-3.5 mr-1" />
+            Datasets ({datasetsCount})
+            {datasetsNeedReupload > 0 && (
+              <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500 text-yellow-900">
+                {datasetsNeedReupload}
+              </span>
+            )}
+          </Button>
+
+          <div className="flex gap-1 text-xs ml-2">
+            {(['generate', 'ask'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => onModeChange(m)}
+                className={`px-3 py-1.5 rounded-lg border transition-all ${
+                  m === mode
+                    ? 'bg-zinc-700 border-zinc-600 text-white font-medium'
+                    : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700'
+                }`}
+              >
+                {m === 'generate' ? 'Generate' : 'Ask Data'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
