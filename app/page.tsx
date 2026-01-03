@@ -132,7 +132,7 @@ export default function Home() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm text-zinc-300">
-                          "Show me a scatter plot of horsepower vs mpg, colored by cylinders"
+                          &ldquo;Show me a scatter plot of horsepower vs mpg, colored by cylinders&rdquo;
                         </p>
                       </div>
                     </div>
