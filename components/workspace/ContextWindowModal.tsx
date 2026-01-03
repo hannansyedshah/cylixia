@@ -369,7 +369,7 @@ Additional Notes: ${fields.additionalNotes || '[None]'}`
                       type="button"
                       variant="outline"
                       onClick={addAnalysisType}
-                      className="w-full border-2 border-dashed border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-teal-400 hover:border-teal-500/50"
+                      className="w-full border-2 border-dashed border-zinc-700 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-teal-400 hover:border-teal-500/50"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Analysis Type
