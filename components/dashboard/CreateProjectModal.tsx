@@ -109,7 +109,7 @@ export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProp
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="flex-1 h-11 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                className="flex-1 h-11 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
               >
                 Cancel
               </Button>
