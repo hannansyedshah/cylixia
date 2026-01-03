@@ -1,19 +1,21 @@
-import { Layout } from '@/components/layout/Layout'
-import { SignupForm } from '@/components/auth/SignupForm'
+'use client'
+
+import { SignupLayout } from '@/components/signup/SignupLayout'
+import { SignupForm } from '@/components/signup/SignupForm'
 
 export default function SignupPage() {
   return (
-    <Layout>
-      <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-gradient-to-br from-white via-blue-50 to-purple-50 p-4 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-rstudio/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
-        <div className="relative z-10 animate-fade-in-up">
+    <SignupLayout>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden pt-20">
+        {/* Background gradient orbs */}
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-600/5 rounded-full blur-[100px]" />
+
+        {/* Form */}
+        <div className="relative z-10 w-full flex justify-center px-6">
           <SignupForm />
         </div>
       </div>
-    </Layout>
+    </SignupLayout>
   )
 }
-
