@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Layout } from '@/components/layout/Layout'
+import { ProfileLayout } from '@/components/profile/ProfileLayout'
 import { ProfilePage } from '@/components/profile/ProfilePage'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
@@ -26,9 +26,8 @@ export default function ProfilePageRoute() {
   }
 
   return (
-    <Layout>
+    <ProfileLayout>
       <ProfilePage />
-    </Layout>
+    </ProfileLayout>
   )
 }
-

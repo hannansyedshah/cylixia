@@ -15,7 +15,6 @@ export function UserAvatar({ userId, displayName, avatarUrl, size = 'md', classN
   const [profile, setProfile] = useState<{ display_name?: string | null; avatar_url?: string | null } | null>(null)
 
   useEffect(() => {
-    // If avatarUrl or displayName not provided, fetch profile
     if (!avatarUrl && !displayName) {
       const fetchProfile = async () => {
         const { data } = await supabase
@@ -23,7 +22,7 @@ export function UserAvatar({ userId, displayName, avatarUrl, size = 'md', classN
           .select('display_name, avatar_url')
           .eq('id', userId)
           .single()
-        
+
         if (data) {
           setProfile(data)
         }
@@ -60,11 +59,10 @@ export function UserAvatar({ userId, displayName, avatarUrl, size = 'md', classN
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-rstudio/20 text-rstudio flex items-center justify-center font-semibold ${className}`}
+      className={`${sizeClasses[size]} rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-semibold ${className}`}
       title={name}
     >
       {initials}
     </div>
   )
 }
-

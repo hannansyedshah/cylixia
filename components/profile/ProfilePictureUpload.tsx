@@ -19,26 +19,22 @@ export function ProfilePictureUpload({ currentAvatarUrl, onUpload, onRemove }: P
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file')
       return
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('File size must be less than 5MB')
       return
     }
 
-    // Create preview
     const reader = new FileReader()
     reader.onloadend = () => {
       setPreview(reader.result as string)
     }
     reader.readAsDataURL(file)
 
-    // Upload file
     setUploading(true)
     try {
       const url = await onUpload(file)
@@ -56,7 +52,7 @@ export function ProfilePictureUpload({ currentAvatarUrl, onUpload, onRemove }: P
 
   const handleRemove = async () => {
     if (!onRemove) return
-    
+
     setUploading(true)
     try {
       await onRemove()
@@ -75,16 +71,16 @@ export function ProfilePictureUpload({ currentAvatarUrl, onUpload, onRemove }: P
           <img
             src={preview}
             alt="Profile"
-            className="w-32 h-32 rounded-full object-cover border-4 border-rstudio/20"
+            className="w-32 h-32 rounded-full object-cover border-4 border-emerald-500/20"
           />
         ) : (
-          <div className="w-32 h-32 rounded-full bg-rstudio/20 flex items-center justify-center border-4 border-rstudio/20">
-            <Upload className="w-12 h-12 text-rstudio/50" />
+          <div className="w-32 h-32 rounded-full bg-zinc-800 flex items-center justify-center border-4 border-zinc-700">
+            <Upload className="w-12 h-12 text-zinc-600" />
           </div>
         )}
         {uploading && (
-          <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          <div className="absolute inset-0 rounded-full bg-black/70 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
         )}
       </div>
@@ -98,25 +94,23 @@ export function ProfilePictureUpload({ currentAvatarUrl, onUpload, onRemove }: P
           id="avatar-upload"
           disabled={uploading}
         />
-        <label htmlFor="avatar-upload" className="cursor-pointer">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={uploading}
-            className="cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {preview ? 'Change' : 'Upload'} Photo
-          </Button>
-        </label>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={uploading}
+          className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          {preview ? 'Change' : 'Upload'} Photo
+        </Button>
         {preview && onRemove && (
           <Button
             type="button"
             variant="outline"
             onClick={handleRemove}
             disabled={uploading}
-            className="text-destructive hover:text-destructive"
+            className="bg-zinc-800 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
           >
             <X className="w-4 h-4 mr-2" />
             Remove
@@ -126,4 +120,3 @@ export function ProfilePictureUpload({ currentAvatarUrl, onUpload, onRemove }: P
     </div>
   )
 }
-
