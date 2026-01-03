@@ -139,10 +139,12 @@ export function useWorkspace(projectId: string) {
 
   // Handlers
   const handleCodeChange = useCallback((newCode: string) => {
-    if (!project) return
-    setProject({ ...project, code: newCode, updated_at: new Date().toISOString() })
+    setProject((prev: any) => {
+      if (!prev) return prev
+      return { ...prev, code: newCode, updated_at: new Date().toISOString() }
+    })
     updateCode(projectId, newCode).catch(console.error)
-  }, [project, projectId])
+  }, [projectId])
 
   const handleSendMessage = async (prompt: string) => {
     if (!project || loading) return
