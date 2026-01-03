@@ -49,7 +49,10 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
     .select()
     .single()
 
-  if (dbError) throw new Error(dbError.message)
+  if (dbError) {
+    await supabase.storage.from('csvupload').remove([storagePath])
+    throw new Error(dbError.message)
+  }
 
   return upload
 }
@@ -94,14 +97,23 @@ export async function deleteDataset(id: string): Promise<boolean> {
   return !error
 }
 
-export async function getDatasetContent(storagePath: string): Promise<string | null> {
+export async function getDatasetContent(id: string): Promise<string | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  const { data: upload } = await supabase
+    .from('csv_uploads')
+    .select('storage_path')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!upload) return null
+
   const { data, error } = await supabase.storage
     .from('csvupload')
-    .download(storagePath)
+    .download(upload.storage_path)
 
   if (error || !data) return null
 

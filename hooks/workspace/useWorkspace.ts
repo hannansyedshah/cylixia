@@ -112,7 +112,7 @@ export function useWorkspace(projectId: string) {
       if (savedDatasets.length > 0) {
         const datasetItems: DatasetItem[] = await Promise.all(
           savedDatasets.map(async (d) => {
-            const csvText = await getDatasetContent(d.storage_path)
+            const csvText = await getDatasetContent(d.id)
             return {
               id: d.id,
               fileName: d.file_name,
