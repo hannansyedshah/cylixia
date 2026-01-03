@@ -50,7 +50,7 @@ export function WorkspaceLayout({
         onToggleDatasetsPanel={onToggleDatasetsPanel}
         onEditContext={onEditContext}
       />
-      <main className="pt-24">{children}</main>
+      <main className="pt-32">{children}</main>
     </div>
   )
 }
