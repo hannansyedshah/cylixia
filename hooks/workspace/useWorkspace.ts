@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
 import { getProject, updateCode, saveContext, saveOutput } from '@/lib/db/projects'
 import { getMessages, createMessage } from '@/lib/db/messages'
+import { getDatasets, getDatasetContent } from '@/lib/db/datasets'
 import { saveVersion } from '@/lib/db/versions'
 import { sendChat } from '@/actions/chat'
 import { executeCode } from '@/actions/execute'
@@ -105,6 +106,26 @@ export function useWorkspace(projectId: string) {
 
       const messages = await getMessages(projectId)
       setProject((prev: any) => prev ? { ...prev, messages } : prev)
+
+      // Load persisted datasets with content
+      const savedDatasets = await getDatasets(projectId)
+      if (savedDatasets.length > 0) {
+        const datasetItems: DatasetItem[] = await Promise.all(
+          savedDatasets.map(async (d) => {
+            const csvText = await getDatasetContent(d.id)
+            return {
+              id: d.id,
+              fileName: d.file_name,
+              sizeBytes: csvText?.length || 0,
+              persisted: true,
+              includeChat: true,
+              includeRun: true,
+              csvText: csvText || undefined
+            }
+          })
+        )
+        setDatasets(datasetItems)
+      }
     } catch (e) {
       console.error('Failed to load project:', e)
     } finally {

@@ -1,11 +1,11 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
-import { Upload, X, Eye, Shield } from 'lucide-react'
+import { Upload, X, Eye, Shield, Cloud, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataPreview } from './DataPreview'
 import { ComplianceReviewModal } from './ComplianceReviewModal'
 import { CSVDataEditor } from './CSVDataEditor'
+import { useUploadPanel } from '@/hooks/data/useUploadPanel'
 import type { DatasetItem } from '@/types/dataset'
 
 interface UploadPanelProps {
@@ -13,6 +13,7 @@ interface UploadPanelProps {
   onDatasetsChange?: (datasets: DatasetItem[]) => void
   privacyMode?: boolean
   hipaaCompliant?: boolean
+  projectId?: string
 }
 
 export function UploadPanel({
@@ -20,180 +21,33 @@ export function UploadPanel({
   onDatasetsChange,
   privacyMode = true,
   hipaaCompliant = false,
+  projectId,
 }: UploadPanelProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
-  const [previewViewMode, setPreviewViewMode] = useState<'original' | 'randomized'>('randomized')
-  const [dataEditorData, setDataEditorData] = useState<{ originalData: string; fileName: string; autoRedactedColumns?: string[] } | null>(null)
-  const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string; manuallyRemovedColumns: string[] } | null>(null)
-  const [uploadChoiceData, setUploadChoiceData] = useState<{ originalData: string; fileName: string } | null>(null)
-
-  const canAddMore = datasets.length < 5
-  const selectedCounts = useMemo(() => ({
-    chat: datasets.filter(i => i.includeChat).length,
-    run: datasets.filter(i => i.includeRun).length,
-  }), [datasets])
-
-  const notifyChange = (next: DatasetItem[]) => {
-    onDatasetsChange?.(next)
-  }
-
-  const handleLocalAdd = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) return alert('Only .csv files are allowed')
-    if (file.size > 10 * 1024 * 1024) return alert('File too large (max 10MB)')
-
-    const text = await file.text()
-    setUploadChoiceData({ originalData: text, fileName: file.name })
-  }
-
-  const handleDataEditorConfirm = (editedData: string, removedColumns: string[]) => {
-    if (!dataEditorData) return
-
-    const allExcludedColumns = [...new Set([
-      ...(dataEditorData.autoRedactedColumns || []),
-      ...removedColumns
-    ])]
-
-    const item: DatasetItem = {
-      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      fileName: dataEditorData.fileName,
-      sizeBytes: new Blob([editedData]).size,
-      persisted: false,
-      includeChat: true,
-      includeRun: true,
-      csvText: editedData,
-      excludedColumns: allExcludedColumns,
-    }
-
-    const existingIndex = datasets.findIndex(d => d.fileName === dataEditorData.fileName && d.persisted && !d.csvText)
-    if (existingIndex >= 0) {
-      const updated = [...datasets]
-      updated[existingIndex] = item
-      notifyChange(updated)
-    } else {
-      notifyChange([...(datasets || []), item])
-    }
-
-    setDataEditorData(null)
-  }
-
-  const handleDataEditorCancel = () => {
-    setDataEditorData(null)
-  }
-
-  const handleComplianceConfirm = (redactedData: string, autoRedactedColumns: string[]) => {
-    if (!complianceReviewData) return
-
-    const item: DatasetItem = {
-      id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      fileName: complianceReviewData.fileName,
-      sizeBytes: new Blob([redactedData]).size,
-      persisted: false,
-      includeChat: true,
-      includeRun: true,
-      csvText: redactedData,
-      excludedColumns: autoRedactedColumns,
-    }
-
-    const existingIndex = datasets.findIndex(d => d.fileName === complianceReviewData.fileName && d.persisted && !d.csvText)
-    if (existingIndex >= 0) {
-      const updated = [...datasets]
-      updated[existingIndex] = item
-      notifyChange(updated)
-    } else {
-      notifyChange([...(datasets || []), item])
-    }
-
-    setComplianceReviewData(null)
-  }
-
-  const handleComplianceEdit = (redactedData: string, autoRedactedColumns: string[]) => {
-    if (!complianceReviewData) return
-
-    setDataEditorData({
-      originalData: redactedData,
-      fileName: complianceReviewData.fileName,
-      autoRedactedColumns
-    })
-
-    setComplianceReviewData(null)
-  }
-
-  const handleComplianceCancel = () => {
-    setComplianceReviewData(null)
-  }
-
-  const handleUploadChoice = (choice: 'compliance' | 'editor' | 'direct') => {
-    if (!uploadChoiceData) return
-
-    if (choice === 'compliance') {
-      setComplianceReviewData({
-        originalData: uploadChoiceData.originalData,
-        fileName: uploadChoiceData.fileName,
-        manuallyRemovedColumns: []
-      })
-    } else if (choice === 'editor') {
-      setDataEditorData({
-        originalData: uploadChoiceData.originalData,
-        fileName: uploadChoiceData.fileName
-      })
-    } else {
-      const item: DatasetItem = {
-        id: `ephemeral_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        fileName: uploadChoiceData.fileName,
-        sizeBytes: new Blob([uploadChoiceData.originalData]).size,
-        persisted: false,
-        includeChat: true,
-        includeRun: true,
-        csvText: uploadChoiceData.originalData,
-        excludedColumns: []
-      }
-
-      const existingIndex = datasets.findIndex(d => d.fileName === uploadChoiceData.fileName && d.persisted && !d.csvText)
-      if (existingIndex >= 0) {
-        const updated = [...datasets]
-        updated[existingIndex] = item
-        notifyChange(updated)
-      } else {
-        notifyChange([...(datasets || []), item])
-      }
-    }
-
-    setUploadChoiceData(null)
-  }
-
-  const handleUploadChoiceCancel = () => {
-    setUploadChoiceData(null)
-  }
-
-  const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const all = Array.from(e.target.files || [])
-    if (all.length === 0) return
-
-    if (all.length > 0) {
-      await handleLocalAdd(all[0])
-      if (all.length > 1) {
-        alert(`Files are processed one at a time. Please upload the remaining ${all.length - 1} file(s) separately after completing your choice.`)
-      }
-    }
-
-    if (inputRef.current) inputRef.current.value = ''
-  }
-
-  const handlePreviewOpen = (item: DatasetItem) => {
-    setPreviewViewMode(privacyMode ? 'randomized' : 'original')
-    setPreviewItem(item)
-  }
-
-  const removeItem = (id: string) => {
-    const next = datasets.filter(i => i.id !== id)
-    notifyChange(next)
-  }
-
-  const toggleFlag = (id: string, key: 'includeChat' | 'includeRun') => {
-    const next = datasets.map(i => i.id === id ? { ...i, [key]: !i[key] } : i)
-    notifyChange(next)
-  }
+  const {
+    inputRef,
+    previewItem,
+    previewViewMode,
+    setPreviewViewMode,
+    dataEditorData,
+    complianceReviewData,
+    uploadChoiceData,
+    savingId,
+    canAddMore,
+    selectedCounts,
+    handleSelectFiles,
+    handlePreviewOpen,
+    handlePreviewClose,
+    handleDataEditorConfirm,
+    handleDataEditorCancel,
+    handleComplianceConfirm,
+    handleComplianceEdit,
+    handleComplianceCancel,
+    handleUploadChoice,
+    handleUploadChoiceCancel,
+    removeItem,
+    toggleFlag,
+    handleSaveToCloud
+  } = useUploadPanel({ datasets, onDatasetsChange, privacyMode, projectId })
 
   return (
     <div className="p-3 border-b bg-gradient-to-r from-white to-blue-50/30">
@@ -276,9 +130,32 @@ export function UploadPanel({
                       Re-upload needed
                     </span>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
-                      <Eye className="h-3.5 w-3.5 mr-1" /> Preview
-                    </Button>
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+                      </Button>
+                      {projectId && !item.persisted && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSaveToCloud(item)}
+                          disabled={savingId === item.id}
+                          className="h-7 px-2"
+                        >
+                          {savingId === item.id ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                          ) : (
+                            <Cloud className="h-3.5 w-3.5 mr-1" />
+                          )}
+                          Save
+                        </Button>
+                      )}
+                      {item.persisted && (
+                        <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                          <Cloud className="h-3 w-3" /> Saved
+                        </span>
+                      )}
+                    </>
                   )}
                   <label className="ml-auto text-xs flex items-center gap-1">
                     <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} /> Chat
@@ -298,7 +175,7 @@ export function UploadPanel({
 
       {previewItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setPreviewItem(null)}></div>
+          <div className="absolute inset-0 bg-black/50" onClick={handlePreviewClose}></div>
           <div className="relative bg-white rounded-xl shadow-2xl border border-gray-200 w-[95vw] max-w-7xl h-[90vh] p-4 flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-gray-200">
               <div className="text-sm font-semibold text-darktext truncate">{previewItem.fileName}</div>
@@ -311,7 +188,7 @@ export function UploadPanel({
                 >
                   {previewViewMode === 'randomized' ? '🔒 Randomized' : '🔓 Original'}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setPreviewItem(null)}>
+                <Button variant="ghost" size="icon" onClick={handlePreviewClose}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>

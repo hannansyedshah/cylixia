@@ -82,6 +82,7 @@ export default function WorkspacePage() {
         {showDatasetsPanel && (
           <div className="p-4 border-b bg-gray-50">
             <UploadPanel
+              projectId={projectId}
               privacyMode={privacyMode}
               hipaaCompliant={project.hipaa_compliant}
               datasets={datasets}
