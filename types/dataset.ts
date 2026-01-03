@@ -35,3 +35,12 @@ export interface RedactionResult {
   redactedData: string
   redactedColumns: string[]
 }
+
+export interface CsvUpload {
+  id: string
+  project_id: string
+  user_id: string
+  file_name: string
+  storage_path: string
+  created_at: string
+}

@@ -1,11 +1,12 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import { Upload, X, Eye, Shield } from 'lucide-react'
+import { Upload, X, Eye, Shield, Cloud, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataPreview } from './DataPreview'
 import { ComplianceReviewModal } from './ComplianceReviewModal'
 import { CSVDataEditor } from './CSVDataEditor'
+import { saveDataset, deleteDataset } from '@/lib/db/datasets'
 import type { DatasetItem } from '@/types/dataset'
 
 interface UploadPanelProps {
@@ -13,6 +14,7 @@ interface UploadPanelProps {
   onDatasetsChange?: (datasets: DatasetItem[]) => void
   privacyMode?: boolean
   hipaaCompliant?: boolean
+  projectId?: string
 }
 
 export function UploadPanel({
@@ -20,6 +22,7 @@ export function UploadPanel({
   onDatasetsChange,
   privacyMode = true,
   hipaaCompliant = false,
+  projectId,
 }: UploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewItem, setPreviewItem] = useState<DatasetItem | null>(null)
@@ -27,6 +30,7 @@ export function UploadPanel({
   const [dataEditorData, setDataEditorData] = useState<{ originalData: string; fileName: string; autoRedactedColumns?: string[] } | null>(null)
   const [complianceReviewData, setComplianceReviewData] = useState<{ originalData: string; fileName: string; manuallyRemovedColumns: string[] } | null>(null)
   const [uploadChoiceData, setUploadChoiceData] = useState<{ originalData: string; fileName: string } | null>(null)
+  const [savingId, setSavingId] = useState<string | null>(null)
 
   const canAddMore = datasets.length < 5
   const selectedCounts = useMemo(() => ({
@@ -185,7 +189,11 @@ export function UploadPanel({
     setPreviewItem(item)
   }
 
-  const removeItem = (id: string) => {
+  const removeItem = async (id: string) => {
+    const item = datasets.find(i => i.id === id)
+    if (item?.persisted) {
+      await deleteDataset(id)
+    }
     const next = datasets.filter(i => i.id !== id)
     notifyChange(next)
   }
@@ -193,6 +201,30 @@ export function UploadPanel({
   const toggleFlag = (id: string, key: 'includeChat' | 'includeRun') => {
     const next = datasets.map(i => i.id === id ? { ...i, [key]: !i[key] } : i)
     notifyChange(next)
+  }
+
+  const handleSaveToCloud = async (item: DatasetItem) => {
+    if (!projectId || !item.csvText || item.persisted) return
+
+    setSavingId(item.id)
+    try {
+      const result = await saveDataset({
+        projectId,
+        fileName: item.fileName,
+        csvText: item.csvText
+      })
+
+      if (!result) throw new Error('Failed to save')
+
+      const next = datasets.map(i =>
+        i.id === item.id ? { ...i, id: result.id, persisted: true } : i
+      )
+      notifyChange(next)
+    } catch (err: any) {
+      alert(err.message || 'Failed to save')
+    } finally {
+      setSavingId(null)
+    }
   }
 
   return (
@@ -276,9 +308,32 @@ export function UploadPanel({
                       Re-upload needed
                     </span>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
-                      <Eye className="h-3.5 w-3.5 mr-1" /> Preview
-                    </Button>
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => handlePreviewOpen(item)} className="h-7 px-2">
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Preview
+                      </Button>
+                      {projectId && !item.persisted && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSaveToCloud(item)}
+                          disabled={savingId === item.id}
+                          className="h-7 px-2"
+                        >
+                          {savingId === item.id ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                          ) : (
+                            <Cloud className="h-3.5 w-3.5 mr-1" />
+                          )}
+                          Save
+                        </Button>
+                      )}
+                      {item.persisted && (
+                        <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                          <Cloud className="h-3 w-3" /> Saved
+                        </span>
+                      )}
+                    </>
                   )}
                   <label className="ml-auto text-xs flex items-center gap-1">
                     <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} /> Chat
