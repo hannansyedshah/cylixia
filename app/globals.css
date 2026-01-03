@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 160 84% 39%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -22,30 +22,10 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 160 84% 39%;
     --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --emerald: 160 84% 39%;
+    --emerald-glow: 160 84% 39%;
   }
 }
 
@@ -59,6 +39,29 @@
 }
 
 @layer utilities {
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+  .delay-700 {
+    animation-delay: 700ms;
+  }
+
+  .fade-top-lg {
+    mask-image: linear-gradient(to bottom,
+      transparent,
+      rgba(0, 0, 0, 1) 8rem
+    );
+  }
+
   @keyframes fade-in-up {
     from {
       opacity: 0;
@@ -75,7 +78,7 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-20px);
+      transform: translateY(-12px);
     }
   }
 
@@ -85,6 +88,45 @@
     }
     50% {
       background-position: 100% 50%;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes chameleon {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 50% 100%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    75% {
+      background-position: 50% 0%;
+    }
+  }
+
+  @keyframes rainbow {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 100% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    75% {
+      background-position: 0% 100%;
     }
   }
 
@@ -101,6 +143,12 @@
     animation: gradient-shift 3s ease infinite;
   }
 
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
   .animation-delay-200 {
     animation-delay: 0.2s;
   }
@@ -113,78 +161,16 @@
     animation-delay: 0.6s;
   }
 
+  .animation-delay-800 {
+    animation-delay: 0.8s;
+  }
+
   .delay-1000 {
     animation-delay: 1s;
   }
 
   .delay-2000 {
     animation-delay: 2s;
-  }
-
-  @keyframes gradient-float {
-    0%, 100% {
-      transform: translate(0, 0) scale(1);
-    }
-    25% {
-      transform: translate(30px, -30px) scale(1.15);
-    }
-    50% {
-      transform: translate(-25px, 25px) scale(0.9);
-    }
-    75% {
-      transform: translate(15px, 15px) scale(1.08);
-    }
-  }
-
-  @keyframes gradient-float-reverse {
-    0%, 100% {
-      transform: translate(0, 0) scale(1);
-    }
-    25% {
-      transform: translate(-30px, 30px) scale(0.9);
-    }
-    50% {
-      transform: translate(25px, -25px) scale(1.15);
-    }
-    75% {
-      transform: translate(-15px, -15px) scale(1.08);
-    }
-  }
-
-  .animate-gradient-float {
-    animation: gradient-float 15s ease-in-out infinite;
-  }
-
-  .animate-gradient-float-reverse {
-    animation: gradient-float-reverse 18s ease-in-out infinite;
-  }
-
-  /* Code selection highlight with animated gradient */
-  .code-selection-highlight {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(6, 182, 212, 0.02) 50%, rgba(14, 165, 233, 0.03) 100%);
-    background-size: 300% 300%;
-    animation: code-selection-gradient 4s ease-in-out infinite;
-    position: relative;
-  }
-
-  .dark .code-selection-highlight {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(6, 182, 212, 0.03) 50%, rgba(14, 165, 233, 0.05) 100%);
-    background-size: 300% 300%;
-  }
-
-  @keyframes code-selection-gradient {
-    0%, 100% {
-      background-position: 0% 50%;
-    }
-    25% {
-      background-position: 100% 0%;
-    }
-    50% {
-      background-position: 100% 100%;
-    }
-    75% {
-      background-position: 0% 100%;
-    }
   }
 
   @keyframes slide-down {
@@ -201,6 +187,41 @@
   .animate-slide-down {
     animation: slide-down 0.3s ease-out forwards;
   }
-}
 
-/*random text2*/
+  .gradient-text {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, #059669, #10b981, #34d399);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  @keyframes blink {
+    0%, 50% {
+      opacity: 1;
+    }
+    51%, 100% {
+      opacity: 0;
+    }
+  }
+
+  .animate-blink {
+    animation: blink 1s step-end infinite;
+  }
+}
