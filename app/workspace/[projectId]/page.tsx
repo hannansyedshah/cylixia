@@ -125,6 +125,7 @@ export default function WorkspacePage() {
               stdout={stdoutText}
               stderr={stderrText}
               projectId={projectId}
+              projectName={project.name}
               onDeletePlot={handleDeletePlot}
             />
           </div>
