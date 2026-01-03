@@ -97,8 +97,11 @@ export function HomeHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-zinc-800/30">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
+      <div className="relative container mx-auto">
+        {/* Subtle glow effect */}
+        <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl blur-xl" />
+        <div className="relative bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 rounded-2xl shadow-lg shadow-emerald-900/10 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Link href="/" className="flex items-center group">
             <Mascot size={32} className="transition-transform group-hover:scale-110" />
@@ -155,6 +158,7 @@ export function HomeHeader() {
               </>
             )}
           </div>
+        </div>
         </div>
       </div>
     </header>
