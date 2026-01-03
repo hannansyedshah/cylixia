@@ -12,15 +12,30 @@ export function Mascot({ size = 64, className = '' }: MascotProps) {
       className={className}
       style={{ imageRendering: 'pixelated' }}
     >
+      <style>
+        {`
+          @keyframes tailWag {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-8deg); }
+            75% { transform: rotate(8deg); }
+          }
+          .mascot-tail {
+            animation: tailWag 2s ease-in-out infinite;
+            transform-origin: 10px 21px;
+          }
+        `}
+      </style>
       {/* Chameleon - "Rudy the Resolver" */}
 
-      {/* Tail - curled like a data spiral */}
-      <rect x="2" y="22" width="2" height="2" fill="#22c55e" />
-      <rect x="4" y="24" width="2" height="2" fill="#22c55e" />
-      <rect x="6" y="24" width="2" height="2" fill="#16a34a" />
-      <rect x="8" y="22" width="2" height="2" fill="#16a34a" />
-      <rect x="8" y="20" width="2" height="2" fill="#15803d" />
-      <rect x="6" y="20" width="2" height="2" fill="#22c55e" />
+      {/* Tail - curled like a data spiral (animated) */}
+      <g className="mascot-tail">
+        <rect x="2" y="22" width="2" height="2" fill="#22c55e" />
+        <rect x="4" y="24" width="2" height="2" fill="#22c55e" />
+        <rect x="6" y="24" width="2" height="2" fill="#16a34a" />
+        <rect x="8" y="22" width="2" height="2" fill="#16a34a" />
+        <rect x="8" y="20" width="2" height="2" fill="#15803d" />
+        <rect x="6" y="20" width="2" height="2" fill="#22c55e" />
+      </g>
 
       {/* Back legs */}
       <rect x="12" y="24" width="2" height="4" fill="#15803d" />
