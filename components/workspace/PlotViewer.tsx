@@ -30,14 +30,19 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
     }
   }, [currentIndex, images.length])
 
-  const handleDownloadUrl = (url: string, index?: number) => {
-    const link = document.createElement('a')
-    link.href = url
-    const suffix = typeof index === 'number' ? `-${index + 1}` : ''
-    link.download = `plot-${projectName}${suffix}-${new Date().toISOString().split('T')[0]}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleDownload = async (url: string, index: number) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `plot-${projectName}-${index + 1}-${new Date().toISOString().split('T')[0]}.png`
+      link.click()
+      URL.revokeObjectURL(blobUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
   }
 
   const goToPrevious = () => {
@@ -107,7 +112,7 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
               {/* Action buttons */}
               <div className="absolute top-2 right-2 z-10 flex space-x-1">
                 <button
-                  onClick={() => handleDownloadUrl(currentUrl, currentIndex)}
+                  onClick={() => handleDownload(currentUrl, currentIndex)}
                   className="text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
                   aria-label={`Download plot ${currentIndex + 1}`}
                 >
