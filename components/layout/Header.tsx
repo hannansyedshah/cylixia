@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Mascot } from '@/components/brand'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { getProfile } from '@/lib/db/profile'
@@ -14,7 +15,17 @@ export function Header() {
   const [actualUser, setActualUser] = useState<any>(null)
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null)
   const [now, setNow] = useState<Date>(new Date())
+  const [scrolled, setScrolled] = useState(false)
   const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null)
+
+  // Track scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Load profile when user changes
   useEffect(() => {
@@ -86,16 +97,15 @@ export function Header() {
   }
 
   return (
-    <header className="border-b bg-white/80 backdrop-blur-lg sticky top-0 z-50 shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#09090b]/80 backdrop-blur-xl border-b border-zinc-800/30">
+
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <span className="text-2xl font-bold text-darktext transition-all duration-300">
-              Cylixia
-            </span>
+          <Link href="/" className="flex items-center group">
+            <Mascot size={32} className="transition-transform group-hover:scale-110" />
           </Link>
           {/* Reserve space to prevent layout shift */}
-          <div className="hidden sm:flex items-center space-x-2 text-xs sm:text-sm min-h-[20px]">
+          <div className="hidden sm:flex items-center space-x-2 text-xs sm:text-sm min-h-[20px] text-zinc-500">
             {actualUser ? (
               <>
                 <span className="truncate max-w-[180px] sm:max-w-[240px]" title={actualUser.email}>
@@ -118,32 +128,32 @@ export function Header() {
             {pathname.startsWith('/workspace') || pathname === '/dashboard' ? (
               <>
                 <Link href="/profile" className="flex-shrink-0">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white">
                     Profile
                   </Button>
                 </Link>
-                <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto">
+                <Button onClick={handleLogout} variant="outline" className="w-full sm:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white">
                   Logout
                 </Button>
               </>
             ) : actualUser ? (
               <>
                 <Link href="/profile" className="flex-shrink-0">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white">
                     Profile
                   </Button>
                 </Link>
                 <Link href="/dashboard" className="w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto">Dashboard</Button>
+                  <Button className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black">Dashboard</Button>
                 </Link>
               </>
             ) : (
               <>
                 <Link href="/login" className="flex-shrink-0">
-                  <Button variant="outline">Login</Button>
+                  <Button variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800">Login</Button>
                 </Link>
                 <Link href="/signup" className="flex-shrink-0">
-                  <Button>Get Started</Button>
+                  <Button className="bg-emerald-500 hover:bg-emerald-400 text-black">Get Started</Button>
                 </Link>
               </>
             )}
