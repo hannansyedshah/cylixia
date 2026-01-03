@@ -1,5 +1,0 @@
-export { ProfileLayout } from './ProfileLayout'
-export { ProfileHeader } from './ProfileHeader'
-export { ProfilePage } from './ProfilePage'
-export { ProfilePictureUpload } from './ProfilePictureUpload'
-export { UserAvatar } from './UserAvatar'
