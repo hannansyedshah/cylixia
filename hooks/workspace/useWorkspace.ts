@@ -7,7 +7,9 @@ import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
 import { getProject, updateCode, saveContext, saveOutput } from '@/lib/db/projects'
 import { getMessages, createMessage } from '@/lib/db/messages'
-import { getDatasets, getDatasetContent } from '@/lib/db/datasets'
+import { getDatasets, getDatasetContent } from '@/lib/db/csvUpload'
+import { deletePlot } from '@/lib/db/plots'
+import { updateProject } from '@/lib/db/projects'
 import { saveVersion } from '@/lib/db/versions'
 import { sendChat } from '@/actions/chat'
 import { executeCode } from '@/actions/execute'
@@ -210,16 +212,21 @@ export function useWorkspace(projectId: string) {
         .filter(d => d.csvText)
         .map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) }))
 
-      const data = await executeCode({ code: project.code, csv_files: csvFiles })
+      const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId })
 
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
 
-      const plots = data.plot_base64?.map(p => `data:image/png;base64,${p.data}`) || []
+      // Use storage URLs if available, otherwise fall back to data URLs
+      const plots = data.plot_urls?.length
+        ? data.plot_urls
+        : data.plot_base64?.map(p => `data:image/png;base64,${p.data}`) || []
 
       if (plots.length) {
         setGalleryPlots(plots)
-        setProject((p: any) => p ? { ...p, plot_url: plots[0] } : p)
+        // Store as JSON array if multiple plots, otherwise single URL
+        const plotUrl = plots.length > 1 ? JSON.stringify(plots) : plots[0]
+        setProject((p: any) => p ? { ...p, plot_url: plotUrl } : p)
       }
 
       await saveOutput(projectId, data.stdout || '', data.stderr || '')
@@ -234,6 +241,36 @@ export function useWorkspace(projectId: string) {
   const handleVersionRestore = (code: string, plotUrl?: string) => {
     setProject((p: any) => p ? { ...p, code, plot_url: plotUrl || null } : p)
     if (plotUrl) setGalleryPlots([plotUrl])
+  }
+
+  const handleDeletePlot = async (index: number) => {
+    if (!project || galleryPlots.length === 0) return
+
+    const plotUrl = galleryPlots[index]
+    if (!plotUrl) return
+
+    try {
+      // Delete from storage (only for storage URLs, not data URLs)
+      if (!plotUrl.startsWith('data:')) {
+        await deletePlot(plotUrl)
+      }
+
+      // Update gallery state
+      const newPlots = galleryPlots.filter((_, i) => i !== index)
+      setGalleryPlots(newPlots)
+
+      // Update project plot_url
+      const newPlotUrl = newPlots.length > 1
+        ? JSON.stringify(newPlots)
+        : newPlots.length === 1
+          ? newPlots[0]
+          : null
+
+      setProject((p: any) => p ? { ...p, plot_url: newPlotUrl } : p)
+      await updateProject(projectId, { plot_url: newPlotUrl })
+    } catch (error) {
+      console.error('Failed to delete plot:', error)
+    }
   }
 
   const handleSaveVersion = async (description: string) => {
@@ -307,6 +344,7 @@ export function useWorkspace(projectId: string) {
     handleRunCode,
     handleVersionRestore,
     handleSaveVersion,
+    handleDeletePlot,
     handleContextSave,
     handleNistAcknowledge,
     handleCloseContextModal

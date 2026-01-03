@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react'
-import { getVersions, saveVersion, restoreVersion as restoreVersionAction } from '@/lib/db/versions'
+import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { getVersions, saveVersion, restoreVersion as restoreVersionAction, deleteVersion } from '@/lib/db/versions'
 import type { CodeVersion } from '@/types/database'
 
 // Extended CodeVersion with profile relation for display
@@ -156,6 +156,7 @@ export function VersionHistory({
   const [versions, setVersions] = useState<CodeVersionWithProfile[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [description, setDescription] = useState('')
   const [showDescriptionInput, setShowDescriptionInput] = useState(false)
@@ -208,6 +209,24 @@ export function VersionHistory({
       }
     } catch (error) {
       console.error('Failed to restore version:', error)
+    }
+  }
+
+  const handleDeleteVersion = async (versionId: string) => {
+    if (!confirm('Are you sure you want to delete this version? This will also delete any associated plots.')) {
+      return
+    }
+
+    setDeleting(versionId)
+    try {
+      const success = await deleteVersion(versionId)
+      if (success) {
+        setVersions(versions.filter(v => v.id !== versionId))
+      }
+    } catch (error) {
+      console.error('Failed to delete version:', error)
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -450,8 +469,8 @@ export function VersionHistory({
                             )}
                           </div>
                           
-                          {onVersionRestore && (
-                            <div className="flex flex-col space-y-1 ml-4">
+                          <div className="flex flex-col space-y-1 ml-4">
+                            {onVersionRestore && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -461,8 +480,18 @@ export function VersionHistory({
                                 <RotateCcw className="h-3 w-3" />
                                 <span>Restore</span>
                               </Button>
-                            </div>
-                          )}
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteVersion(version.id)}
+                              disabled={deleting === version.id}
+                              className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>{deleting === version.id ? 'Deleting...' : 'Delete'}</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}

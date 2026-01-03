@@ -1,6 +1,6 @@
 'use client'
 
-import { ImageIcon, Download } from 'lucide-react'
+import { ImageIcon, Download, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface PlotViewerProps {
@@ -8,9 +8,10 @@ interface PlotViewerProps {
   plotUrls?: string[]
   projectName?: string
   hasCsvData?: boolean
+  onDeletePlot?: (index: number) => void
 }
 
-export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', hasCsvData = false }: PlotViewerProps) {
+export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', hasCsvData = false, onDeletePlot }: PlotViewerProps) {
   const images: string[] = Array.isArray(plotUrls) && plotUrls.length > 0
     ? plotUrls
     : (plotUrl ? [plotUrl] : [])
@@ -63,13 +64,28 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
           <div className="flex-1 flex items-start justify-center p-4 overflow-auto gap-4 flex-wrap">
             {images.map((url, idx) => (
               <div key={idx} className="relative bg-zinc-800 rounded-lg shadow-lg border border-zinc-700 flex items-center justify-center overflow-visible max-w-full">
-                <button
-                  onClick={() => handleDownloadUrl(url, idx)}
-                  className="absolute top-2 right-2 z-10 text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
-                  aria-label={`Download plot ${idx + 1}`}
-                >
-                  Download
-                </button>
+                <div className="absolute top-2 right-2 z-10 flex space-x-1">
+                  <button
+                    onClick={() => handleDownloadUrl(url, idx)}
+                    className="text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
+                    aria-label={`Download plot ${idx + 1}`}
+                  >
+                    Download
+                  </button>
+                  {onDeletePlot && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Delete this plot? This action cannot be undone.')) {
+                          onDeletePlot(idx)
+                        }
+                      }}
+                      className="text-xs px-2 py-1 rounded border bg-zinc-800 border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 backdrop-blur-sm shadow"
+                      aria-label={`Delete plot ${idx + 1}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
                 <img
                   src={url}
                   alt={`Generated plot ${idx + 1}`}
