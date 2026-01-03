@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Layout } from '@/components/layout/Layout'
+import { HomeLayout } from '@/components/homepage/HomeLayout'
 import { Button } from '@/components/ui/button'
 import { Mascot } from '@/components/brand'
 import { TextRotate } from '@/components/effects'
@@ -28,7 +28,7 @@ export default function Home() {
   const words = ['simple', 'instant', 'powerful', 'magical']
 
   return (
-    <Layout>
+    <HomeLayout>
       <div className="min-h-screen bg-black text-white">
         {/* Hero */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -576,6 +576,6 @@ export default function Home() {
           </div>
         </footer>
       </div>
-    </Layout>
+    </HomeLayout>
   )
 }
