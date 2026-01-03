@@ -16,7 +16,6 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
 
   if (!user) return null
 
-  // Verify project ownership
   const { data: project } = await supabase
     .from('projects')
     .select('user_id')
@@ -25,11 +24,9 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
 
   if (!project || project.user_id !== user.id) return null
 
-  // Generate ID upfront - used for both row id and storage path
   const id = crypto.randomUUID()
   const storagePath = `${user.id}/${projectId}/${id}.csv`
 
-  // Upload to storage
   const blob = new Blob([csvText], { type: 'text/csv' })
   const { error: uploadError } = await supabase.storage
     .from('csvupload')
@@ -40,7 +37,6 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
 
   if (uploadError) throw new Error(uploadError.message)
 
-  // Insert record with same id
   const { data: upload, error: dbError } = await supabase
     .from('csv_uploads')
     .insert({
