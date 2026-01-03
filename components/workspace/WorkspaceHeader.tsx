@@ -86,16 +86,13 @@ export function WorkspaceHeader({
                 <Mascot size={32} className="transition-transform group-hover:scale-110" />
               </Link>
               {user && (
-                <>
-                  <div className="h-6 w-px bg-zinc-700" />
-                  <div className="flex items-center space-x-2 text-xs sm:text-sm text-zinc-500">
-                    <span className="truncate max-w-[180px] sm:max-w-[240px]">
-                      {profile?.display_name || user.email}
-                    </span>
-                    <span className="opacity-50">•</span>
-                    <span className="whitespace-nowrap">{formattedNow}</span>
-                  </div>
-                </>
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-zinc-500">
+                  <span className="truncate max-w-[180px] sm:max-w-[240px]">
+                    {profile?.display_name || user.email}
+                  </span>
+                  <span className="opacity-50">•</span>
+                  <span className="whitespace-nowrap">{formattedNow}</span>
+                </div>
               )}
             </div>
 
