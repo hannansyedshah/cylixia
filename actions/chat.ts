@@ -19,6 +19,7 @@ interface ChatResponse {
   code?: string
   explanation?: string
   plotDescription?: string
+  summary?: string
   nextSuggestions?: string[]
 }
 
@@ -74,6 +75,7 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
       code: undefined,
       explanation: response.explanation,
       plotDescription: response.plotDescription,
+      summary: response.summary,
       nextSuggestions: response.nextSuggestions,
     }
   }
@@ -83,6 +85,7 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     code: response.code,
     explanation: response.explanation,
     plotDescription: response.plotDescription,
+    summary: response.summary,
     nextSuggestions: response.nextSuggestions,
   }
 }

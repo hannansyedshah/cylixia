@@ -9,6 +9,7 @@ interface ParsedJson {
   r_code?: string
   explanation?: string
   plot_description?: string
+  summary?: string
   next_suggestions?: string[]
 }
 
@@ -20,6 +21,7 @@ export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
       message: getResponseMessage(mode),
       explanation: jsonResponse.explanation,
       plotDescription: jsonResponse.plot_description,
+      summary: jsonResponse.summary,
       nextSuggestions: jsonResponse.next_suggestions
     }
   }

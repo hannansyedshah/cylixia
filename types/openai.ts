@@ -17,6 +17,7 @@ export interface OpenAIResponse {
   message: string
   explanation?: string
   plotDescription?: string
+  summary?: string
   nextSuggestions?: string[]
 }
 
