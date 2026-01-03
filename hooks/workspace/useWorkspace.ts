@@ -217,14 +217,10 @@ export function useWorkspace(projectId: string) {
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
 
-      // Use storage URLs if available, otherwise fall back to data URLs
-      const plots = data.plot_urls?.length
-        ? data.plot_urls
-        : data.plot_base64?.map(p => `data:image/png;base64,${p.data}`) || []
+      const plots = data.plot_urls || []
 
       if (plots.length) {
         setGalleryPlots(plots)
-        // Store as JSON array if multiple plots, otherwise single URL
         const plotUrl = plots.length > 1 ? JSON.stringify(plots) : plots[0]
         setProject((p: any) => p ? { ...p, plot_url: plotUrl } : p)
       }

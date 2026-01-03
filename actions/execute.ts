@@ -1,25 +1,7 @@
 'use server'
 
 import { savePlots } from '@/lib/db/plots'
-
-interface ExecuteRequest {
-  code: string
-  csv_files?: Array<{ filename: string; data_base64: string }>
-  projectId?: string  // Optional: if provided, plots will be uploaded to storage
-}
-
-interface RawExecuteResponse {
-  stdout?: string
-  stderr?: string
-  plot_base64?: Array<{ filename: string; data: string }>
-}
-
-interface ExecuteResponse {
-  stdout?: string
-  stderr?: string
-  plot_base64?: Array<{ filename: string; data: string }>  // Kept for backwards compatibility
-  plot_urls?: string[]  // Storage URLs for persisted plots
-}
+import type { ExecuteRequest, ExecuteResponse, RawExecuteResponse } from '@/types/execute'
 
 const R_EXECUTION_URL = process.env.R_EXECUTION_URL!
 
@@ -47,20 +29,17 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
       data = { stderr: text || 'Execution failed' }
     }
 
-    // If projectId is provided and we have plots, upload them to storage
+    let plotUrls: string[] = []
     if (request.projectId && data.plot_base64?.length) {
       const plotsBase64 = data.plot_base64.map(p => p.data)
-      const plotUrls = await savePlots(request.projectId, plotsBase64)
-
-      return {
-        stdout: data.stdout,
-        stderr: data.stderr,
-        plot_base64: data.plot_base64,  // Keep for backwards compatibility
-        plot_urls: plotUrls
-      }
+      plotUrls = await savePlots(request.projectId, plotsBase64)
     }
 
-    return data
+    return {
+      stdout: data.stdout,
+      stderr: data.stderr,
+      plot_urls: plotUrls.length > 0 ? plotUrls : undefined
+    }
   } catch (err: any) {
     return { stderr: err.message || 'Execution failed' }
   }
