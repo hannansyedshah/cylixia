@@ -26,6 +26,7 @@ export function useWorkspace(projectId: string) {
   // Project state
   const [project, setProject] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [executingCode, setExecutingCode] = useState(false)
   const [loadingProject, setLoadingProject] = useState(true)
 
   // UI state
@@ -213,8 +214,8 @@ export function useWorkspace(projectId: string) {
   }
 
   const handleRunCode = async () => {
-    if (!project || loading) return
-    setLoading(true)
+    if (!project || loading || executingCode) return
+    setExecutingCode(true)
 
     try {
       const csvFiles = datasets
@@ -240,7 +241,7 @@ export function useWorkspace(projectId: string) {
       console.error('Run error:', e)
       setStderrText('Execution failed')
     } finally {
-      setLoading(false)
+      setExecutingCode(false)
     }
   }
 
@@ -322,6 +323,7 @@ export function useWorkspace(projectId: string) {
     // Project state
     project,
     loading,
+    executingCode,
     loadingProject,
 
     // UI state

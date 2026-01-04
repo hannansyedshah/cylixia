@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, Sparkles, Copy, Check, Loader2, Maximize2, Minimize2 } from 'lucide-react'
+import { Send, Sparkles, Copy, Check, Maximize2, Minimize2 } from 'lucide-react'
 import { useChatPanel } from '@/hooks/workspace/useChatPanel'
+import { AILoading } from './LoadingStates'
 import type { Message } from '@/types/database'
 
 interface ChatPanelProps {
@@ -45,21 +46,7 @@ export function ChatPanel({
     <div className="flex flex-col h-full bg-zinc-900">
       {/* Loading indicator */}
       {loading && (
-        <div className="p-4 border-b border-zinc-800 bg-zinc-800/50">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
-            <div className="flex-1">
-              <div className="text-sm font-medium text-white">Processing...</div>
-              <div className="h-2 bg-zinc-700 rounded-full mt-1">
-                <div
-                  className="h-2 bg-emerald-500 rounded-full transition-all"
-                  style={{ width: `${Math.min((elapsedSeconds / estimatedSeconds) * 100, 95)}%` }}
-                />
-              </div>
-            </div>
-            <span className="text-xs text-zinc-400">{elapsedSeconds}s / ~{estimatedSeconds}s</span>
-          </div>
-        </div>
+        <AILoading elapsedSeconds={elapsedSeconds} estimatedSeconds={estimatedSeconds} />
       )}
 
       {/* Messages */}

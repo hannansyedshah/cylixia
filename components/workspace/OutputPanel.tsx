@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { PlotViewer } from './PlotViewer'
 import { TerminalView } from './TerminalView'
+import { CodeExecutionLoading } from './LoadingStates'
 import { BarChart3 } from 'lucide-react'
 
 interface OutputPanelProps {
@@ -12,10 +13,11 @@ interface OutputPanelProps {
   stderr: string
   projectId: string
   projectName: string
+  loading?: boolean
   onDeletePlot?: (index: number) => void
 }
 
-export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, onDeletePlot }: OutputPanelProps) {
+export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, loading = false, onDeletePlot }: OutputPanelProps) {
   const [showTerminal, setShowTerminal] = useState(false)
 
   return (
@@ -51,7 +53,14 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, 
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 relative">
+        {/* Code Execution Loading Overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-20 bg-zinc-900/95 backdrop-blur-sm flex items-center justify-center">
+            <CodeExecutionLoading />
+          </div>
+        )}
+
         {showTerminal && (
           <div className="w-1/2 border-r border-zinc-700">
             <TerminalView stdout={stdout} stderr={stderr} projectId={projectId} />

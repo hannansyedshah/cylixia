@@ -8,9 +8,9 @@ import { OutputPanel } from '@/components/workspace/OutputPanel'
 import { UploadPanel } from '@/components/data/UploadPanel'
 import { ContextWindowModal } from '@/components/workspace/ContextWindowModal'
 import { NistComplianceModal } from '@/components/workspace/NistComplianceModal'
+import { PageLoading } from '@/components/workspace/LoadingStates'
 import { generateContext } from '@/actions/context'
 import { useWorkspace } from '@/hooks/workspace/useWorkspace'
-import { Loader2 } from 'lucide-react'
 
 export default function WorkspacePage() {
   const { projectId } = useParams() as { projectId: string }
@@ -18,6 +18,7 @@ export default function WorkspacePage() {
     user,
     project,
     loading,
+    executingCode,
     loadingProject,
     mode,
     setMode,
@@ -51,11 +52,7 @@ export default function WorkspacePage() {
   } = useWorkspace(projectId)
 
   if (!user || loadingProject) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-emerald-500" />
-      </div>
-    )
+    return <PageLoading />
   }
 
   if (!project) return null
@@ -108,7 +105,7 @@ export default function WorkspacePage() {
               code={project.code}
               projectId={projectId}
               plotUrl={project.plot_url}
-              loading={loading}
+              loading={loading || executingCode}
               focusMode={focusMode}
               onFocusModeChange={setFocusMode}
               onChange={handleCodeChange}
@@ -126,6 +123,7 @@ export default function WorkspacePage() {
               stderr={stderrText}
               projectId={projectId}
               projectName={project.name}
+              loading={executingCode}
               onDeletePlot={handleDeletePlot}
             />
           </div>
