@@ -1,6 +1,6 @@
 'use client'
 
-import { ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ImageIcon, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { usePlotViewer } from './hooks/usePlotViewer'
 
 interface PlotViewerProps {
@@ -18,12 +18,16 @@ export function PlotViewer({ plotUrl, plotUrls, projectName, hasCsvData = false,
     currentUrl,
     hasMultiple,
     isEmpty,
+    isLoading,
     canDelete,
+    containerRef,
     goToPrevious,
     goToNext,
     goToIndex,
     handleDownload,
-    handleDelete
+    handleDelete,
+    handleKeyDown,
+    handleImageLoad
   } = usePlotViewer({ plotUrl, plotUrls, projectName, onDeletePlot })
 
   return (
@@ -35,7 +39,12 @@ export function PlotViewer({ plotUrl, plotUrls, projectName, hasCsvData = false,
       </div>
 
       {!isEmpty ? (
-        <div className="relative z-10 flex flex-col h-full min-h-0">
+        <div
+          ref={containerRef}
+          tabIndex={0}
+          className="relative z-10 flex flex-col h-full min-h-0 outline-none"
+          onKeyDown={handleKeyDown}
+        >
           {/* Navigation header - only show if multiple plots */}
           {hasMultiple && (
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/80">
@@ -80,30 +89,42 @@ export function PlotViewer({ plotUrl, plotUrls, projectName, hasCsvData = false,
           {/* Plot display */}
           <div className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden">
             <div className="relative bg-zinc-800 rounded-lg shadow-lg border border-zinc-700 flex items-center justify-center max-h-full max-w-full">
-              {/* Action buttons */}
-              <div className="absolute top-2 right-2 z-10 flex space-x-1">
-                <button
-                  onClick={handleDownload}
-                  className="text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
-                  aria-label={`Download plot ${currentIndex + 1}`}
-                >
-                  Download
-                </button>
-                {canDelete && (
+              {/* Loading overlay */}
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 rounded-lg z-20">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-8 w-8 text-emerald-500 animate-spin" />
+                    <span className="text-sm text-zinc-400">Loading plot...</span>
+                  </div>
+                </div>
+              )}
+              {/* Action buttons - only show when loaded */}
+              {!isLoading && (
+                <div className="absolute top-2 right-2 z-10 flex space-x-1">
                   <button
-                    onClick={handleDelete}
-                    className="text-xs px-2 py-1 rounded border bg-zinc-800 border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 backdrop-blur-sm shadow"
-                    aria-label={`Delete plot ${currentIndex + 1}`}
+                    onClick={handleDownload}
+                    className="text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
+                    aria-label={`Download plot ${currentIndex + 1}`}
                   >
-                    <X className="h-3 w-3" />
+                    Download
                   </button>
-                )}
-              </div>
+                  {canDelete && (
+                    <button
+                      onClick={handleDelete}
+                      className="text-xs px-2 py-1 rounded border bg-zinc-800 border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 backdrop-blur-sm shadow"
+                      aria-label={`Delete plot ${currentIndex + 1}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              )}
               <img
                 key={currentIndex}
                 src={currentUrl}
                 alt={`Generated plot ${currentIndex + 1}`}
                 className="max-h-full max-w-full object-contain rounded-lg"
+                onLoad={handleImageLoad}
               />
             </div>
           </div>

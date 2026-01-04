@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 interface UsePlotViewerProps {
   plotUrl?: string | null
@@ -14,6 +14,8 @@ export function usePlotViewer({
   onDeletePlot
 }: UsePlotViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const images: string[] = Array.isArray(plotUrls) && plotUrls.length > 0
     ? plotUrls
@@ -33,6 +35,20 @@ export function usePlotViewer({
     }
   }, [currentIndex, images.length])
 
+  // Reset loading state when image changes
+  useEffect(() => {
+    if (currentUrl) {
+      setIsLoading(true)
+    }
+  }, [currentUrl])
+
+  // Auto-focus container for keyboard navigation
+  useEffect(() => {
+    if (hasMultiple && containerRef.current) {
+      containerRef.current.focus()
+    }
+  }, [hasMultiple])
+
   const goToPrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
   }, [images.length])
@@ -40,6 +56,21 @@ export function usePlotViewer({
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
   }, [images.length])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (images.length <= 1) return
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      goToPrevious()
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      goToNext()
+    }
+  }, [images.length, goToPrevious, goToNext])
+
+  const handleImageLoad = useCallback(() => {
+    setIsLoading(false)
+  }, [])
 
   const goToIndex = useCallback((index: number) => {
     setCurrentIndex(index)
@@ -76,11 +107,15 @@ export function usePlotViewer({
     currentUrl,
     hasMultiple,
     isEmpty,
+    isLoading,
     canDelete: !!onDeletePlot,
+    containerRef,
     goToPrevious,
     goToNext,
     goToIndex,
     handleDownload,
-    handleDelete
+    handleDelete,
+    handleKeyDown,
+    handleImageLoad
   }
 }
