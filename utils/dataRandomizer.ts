@@ -67,7 +67,7 @@ function generateRandomValue(column: ColumnInfo): string {
     
     case 'date':
       const startDate = new Date('2020-01-01')
-      const endDate = new Date('2024-12-31')
+      const endDate = new Date()
       const randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()))
       return randomDate.toISOString().split('T')[0]
     

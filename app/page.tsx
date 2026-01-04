@@ -571,7 +571,7 @@ export default function Home() {
                 <Mascot size={18} />
                 <span className="font-medium">Cylixia</span>
               </div>
-              <span>© 2024</span>
+              <span>© {new Date().getFullYear()}</span>
             </div>
           </div>
         </footer>
