@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { PLOTS_BUCKET, buildPlotStoragePath, extractStoragePathFromUrl } from '@/lib/utils/storagePaths'
 import type { SavePlotParams } from '@/types/database'
-export { parsePlotUrls } from '@/lib/utils/plotUrls'
 
 async function savePlot(params: SavePlotParams): Promise<string | null> {
   const { projectId, plotBase64 } = params
