@@ -7,7 +7,9 @@ import { supabase } from '@/lib/supabase/client'
 import { encodeBase64 } from '@/utils/base64'
 import { getProject, updateCode, saveContext, saveOutput } from '@/lib/db/projects'
 import { getMessages, createMessage } from '@/lib/db/messages'
-import { getDatasets, getDatasetContent } from '@/lib/db/datasets'
+import { getDatasets, getDatasetContent } from '@/lib/db/csvUpload'
+import { deletePlot } from '@/lib/db/plots'
+import { updateProject } from '@/lib/db/projects'
 import { saveVersion } from '@/lib/db/versions'
 import { sendChat } from '@/actions/chat'
 import { executeCode } from '@/actions/execute'
@@ -99,6 +101,15 @@ export function useWorkspace(projectId: string) {
       if (p.context_window) setContextWindow(p.context_window)
       if (p.stdout) setStdoutText(p.stdout)
       if (p.stderr) setStderrText(p.stderr)
+
+      if (p.plot_url) {
+        try {
+          const parsed = JSON.parse(p.plot_url)
+          setGalleryPlots(Array.isArray(parsed) ? parsed : [p.plot_url])
+        } catch {
+          setGalleryPlots([p.plot_url])
+        }
+      }
 
       if (p.hipaa_compliant && !localStorage.getItem(`nist-acknowledged-${p.name}`)) {
         setShowNistModal(true)
@@ -210,16 +221,18 @@ export function useWorkspace(projectId: string) {
         .filter(d => d.csvText)
         .map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) }))
 
-      const data = await executeCode({ code: project.code, csv_files: csvFiles })
+      const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId })
 
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
 
-      const plots = data.plot_base64?.map(p => `data:image/png;base64,${p.data}`) || []
-
+      const plots = data.plot_urls || []
       if (plots.length) {
-        setGalleryPlots(plots)
-        setProject((p: any) => p ? { ...p, plot_url: plots[0] } : p)
+        const newGallery = [...galleryPlots, ...plots]
+        setGalleryPlots(newGallery)
+        const plotUrl = newGallery.length > 1 ? JSON.stringify(newGallery) : newGallery[0]
+        setProject((p: any) => p ? { ...p, plot_url: plotUrl } : p)
+        await updateProject(projectId, { plot_url: plotUrl })
       }
 
       await saveOutput(projectId, data.stdout || '', data.stderr || '')
@@ -233,7 +246,47 @@ export function useWorkspace(projectId: string) {
 
   const handleVersionRestore = (code: string, plotUrl?: string) => {
     setProject((p: any) => p ? { ...p, code, plot_url: plotUrl || null } : p)
-    if (plotUrl) setGalleryPlots([plotUrl])
+    if (plotUrl) {
+      try {
+        const parsed = JSON.parse(plotUrl)
+        if (Array.isArray(parsed)) {
+          setGalleryPlots(parsed)
+        } else {
+          setGalleryPlots([plotUrl])
+        }
+      } catch {
+        setGalleryPlots([plotUrl])
+      }
+    } else {
+      setGalleryPlots([])
+    }
+  }
+
+  const handleDeletePlot = async (index: number) => {
+    if (!project || galleryPlots.length === 0) return
+
+    const plotUrl = galleryPlots[index]
+    if (!plotUrl) return
+
+    try {
+      if (!plotUrl.startsWith('data:')) {
+        await deletePlot(plotUrl)
+      }
+
+      const newPlots = galleryPlots.filter((_, i) => i !== index)
+      setGalleryPlots(newPlots)
+
+      const newPlotUrl = newPlots.length > 1
+        ? JSON.stringify(newPlots)
+        : newPlots.length === 1
+          ? newPlots[0]
+          : null
+
+      setProject((p: any) => p ? { ...p, plot_url: newPlotUrl } : p)
+      await updateProject(projectId, { plot_url: newPlotUrl })
+    } catch (error) {
+      console.error('Failed to delete plot:', error)
+    }
   }
 
   const handleSaveVersion = async (description: string) => {
@@ -307,6 +360,7 @@ export function useWorkspace(projectId: string) {
     handleRunCode,
     handleVersionRestore,
     handleSaveVersion,
+    handleDeletePlot,
     handleContextSave,
     handleNistAcknowledge,
     handleCloseContextModal

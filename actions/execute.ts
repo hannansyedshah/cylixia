@@ -1,15 +1,7 @@
 'use server'
 
-interface ExecuteRequest {
-  code: string
-  csv_files?: Array<{ filename: string; data_base64: string }>
-}
-
-interface ExecuteResponse {
-  stdout?: string
-  stderr?: string
-  plot_base64?: Array<{ filename: string; data: string }>
-}
+import { savePlots } from '@/lib/db/plots'
+import type { ExecuteRequest, ExecuteResponse, RawExecuteResponse } from '@/types/execute'
 
 const R_EXECUTION_URL = process.env.R_EXECUTION_URL!
 
@@ -22,11 +14,14 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
     const response = await fetch(R_EXECUTION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        code: request.code,
+        csv_files: request.csv_files
+      }),
     })
 
     const text = await response.text()
-    let data: ExecuteResponse
+    let data: RawExecuteResponse
 
     try {
       data = JSON.parse(text)
@@ -34,7 +29,15 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
       data = { stderr: text || 'Execution failed' }
     }
 
-    return data
+    const plotUrls = request.projectId && data.plot_base64?.length
+      ? await savePlots(request.projectId, data.plot_base64.map(p => p.data))
+      : []
+
+    return {
+      stdout: data.stdout,
+      stderr: data.stderr,
+      plot_urls: plotUrls.length > 0 ? plotUrls : undefined
+    }
   } catch (err: any) {
     return { stderr: err.message || 'Execution failed' }
   }

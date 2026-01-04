@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { deletePlots } from '@/lib/db/plots'
+import { parsePlotUrls } from '@/lib/utils/plotUrls'
 
 interface CodeVersion {
   id: string
@@ -122,4 +124,31 @@ export async function restoreVersion(projectId: string, versionId: string): Prom
   if (error) return null
 
   return { code: version.code, plot_url: version.plot_url }
+}
+
+export async function deleteVersion(versionId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data: version } = await supabase
+    .from('code_versions')
+    .select('id, plot_url, user_id')
+    .eq('id', versionId)
+    .single()
+
+  if (!version || version.user_id !== user.id) return false
+
+  const plotUrls = parsePlotUrls(version.plot_url)
+  if (plotUrls.length > 0) {
+    await deletePlots(plotUrls)
+  }
+
+  const { error } = await supabase
+    .from('code_versions')
+    .delete()
+    .eq('id', versionId)
+    .eq('user_id', user.id)
+
+  return !error
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState, useCallback } from 'react'
-import { saveDataset, deleteDataset } from '@/lib/db/datasets'
+import { saveDataset, deleteDataset } from '@/lib/db/csvUpload'
 import type { DatasetItem } from '@/types/dataset'
 
 interface UseUploadPanelOptions {

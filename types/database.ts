@@ -51,3 +51,8 @@ export interface CodeVersion {
   user_id: string
   created_at: string
 }
+
+export interface SavePlotParams {
+  projectId: string
+  plotBase64: string
+}

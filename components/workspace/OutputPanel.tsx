@@ -11,9 +11,11 @@ interface OutputPanelProps {
   stdout: string
   stderr: string
   projectId: string
+  projectName: string
+  onDeletePlot?: (index: number) => void
 }
 
-export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId }: OutputPanelProps) {
+export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, onDeletePlot }: OutputPanelProps) {
   const [showTerminal, setShowTerminal] = useState(false)
 
   return (
@@ -59,6 +61,8 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId }
           <PlotViewer
             plotUrl={plotUrl}
             plotUrls={galleryPlots}
+            projectName={projectName}
+            onDeletePlot={onDeletePlot}
           />
         </div>
       </div>
