@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getVersions, saveVersion, restoreVersion as restoreVersionAction, deleteVersion } from '@/lib/db/versions'
+import { parsePlotUrls } from '@/lib/utils/plotUrls'
 import type { CodeVersion } from '@/types/database'
 
 export interface CodeVersionWithProfile extends CodeVersion {
@@ -134,19 +135,6 @@ export function useVersionHistory({
 
   const truncateCode = (code: string, maxLength: number = 100) => {
     return code.length > maxLength ? code.substring(0, maxLength) + '...' : code
-  }
-
-  const parsePlotUrls = (plotUrl?: string | null): string[] => {
-    if (!plotUrl) return []
-    try {
-      const parsed = JSON.parse(plotUrl)
-      if (Array.isArray(parsed)) {
-        return parsed
-      }
-      return [plotUrl]
-    } catch {
-      return [plotUrl]
-    }
   }
 
   return {

@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { parsePlotUrls, deletePlots } from '@/lib/db/plots'
 import type { Message } from '@/types/database'
 
 interface CreateMessageData {
@@ -68,38 +67,4 @@ export async function createMessage(projectId: string, data: CreateMessageData):
 
   if (error) return null
   return message
-}
-
-export async function deleteMessage(messageId: string): Promise<boolean> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false
-
-  const { data: message } = await supabase
-    .from('messages')
-    .select('id, plot_url, project_id')
-    .eq('id', messageId)
-    .single()
-
-  if (!message) return false
-
-  const { data: project } = await supabase
-    .from('projects')
-    .select('user_id')
-    .eq('id', message.project_id)
-    .single()
-
-  if (!project || project.user_id !== user.id) return false
-
-  const plotUrls = await parsePlotUrls(message.plot_url)
-  if (plotUrls.length > 0) {
-    await deletePlots(plotUrls)
-  }
-
-  const { error } = await supabase
-    .from('messages')
-    .delete()
-    .eq('id', messageId)
-
-  return !error
 }

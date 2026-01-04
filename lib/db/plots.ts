@@ -1,13 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+export { parsePlotUrls } from '@/lib/utils/plotUrls'
 
 interface SavePlotParams {
   projectId: string
   plotBase64: string  
 }
 
-export async function savePlot(params: SavePlotParams): Promise<string | null> {
+async function savePlot(params: SavePlotParams): Promise<string | null> {
   const { projectId, plotBase64 } = params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -82,19 +83,5 @@ export async function deletePlot(plotUrl: string): Promise<boolean> {
 export async function deletePlots(plotUrls: string[]): Promise<void> {
   for (const url of plotUrls) {
     await deletePlot(url)
-  }
-}
-
-export async function parsePlotUrls(plotUrl?: string | null): Promise<string[]> {
-  if (!plotUrl) return []
-
-  try {
-    const parsed = JSON.parse(plotUrl)
-    if (Array.isArray(parsed)) {
-      return parsed
-    }
-    return [plotUrl]
-  } catch {
-    return [plotUrl]
   }
 }

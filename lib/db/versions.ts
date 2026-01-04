@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { parsePlotUrls, deletePlots } from '@/lib/db/plots'
+import { deletePlots } from '@/lib/db/plots'
+import { parsePlotUrls } from '@/lib/utils/plotUrls'
 
 interface CodeVersion {
   id: string
@@ -138,7 +139,7 @@ export async function deleteVersion(versionId: string): Promise<boolean> {
 
   if (!version || version.user_id !== user.id) return false
 
-  const plotUrls = await parsePlotUrls(version.plot_url)
+  const plotUrls = parsePlotUrls(version.plot_url)
   if (plotUrls.length > 0) {
     await deletePlots(plotUrls)
   }
