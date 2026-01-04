@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { usePlotViewer } from './hooks/usePlotViewer'
 
 interface PlotViewerProps {
   plotUrl?: string | null
@@ -11,49 +11,20 @@ interface PlotViewerProps {
   onDeletePlot?: (index: number) => void
 }
 
-export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', hasCsvData = false, onDeletePlot }: PlotViewerProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-
-  const images: string[] = Array.isArray(plotUrls) && plotUrls.length > 0
-    ? plotUrls
-    : (plotUrl ? [plotUrl] : [])
-
-  // Reset index when images change
-  useEffect(() => {
-    setCurrentIndex(0)
-  }, [images.length])
-
-  // Keep index in bounds after deletion
-  useEffect(() => {
-    if (currentIndex >= images.length && images.length > 0) {
-      setCurrentIndex(images.length - 1)
-    }
-  }, [currentIndex, images.length])
-
-  const handleDownload = async (url: string, index: number) => {
-    try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const blobUrl = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = `plot-${projectName}-${index + 1}-${new Date().toISOString().split('T')[0]}.png`
-      link.click()
-      URL.revokeObjectURL(blobUrl)
-    } catch {
-      window.open(url, '_blank')
-    }
-  }
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
-  }
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
-  }
-
-  const currentUrl = images[currentIndex]
+export function PlotViewer({ plotUrl, plotUrls, projectName, hasCsvData = false, onDeletePlot }: PlotViewerProps) {
+  const {
+    images,
+    currentIndex,
+    currentUrl,
+    hasMultiple,
+    isEmpty,
+    canDelete,
+    goToPrevious,
+    goToNext,
+    goToIndex,
+    handleDownload,
+    handleDelete
+  } = usePlotViewer({ plotUrl, plotUrls, projectName, onDeletePlot })
 
   return (
     <div className="h-full flex flex-col bg-zinc-900 relative border border-zinc-800 rounded-lg m-2">
@@ -63,10 +34,10 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
         <div className="absolute bottom-10 right-10 w-40 h-40 bg-emerald-600/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
       </div>
 
-      {images.length > 0 ? (
+      {!isEmpty ? (
         <div className="relative z-10 flex flex-col h-full min-h-0">
           {/* Navigation header - only show if multiple plots */}
-          {images.length > 1 && (
+          {hasMultiple && (
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/80">
               <button
                 onClick={goToPrevious}
@@ -84,7 +55,7 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
                   {images.map((_, index) => (
                     <button
                       key={index}
-                      onClick={() => setCurrentIndex(index)}
+                      onClick={() => goToIndex(index)}
                       className={`w-2 h-2 rounded-full transition-colors ${
                         index === currentIndex
                           ? 'bg-emerald-500'
@@ -112,19 +83,15 @@ export function PlotViewer({ plotUrl = null, plotUrls, projectName = 'plot', has
               {/* Action buttons */}
               <div className="absolute top-2 right-2 z-10 flex space-x-1">
                 <button
-                  onClick={() => handleDownload(currentUrl, currentIndex)}
+                  onClick={handleDownload}
                   className="text-xs px-2 py-1 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white backdrop-blur-sm shadow"
                   aria-label={`Download plot ${currentIndex + 1}`}
                 >
                   Download
                 </button>
-                {onDeletePlot && (
+                {canDelete && (
                   <button
-                    onClick={() => {
-                      if (confirm('Delete this plot? This action cannot be undone.')) {
-                        onDeletePlot(currentIndex)
-                      }
-                    }}
+                    onClick={handleDelete}
                     className="text-xs px-2 py-1 rounded border bg-zinc-800 border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 backdrop-blur-sm shadow"
                     aria-label={`Delete plot ${currentIndex + 1}`}
                   >
