@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { PLOTS_BUCKET, buildPlotStoragePath, extractStoragePathFromUrl } from '@/lib/utils/storagePaths'
 export { parsePlotUrls } from '@/lib/utils/plotUrls'
 
 interface SavePlotParams {
@@ -24,13 +25,9 @@ async function savePlot(params: SavePlotParams): Promise<string | null> {
   if (!project || project.user_id !== user.id) return null
 
   const id = crypto.randomUUID()
-  const storagePath = `${user.id}/${projectId}/${id}.png`
+  const storagePath = buildPlotStoragePath(user.id, projectId, id)
 
-  const binaryString = atob(plotBase64)
-  const bytes = new Uint8Array(binaryString.length)
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
-  }
+  const bytes = Buffer.from(plotBase64, 'base64')
 
   const { error } = await supabase.storage
     .from('plots')
@@ -66,10 +63,8 @@ export async function deletePlot(plotUrl: string): Promise<boolean> {
 
   if (!user) return false
 
-  const match = plotUrl.match(/\/storage\/v1\/object\/public\/plots\/(.+)$/)
-  if (!match) return false
-
-  const storagePath = match[1]
+  const storagePath = extractStoragePathFromUrl(plotUrl, PLOTS_BUCKET)
+  if (!storagePath) return false
 
   if (!storagePath.startsWith(user.id)) return false
 
