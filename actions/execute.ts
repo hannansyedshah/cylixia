@@ -29,10 +29,9 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
       data = { stderr: text || 'Execution failed' }
     }
 
-    let plotUrls: string[] = []
-    if (request.projectId && data.plot_base64?.length) {
-      plotUrls = await savePlots(request.projectId, data.plot_base64.map(p => p.data))
-    }
+    const plotUrls = request.projectId && data.plot_base64?.length
+      ? await savePlots(request.projectId, data.plot_base64.map(p => p.data))
+      : []
 
     return {
       stdout: data.stdout,
