@@ -39,32 +39,14 @@ export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) 
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="flex-1 min-w-0">
-          <div className="relative h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out"
-              style={{
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, #10B981 0%, #06B6D4 50%, #10B981 100%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 2s linear infinite'
-              }}
-            />
-          </div>
-        </div>
-
-        <span className="text-xs text-zinc-500 flex-shrink-0">{elapsedSeconds}s</span>
+        {/* Text */}
+        <span className="text-sm text-zinc-300">Generating code</span>
       </div>
 
       <style jsx>{`
         @keyframes orbit {
           from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
           to { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
-        }
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
         }
       `}</style>
     </div>
@@ -134,24 +116,7 @@ export function CodeExecutionLoading({ className = '' }: CodeExecutionLoadingPro
       </div>
 
       {/* Text */}
-      <div className="text-center">
-        <p className="text-sm font-medium text-zinc-300 mb-1">Executing R Code</p>
-        <div className="flex items-center justify-center gap-1">
-          <span className="text-xs text-zinc-500">Processing</span>
-          <span className="flex gap-0.5">
-            {[0, 1, 2].map(i => (
-              <span
-                key={i}
-                className="w-1 h-1 rounded-full bg-emerald-500"
-                style={{
-                  animation: 'bounce 1s ease-in-out infinite',
-                  animationDelay: `${i * 0.15}s`
-                }}
-              />
-            ))}
-          </span>
-        </div>
-      </div>
+      <p className="text-sm font-medium text-zinc-300">Executing R Code</p>
 
       {/* Circular progress ring */}
       <svg className="absolute w-32 h-32 -z-10 opacity-10" viewBox="0 0 100 100">
@@ -193,10 +158,6 @@ export function CodeExecutionLoading({ className = '' }: CodeExecutionLoadingPro
           10% { opacity: 1; }
           90% { opacity: 1; }
           50% { top: 0%; }
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-4px); }
         }
         @keyframes spin {
           from { transform: rotate(0deg); }
