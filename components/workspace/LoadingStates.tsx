@@ -10,76 +10,37 @@ interface AILoadingProps {
 export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) {
   const progress = Math.min((elapsedSeconds / estimatedSeconds) * 100, 95)
 
-  const messages = [
-    'Analyzing your data structure...',
-    'Understanding your request...',
-    'Generating R code...',
-    'Optimizing visualization...',
-    'Almost there...'
-  ]
-
-  const messageIndex = Math.min(Math.floor(elapsedSeconds / 3), messages.length - 1)
-
   return (
-    <div className="p-5 border-b border-zinc-800 bg-gradient-to-r from-zinc-900 via-zinc-800/50 to-zinc-900">
+    <div className="p-4 border-b border-zinc-800 bg-gradient-to-r from-zinc-900 via-zinc-800/50 to-zinc-900">
       <div className="flex items-center gap-4">
-        {/* Animated DNA/Neural pattern */}
-        <div className="relative w-12 h-12 flex-shrink-0">
+        {/* Animated loading spinner */}
+        <div className="relative w-10 h-10 flex-shrink-0">
           {/* Orbiting particles */}
           <div className="absolute inset-0">
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="absolute w-2 h-2 rounded-full bg-emerald-500"
+                className="absolute w-1.5 h-1.5 rounded-full bg-emerald-500"
                 style={{
                   animation: `orbit ${1.5 + i * 0.3}s linear infinite`,
                   animationDelay: `${i * 0.2}s`,
                   top: '50%',
                   left: '50%',
                   transformOrigin: '0 0',
-                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.6)'
+                  boxShadow: '0 0 8px rgba(16, 185, 129, 0.6)'
                 }}
               />
             ))}
           </div>
           {/* Center pulse */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-4 h-4 rounded-full bg-emerald-500/30 animate-ping" />
-            <div className="absolute w-3 h-3 rounded-full bg-emerald-500" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500/30 animate-ping" />
+            <div className="absolute w-2 h-2 rounded-full bg-emerald-500" />
           </div>
-          {/* Outer ring */}
-          <svg className="absolute inset-0 w-12 h-12 animate-spin-slow" viewBox="0 0 48 48">
-            <circle
-              cx="24"
-              cy="24"
-              r="20"
-              fill="none"
-              stroke="url(#gradient)"
-              strokeWidth="2"
-              strokeDasharray="40 80"
-              strokeLinecap="round"
-            />
-            <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#10B981" />
-                <stop offset="50%" stopColor="#06B6D4" />
-                <stop offset="100%" stopColor="#10B981" />
-              </linearGradient>
-            </defs>
-          </svg>
         </div>
 
+        {/* Progress bar */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-white truncate">
-              {messages[messageIndex]}
-            </span>
-            <span className="text-xs text-zinc-500 ml-2 flex-shrink-0">
-              {elapsedSeconds}s
-            </span>
-          </div>
-
-          {/* Progress bar with glow */}
           <div className="relative h-1.5 bg-zinc-800 rounded-full overflow-hidden">
             <div
               className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out"
@@ -90,37 +51,20 @@ export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) 
                 animation: 'shimmer 2s linear infinite'
               }}
             />
-            {/* Glowing tip */}
-            <div
-              className="absolute top-0 bottom-0 w-8 rounded-full transition-all duration-300"
-              style={{
-                left: `calc(${progress}% - 16px)`,
-                background: 'linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.5), transparent)'
-              }}
-            />
           </div>
         </div>
+
+        <span className="text-xs text-zinc-500 flex-shrink-0">{elapsedSeconds}s</span>
       </div>
 
       <style jsx>{`
         @keyframes orbit {
-          from {
-            transform: rotate(0deg) translateX(18px) rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg) translateX(18px) rotate(-360deg);
-          }
+          from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
+          to { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
         }
         @keyframes shimmer {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
-        }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
         }
       `}</style>
     </div>
