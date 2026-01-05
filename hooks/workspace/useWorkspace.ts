@@ -229,9 +229,9 @@ export function useWorkspace(projectId: string) {
 
       const plots = data.plot_urls || []
       if (plots.length) {
-        const newGallery = [...galleryPlots, ...plots]
-        setGalleryPlots(newGallery)
-        const plotUrl = newGallery.length > 1 ? JSON.stringify(newGallery) : newGallery[0]
+        // Replace plots instead of accumulating - each run shows only its output
+        setGalleryPlots(plots)
+        const plotUrl = plots.length > 1 ? JSON.stringify(plots) : plots[0]
         setProject((p: any) => p ? { ...p, plot_url: plotUrl } : p)
         await updateProject(projectId, { plot_url: plotUrl })
       }
