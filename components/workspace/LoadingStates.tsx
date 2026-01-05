@@ -8,13 +8,11 @@ interface AILoadingProps {
 }
 
 export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) {
-  const progress = Math.min((elapsedSeconds / estimatedSeconds) * 100, 95)
-
   return (
     <div className="p-4 border-b border-zinc-800 bg-gradient-to-r from-zinc-900 via-zinc-800/50 to-zinc-900">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Animated loading spinner */}
-        <div className="relative w-10 h-10 flex-shrink-0">
+        <div className="relative w-8 h-8 flex-shrink-0">
           {/* Orbiting particles */}
           <div className="absolute inset-0">
             {[...Array(3)].map((_, i) => (
@@ -34,37 +32,37 @@ export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) 
           </div>
           {/* Center pulse */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-emerald-500/30 animate-ping" />
-            <div className="absolute w-2 h-2 rounded-full bg-emerald-500" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/30 animate-ping" />
+            <div className="absolute w-1.5 h-1.5 rounded-full bg-emerald-500" />
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="flex-1 min-w-0">
-          <div className="relative h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out"
-              style={{
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, #10B981 0%, #06B6D4 50%, #10B981 100%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 2s linear infinite'
-              }}
-            />
-          </div>
+        {/* Text with bouncing dots */}
+        <div className="flex items-center gap-1">
+          <span className="text-sm text-zinc-300">Generating code</span>
+          <span className="flex gap-0.5 ml-0.5">
+            {[0, 1, 2].map(i => (
+              <span
+                key={i}
+                className="w-1 h-1 rounded-full bg-emerald-500"
+                style={{
+                  animation: 'bounce 1s ease-in-out infinite',
+                  animationDelay: `${i * 0.15}s`
+                }}
+              />
+            ))}
+          </span>
         </div>
-
-        <span className="text-xs text-zinc-500 flex-shrink-0">{elapsedSeconds}s</span>
       </div>
 
       <style jsx>{`
         @keyframes orbit {
-          from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
-          to { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
+          from { transform: rotate(0deg) translateX(12px) rotate(0deg); }
+          to { transform: rotate(360deg) translateX(12px) rotate(-360deg); }
         }
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
         }
       `}</style>
     </div>
