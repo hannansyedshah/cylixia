@@ -31,6 +31,7 @@ export default function WorkspacePage() {
     stdoutText,
     stderrText,
     galleryPlots,
+    lastExecutionPlots,
     datasets,
     setDatasets,
     datasetsNeedReupload,
@@ -104,7 +105,7 @@ export default function WorkspacePage() {
             <CodePanel
               code={project.code}
               projectId={projectId}
-              plotUrl={project.plot_url}
+              plotUrl={lastExecutionPlots.length > 1 ? JSON.stringify(lastExecutionPlots) : lastExecutionPlots[0] || null}
               loading={loading || executingCode}
               focusMode={focusMode}
               onFocusModeChange={setFocusMode}
