@@ -15,7 +15,7 @@ interface CodePanelProps {
   onChange: (code: string) => void
   onRun: () => void
   onVersionRestore: (code: string, plotUrl?: string) => void
-  onSaveVersion: (description: string) => void
+  onSaveVersion: (code: string, plotUrl?: string, description?: string) => void
 }
 
 export function CodePanel({
