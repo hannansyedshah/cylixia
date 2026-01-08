@@ -10,7 +10,6 @@ import { getMessages, createMessage } from '@/lib/db/messages'
 import { getDatasets, getDatasetContent } from '@/lib/db/csvUpload'
 import { deletePlot } from '@/lib/db/plots'
 import { updateProject } from '@/lib/db/projects'
-import { saveVersion } from '@/lib/db/versions'
 import { sendChat } from '@/actions/chat'
 import { executeCode } from '@/actions/execute'
 import { useElapsedTimer } from '@/hooks/workspace/useElapsedTimer'
@@ -39,6 +38,7 @@ export function useWorkspace(projectId: string) {
   const [stdoutText, setStdoutText] = useState('')
   const [stderrText, setStderrText] = useState('')
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
+  const [lastExecutionPlots, setLastExecutionPlots] = useState<string[]>([])
 
   // Datasets
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
@@ -229,6 +229,7 @@ export function useWorkspace(projectId: string) {
 
       const plots = data.plot_urls || []
       if (plots.length) {
+        setLastExecutionPlots(plots)  // Track just this execution's plots for version saves
         const newGallery = [...galleryPlots, ...plots]
         setGalleryPlots(newGallery)
         const plotUrl = newGallery.length > 1 ? JSON.stringify(newGallery) : newGallery[0]
@@ -290,8 +291,7 @@ export function useWorkspace(projectId: string) {
     }
   }
 
-  const handleSaveVersion = async (description: string) => {
-    await saveVersion(projectId, { code: project.code, plot_url: project.plot_url, description })
+  const handleSaveVersion = async (_code: string, _plotUrl?: string, _description?: string) => {
   }
 
   const handleContextSave = async (context: string) => {
@@ -340,6 +340,7 @@ export function useWorkspace(projectId: string) {
     stdoutText,
     stderrText,
     galleryPlots,
+    lastExecutionPlots,
 
     // Datasets
     datasets,
