@@ -34,6 +34,7 @@ export function useVersionHistory({
   const [description, setDescription] = useState('')
   const [showDescriptionInput, setShowDescriptionInput] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const loadVersions = useCallback(async () => {
     setLoading(true)
@@ -69,6 +70,8 @@ export function useVersionHistory({
         setDescription('')
         setShowDescriptionInput(false)
         onSaveVersion(version.code, version.plot_url ?? undefined, version.description)
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
       }
     } catch (error) {
       console.error('Failed to save version:', error)
@@ -159,6 +162,7 @@ export function useVersionHistory({
     truncateCode,
     parsePlotUrls,
     canSave: !!onSaveVersion,
-    canRestore: !!onVersionRestore
+    canRestore: !!onVersionRestore,
+    saveSuccess
   }
 }

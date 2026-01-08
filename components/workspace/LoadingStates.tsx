@@ -8,13 +8,11 @@ interface AILoadingProps {
 }
 
 export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) {
-  const progress = Math.min((elapsedSeconds / estimatedSeconds) * 100, 95)
-
   return (
     <div className="p-4 border-b border-zinc-800 bg-gradient-to-r from-zinc-900 via-zinc-800/50 to-zinc-900">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Animated loading spinner */}
-        <div className="relative w-10 h-10 flex-shrink-0">
+        <div className="relative w-8 h-8 flex-shrink-0">
           {/* Orbiting particles */}
           <div className="absolute inset-0">
             {[...Array(3)].map((_, i) => (
@@ -34,8 +32,8 @@ export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) 
           </div>
           {/* Center pulse */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-emerald-500/30 animate-ping" />
-            <div className="absolute w-2 h-2 rounded-full bg-emerald-500" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/30 animate-ping" />
+            <div className="absolute w-1.5 h-1.5 rounded-full bg-emerald-500" />
           </div>
         </div>
 
@@ -45,8 +43,8 @@ export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) 
 
       <style jsx>{`
         @keyframes orbit {
-          from { transform: rotate(0deg) translateX(14px) rotate(0deg); }
-          to { transform: rotate(360deg) translateX(14px) rotate(-360deg); }
+          from { transform: rotate(0deg) translateX(12px) rotate(0deg); }
+          to { transform: rotate(360deg) translateX(12px) rotate(-360deg); }
         }
       `}</style>
     </div>

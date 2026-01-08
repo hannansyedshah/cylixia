@@ -50,7 +50,7 @@ export function ChatPanel({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="chat-scroll flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
         {messages.length === 0 ? (
           <div className="text-center text-zinc-500 py-8">
             Start by asking a question about your data
@@ -162,6 +162,27 @@ export function ChatPanel({
           </Button>
         </div>
       </div>
+
+      <style jsx>{`
+        .chat-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+          background: rgba(16, 185, 129, 0.3);
+          border-radius: 3px;
+          transition: background 0.2s ease;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(16, 185, 129, 0.6);
+        }
+        .chat-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(16, 185, 129, 0.3) transparent;
+        }
+      `}</style>
     </div>
   )
 }

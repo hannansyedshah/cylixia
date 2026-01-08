@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft, X } from 'lucide-react'
+import { History, RotateCcw, Save, Eye, Clock, ChevronDown, ChevronRight, ChevronLeft, X, Check } from 'lucide-react'
 import { useVersionHistory } from './hooks/useVersionHistory'
 
 interface VersionHistoryProps {
@@ -112,7 +111,8 @@ export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersi
     truncateCode,
     parsePlotUrls,
     canSave,
-    canRestore
+    canRestore,
+    saveSuccess
   } = useVersionHistory({ projectId, currentCode, currentPlotUrl, onVersionRestore, onSaveVersion })
 
   return (
@@ -128,43 +128,56 @@ export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersi
           <span>History</span>
         </Button>
 
-        {canSave && (
+        {canSave && !showDescriptionInput && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowDescriptionInput(!showDescriptionInput)}
+            onClick={() => setShowDescriptionInput(true)}
             disabled={saving}
             className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
           >
             <Save className="h-4 w-4" />
-            <span>{saving ? 'Saving...' : 'Save Version'}</span>
+            <span>Save Version</span>
           </Button>
         )}
-      </div>
 
-      {showDescriptionInput && (
-        <div className="mt-2 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
-          <Input
-            placeholder="Enter a description for this version..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mb-2 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-          />
-          <div className="flex space-x-2">
-            <Button size="sm" onClick={saveCurrentVersion} disabled={saving} className="bg-emerald-500 hover:bg-emerald-400 text-black font-medium">
-              Save Version
+        {canSave && showDescriptionInput && (
+          <>
+            <input
+              type="text"
+              placeholder="Version description..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveCurrentVersion(); if (e.key === 'Escape') { setShowDescriptionInput(false); setDescription(''); } }}
+              autoFocus
+              className="flex-1 min-w-[200px] max-w-[400px] h-8 px-3 bg-zinc-900 border border-zinc-600 rounded-md text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+            <Button
+              size="sm"
+              onClick={saveCurrentVersion}
+              disabled={saving}
+              className="h-8 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-medium rounded-md"
+            >
+              {saving ? 'Saving...' : 'Save'}
             </Button>
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={() => { setShowDescriptionInput(false); setDescription('') }}
-              className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+              className="h-8 px-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-md"
             >
-              Cancel
+              <X className="h-4 w-4" />
             </Button>
+          </>
+        )}
+
+        {saveSuccess && (
+          <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/40 rounded-md animate-in fade-in duration-200">
+            <Check className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-medium text-emerald-400">Saved!</span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {showHistory && (
         <div className="fixed inset-0 z-[100]">
