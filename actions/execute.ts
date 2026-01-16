@@ -11,7 +11,6 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
     return { stderr: 'R_EXECUTION_URL not configured' }
   }
 
-  // Check if user can edit this project
   if (request.projectId) {
     const canEdit = await canEditProject(request.projectId)
     if (!canEdit) {
