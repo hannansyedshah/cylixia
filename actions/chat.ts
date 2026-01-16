@@ -9,6 +9,7 @@ interface ChatRequest {
   mode: OpenAIMode
   existingCode?: string
   csvFiles?: Array<{ fileName: string; csvData: string }>
+  images?: Array<{ fileName: string; base64Data: string; mimeType: string }>
   privacyMode?: boolean
   contextWindow?: string
   isNistProject?: boolean
@@ -29,6 +30,7 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     privacyMode = true,
     mode = 'generate',
     csvFiles,
+    images,
     contextWindow,
     isNistProject = false
   } = request
@@ -62,6 +64,7 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     prompt,
     existingCode,
     csvFiles: csvFilesPayload.length > 0 ? csvFilesPayload : undefined,
+    images: images && images.length > 0 ? images : undefined,
     privacyMode,
     contextWindow,
     isNistProject
