@@ -49,23 +49,17 @@ export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
     if (!files?.length) return
     setImageError(null)
 
-    const remainingSlots = MAX_IMAGE_COUNT - attachedImages.length
-    if (remainingSlots <= 0) {
-      setImageError(`Maximum ${MAX_IMAGE_COUNT} images allowed`)
-      return
+    const slots = MAX_IMAGE_COUNT - attachedImages.length
+    if (slots <= 0) return setImageError(`Maximum ${MAX_IMAGE_COUNT} images allowed`)
+
+    try {
+      const images = await Promise.all(
+        Array.from(files).slice(0, slots).map(processImageFile)
+      )
+      setAttachedImages(prev => [...prev, ...images])
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : 'Failed to process image')
     }
-
-    const results = await Promise.all(
-      Array.from(files).slice(0, remainingSlots).map(processImageFile)
-    )
-
-    const error = results.find(r => 'error' in r)
-    if (error && 'error' in error) {
-      setImageError(error.error)
-      return
-    }
-
-    setAttachedImages(prev => [...prev, ...(results as AttachedImage[])])
   }, [attachedImages.length])
 
   const handleRemoveImage = (index: number) => {
