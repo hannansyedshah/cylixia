@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { CsvUpload } from '@/types/dataset'
-import { canAccessProject } from './collaborators'
+import { canAccessProject, canEditProject } from './collaborators'
 
 interface SaveDatasetParams {
   projectId: string
@@ -23,7 +23,11 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
     .eq('id', projectId)
     .single()
 
-  if (!project || project.user_id !== user.id) return null
+  if (!project) return null
+
+  const isOwner = project.user_id === user.id
+  const canEdit = isOwner || await canEditProject(projectId)
+  if (!canEdit) return null
 
   const id = crypto.randomUUID()
   const storagePath = `${user.id}/${projectId}/${id}.csv`
@@ -79,12 +83,15 @@ export async function deleteDataset(id: string): Promise<boolean> {
 
   const { data: upload } = await supabase
     .from('csv_uploads')
-    .select('storage_path')
+    .select('storage_path, project_id')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!upload) return false
+
+  // Check if user can edit this project
+  const canEdit = await canEditProject(upload.project_id)
+  if (!canEdit) return false
 
   await supabase.storage.from('csvupload').remove([upload.storage_path])
 
@@ -92,7 +99,6 @@ export async function deleteDataset(id: string): Promise<boolean> {
     .from('csv_uploads')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
 
   return !error
 }
