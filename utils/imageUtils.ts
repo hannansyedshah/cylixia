@@ -2,22 +2,11 @@
  * Image utilities for OpenAI vision support
  */
 
+import type { AllowedMimeType, AttachedImage, ValidationResult } from '@/types/image'
+
 export const MAX_IMAGE_SIZE = 4 * 1024 * 1024 // 4MB
 export const MAX_IMAGE_COUNT = 3
-export const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const
-
-export type AllowedMimeType = (typeof ALLOWED_TYPES)[number]
-
-export interface AttachedImage {
-  fileName: string
-  base64Data: string
-  mimeType: AllowedMimeType
-}
-
-export interface ValidationResult {
-  valid: boolean
-  error?: string
-}
+export const ALLOWED_TYPES: AllowedMimeType[] = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
 export function validateImageFile(file: File): ValidationResult {
   if (!ALLOWED_TYPES.includes(file.type as AllowedMimeType)) {
