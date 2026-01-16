@@ -24,6 +24,7 @@ export function useWorkspace(projectId: string) {
 
   // Project state
   const [project, setProject] = useState<any>(null)
+  const [canEdit, setCanEdit] = useState(true)
   const [loading, setLoading] = useState(false)
   const [executingCode, setExecutingCode] = useState(false)
   const [loadingProject, setLoadingProject] = useState(true)
@@ -99,6 +100,7 @@ export function useWorkspace(projectId: string) {
       }
 
       setProject({ ...p, messages: p.messages || [] })
+      setCanEdit(p.can_edit !== false)
       if (p.context_window) setContextWindow(p.context_window)
       if (p.stdout) setStdoutText(p.stdout)
       if (p.stderr) setStderrText(p.stderr)
@@ -151,15 +153,16 @@ export function useWorkspace(projectId: string) {
 
   // Handlers
   const handleCodeChange = useCallback((newCode: string) => {
+    if (!canEdit) return
     setProject((prev: any) => {
       if (!prev) return prev
       return { ...prev, code: newCode, updated_at: new Date().toISOString() }
     })
     updateCode(projectId, newCode).catch(console.error)
-  }, [projectId])
+  }, [projectId, canEdit])
 
   const handleSendMessage = async (prompt: string) => {
-    if (!project || loading) return
+    if (!project || loading || !canEdit) return
 
     if (project.hipaa_compliant && !contextWindow) {
       setPendingPrompt(prompt)
@@ -214,7 +217,7 @@ export function useWorkspace(projectId: string) {
   }
 
   const handleRunCode = async () => {
-    if (!project || loading || executingCode) return
+    if (!project || loading || executingCode || !canEdit) return
     setExecutingCode(true)
 
     try {
@@ -322,6 +325,7 @@ export function useWorkspace(projectId: string) {
 
     // Project state
     project,
+    canEdit,
     loading,
     executingCode,
     loadingProject,
