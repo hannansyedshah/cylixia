@@ -51,17 +51,14 @@ export async function inviteCollaborator(projectId: string, email: string): Prom
 
   if (!project || project.user_id !== user.id) return null
 
-  // Check if invited user already exists
-  const { data: existingUser } = await supabase
-    .rpc('get_user_by_email', { email_input: normalizedEmail })
-
+  // Create invite as pending - user accepts when they log in
   const { data: collab, error } = await supabase
     .from('project_collaborators')
     .insert({
       project_id: projectId,
       email: normalizedEmail,
-      user_id: existingUser?.id || null,
-      status: existingUser ? 'accepted' : 'pending',
+      user_id: null,
+      status: 'pending',
       invited_by: user.id,
     })
     .select()
