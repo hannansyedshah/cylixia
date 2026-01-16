@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { processImageFile, MAX_IMAGE_COUNT, type AttachedImage } from '@/utils/imageUtils'
+import type { AttachedImage } from '@/types/image'
+import { processImageFile, MAX_IMAGE_COUNT } from '@/utils/imageUtils'
 
 interface UseChatPanelOptions {
   loading: boolean
