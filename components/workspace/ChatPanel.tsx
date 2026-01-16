@@ -6,8 +6,8 @@ import { Send, Sparkles, Copy, Check, Maximize2, Minimize2, ImagePlus, X } from 
 import { useChatPanel } from '@/hooks/workspace/useChatPanel'
 import { AILoading } from './LoadingStates'
 import type { Message } from '@/types/database'
+import type { AttachedImage } from '@/types/image'
 import { ALLOWED_TYPES } from '@/utils/imageUtils'
-import type { AttachedImage } from '@/utils/imageUtils'
 
 interface ChatPanelProps {
   messages: Message[]
