@@ -31,7 +31,6 @@ export function buildUserMessage(request: OpenAIRequest): MessageContent {
 
   const textContent = sections.join('\n\n')
 
-  // If images are attached, return multi-part content for OpenAI vision
   if (request.images && request.images.length > 0) {
     const content: Array<TextContent | ImageContent> = [
       { type: 'text', text: textContent }
