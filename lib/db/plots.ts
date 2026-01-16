@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { PLOTS_BUCKET, buildPlotStoragePath, extractStoragePathFromUrl } from '@/lib/utils/storagePaths'
+import { canAccessProject } from '@/lib/db/collaborators'
 import type { SavePlotParams } from '@/types/database'
 
 async function savePlot(params: SavePlotParams): Promise<string | null> {
@@ -17,10 +18,12 @@ async function savePlot(params: SavePlotParams): Promise<string | null> {
     .eq('id', projectId)
     .single()
 
-  if (!project || project.user_id !== user.id) return null
+  if (!project) return null
+  const hasAccess = await canAccessProject(projectId)
+  if (!hasAccess) return null
 
   const id = crypto.randomUUID()
-  const storagePath = buildPlotStoragePath(user.id, projectId, id)
+  const storagePath = buildPlotStoragePath(project.user_id, projectId, id)
 
   const bytes = Buffer.from(plotBase64, 'base64')
 
