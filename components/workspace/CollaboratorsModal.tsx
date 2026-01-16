@@ -3,7 +3,7 @@
 import { useEffect, useId } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { X, UserPlus, Trash2, Mail, Check, Clock, Loader2 } from 'lucide-react'
+import { X, UserPlus, Trash2, Mail, Check, Clock, Loader2, Pencil, Eye } from 'lucide-react'
 import { useCollaborators } from '@/hooks/workspace/useCollaborators'
 
 interface CollaboratorsModalProps {
@@ -19,6 +19,8 @@ export function CollaboratorsModal({ projectId, isOwner, onClose }: Collaborator
     collaborators,
     email,
     setEmail,
+    role,
+    setRole,
     isInitialLoading,
     isSubmitting,
     canInvite,
@@ -86,27 +88,57 @@ export function CollaboratorsModal({ projectId, isOwner, onClose }: Collaborator
           <div className="p-6 space-y-5">
             {/* Invite Form - Owner only */}
             {isOwner && (
-              <form onSubmit={handleInvite} className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="Enter email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSubmitting}
-                  className="flex-1 h-10 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500"
-                  aria-label="Email address"
-                />
-                <Button
-                  type="submit"
-                  disabled={!canInvite}
-                  className="h-10 px-4 bg-emerald-500 hover:bg-emerald-400 text-black"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <UserPlus className="h-4 w-4" />
-                  )}
-                </Button>
+              <form onSubmit={handleInvite} className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting}
+                    className="flex-1 h-10 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500"
+                    aria-label="Email address"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={!canInvite}
+                    className="h-10 px-4 bg-emerald-500 hover:bg-emerald-400 text-black"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole('editor')}
+                    disabled={isSubmitting}
+                    className={`flex-1 h-9 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                      role === 'editor'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                        : 'bg-zinc-800/50 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
+                    }`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('viewer')}
+                    disabled={isSubmitting}
+                    className={`flex-1 h-9 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                      role === 'viewer'
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                        : 'bg-zinc-800/50 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
+                    }`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Viewer
+                  </button>
+                </div>
               </form>
             )}
 
@@ -137,6 +169,17 @@ export function CollaboratorsModal({ projectId, isOwner, onClose }: Collaborator
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Role badge */}
+                      {collab.role === 'editor' ? (
+                        <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                          <Pencil className="h-3 w-3" /> Editor
+                        </span>
+                      ) : (
+                        <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                          <Eye className="h-3 w-3" /> Viewer
+                        </span>
+                      )}
+                      {/* Status badge */}
                       {collab.status === 'pending' ? (
                         <span className="text-xs text-yellow-400 flex items-center gap-1">
                           <Clock className="h-3 w-3" /> Pending
@@ -170,7 +213,7 @@ export function CollaboratorsModal({ projectId, isOwner, onClose }: Collaborator
             <div className="pt-2 border-t border-zinc-800">
               <p className="text-xs text-zinc-500">
                 {isOwner
-                  ? 'Collaborators can view and edit this project.'
+                  ? 'Editors can view and edit. Viewers can only view.'
                   : 'You are a collaborator on this project.'}
               </p>
             </div>
