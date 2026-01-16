@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Mail, Check, X } from 'lucide-react'
+import { Mail, Check, X, Loader2 } from 'lucide-react'
 import { useInvitations } from '@/hooks/dashboard/useInvitations'
 
 interface InvitationsBannerProps {
@@ -12,6 +12,8 @@ export function InvitationsBanner({ onInvitationAccepted }: InvitationsBannerPro
   const {
     invitations,
     loading,
+    error,
+    processingId,
     handleAccept,
     handleDismiss
   } = useInvitations(onInvitationAccepted)
@@ -24,6 +26,9 @@ export function InvitationsBanner({ onInvitationAccepted }: InvitationsBannerPro
         <Mail className="h-4 w-4" />
         Pending Invitations ({invitations.length})
       </h3>
+      {error && (
+        <p className="text-sm text-red-400 mb-3" role="alert">{error}</p>
+      )}
       <div className="space-y-2">
         {invitations.map(inv => (
           <div
@@ -38,15 +43,23 @@ export function InvitationsBanner({ onInvitationAccepted }: InvitationsBannerPro
               <Button
                 size="sm"
                 onClick={() => handleAccept(inv.id)}
-                className="h-8 bg-emerald-500 hover:bg-emerald-400 text-black"
+                disabled={processingId === inv.id}
+                className="h-8 bg-emerald-500 hover:bg-emerald-400 text-black disabled:opacity-50"
               >
-                <Check className="h-3 w-3 mr-1" /> Accept
+                {processingId === inv.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="h-3 w-3 mr-1" /> Accept
+                  </>
+                )}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => handleDismiss(inv.id)}
-                className="h-8 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                disabled={processingId === inv.id}
+                className="h-8 text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-50"
               >
                 <X className="h-3 w-3" />
               </Button>

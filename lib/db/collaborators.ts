@@ -161,3 +161,19 @@ export async function acceptInvitation(collaboratorId: string): Promise<boolean>
 
   return !error
 }
+
+// Decline/dismiss invitation (delete pending invite)
+export async function declineInvitation(collaboratorId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !user.email) return false
+
+  const { error } = await supabase
+    .from('project_collaborators')
+    .delete()
+    .eq('id', collaboratorId)
+    .eq('email', user.email.toLowerCase())
+    .eq('status', 'pending')
+
+  return !error
+}
