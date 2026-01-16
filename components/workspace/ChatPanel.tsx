@@ -2,10 +2,12 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, Sparkles, Copy, Check, Maximize2, Minimize2 } from 'lucide-react'
+import { Send, Sparkles, Copy, Check, Maximize2, Minimize2, ImagePlus, X } from 'lucide-react'
 import { useChatPanel } from '@/hooks/workspace/useChatPanel'
 import { AILoading } from './LoadingStates'
 import type { Message } from '@/types/database'
+import { ALLOWED_TYPES } from '@/utils/imageUtils'
+import type { AttachedImage } from '@/utils/imageUtils'
 
 interface ChatPanelProps {
   messages: Message[]
@@ -18,7 +20,7 @@ interface ChatPanelProps {
   privacyMode: boolean
   readOnly?: boolean
   onPrivacyModeChange: (enabled: boolean) => void
-  onSendMessage: (prompt: string) => void
+  onSendMessage: (prompt: string, images?: AttachedImage[]) => void
 }
 
 export function ChatPanel({
@@ -41,7 +43,13 @@ export function ChatPanel({
     isExpanded,
     toggleExpand,
     handleSend,
-    handleCopy
+    handleCopy,
+    attachedImages,
+    imageError,
+    fileInputRef,
+    handleAttachImage,
+    handleRemoveImage,
+    triggerFileInput
   } = useChatPanel({ loading, onSendMessage })
 
   return (
@@ -144,30 +152,81 @@ export function ChatPanel({
             You have view-only access to this project
           </div>
         ) : (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Ask about your data..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              disabled={loading}
-              className="flex-1 h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+          <>
+            {/* Image previews */}
+            {attachedImages.length > 0 && (
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {attachedImages.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={`data:${img.mimeType};base64,${img.base64Data}`}
+                      alt={img.fileName}
+                      className="h-16 w-16 object-cover rounded-lg border border-zinc-700"
+                    />
+                    <button
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute -top-1.5 -right-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove image"
+                    >
+                      <X className="h-3 w-3 text-zinc-300" />
+                    </button>
+                    <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-[10px] text-zinc-300 truncate px-1 rounded-b-lg">
+                      {img.fileName}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Image error */}
+            {imageError && (
+              <div className="text-red-400 text-xs mb-2">{imageError}</div>
+            )}
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ALLOWED_TYPES.join(',')}
+              multiple
+              onChange={(e) => handleAttachImage(e.target.files)}
+              className="hidden"
             />
-            <Button
-              onClick={handleSend}
-              disabled={loading || !prompt.trim()}
-              className="h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
-            >
-              {isNist ? (
-                <>
-                  <Sparkles className="h-4 w-4 mr-1" />
-                  {hasContext ? 'Send' : 'Contextualize'}
-                </>
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={triggerFileInput}
+                disabled={loading || attachedImages.length >= 3}
+                variant="outline"
+                className="h-11 bg-zinc-800/50 border-zinc-700 hover:bg-zinc-700 text-zinc-300"
+                title="Attach image (max 3)"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <Input
+                placeholder="Ask about your data..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                disabled={loading}
+                className="flex-1 h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+              />
+              <Button
+                onClick={handleSend}
+                disabled={loading || !prompt.trim()}
+                className="h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+              >
+                {isNist ? (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    {hasContext ? 'Send' : 'Contextualize'}
+                  </>
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </>
         )}
       </div>
 
