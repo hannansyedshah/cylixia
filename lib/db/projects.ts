@@ -2,12 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Project, Message } from '@/types/database'
+import { canAccessProject } from '@/lib/db/collaborators'
 
 export interface ProjectWithData extends Project {
   messages?: Message[]
   stdout?: string
   stderr?: string
   plot_url?: string | null
+  is_shared?: boolean
 }
 
 interface CreateProjectData {
@@ -26,18 +28,45 @@ interface UpdateProjectData {
   plot_url?: string | null
 }
 
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects(): Promise<(Project & { is_shared: boolean })[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data } = await supabase
+  // Get owned projects
+  const { data: ownedProjects } = await supabase
     .from('projects')
     .select('*')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
-  return data || []
+  // Get shared project IDs where user is accepted collaborator
+  const { data: collabs } = await supabase
+    .from('project_collaborators')
+    .select('project_id')
+    .eq('user_id', user.id)
+    .eq('status', 'accepted')
+
+  const sharedProjectIds = collabs?.map(c => c.project_id) || []
+
+  // Get shared projects
+  let sharedProjects: Project[] = []
+  if (sharedProjectIds.length > 0) {
+    const { data } = await supabase
+      .from('projects')
+      .select('*')
+      .in('id', sharedProjectIds)
+      .order('updated_at', { ascending: false })
+    sharedProjects = data || []
+  }
+
+  // Combine and mark
+  const owned = (ownedProjects || []).map(p => ({ ...p, is_shared: false }))
+  const shared = sharedProjects.map(p => ({ ...p, is_shared: true }))
+
+  return [...owned, ...shared].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )
 }
 
 export async function getProject(id: string): Promise<ProjectWithData | null> {
@@ -53,8 +82,10 @@ export async function getProject(id: string): Promise<ProjectWithData | null> {
 
   if (error || !project) return null
 
-  // Only owner can access
-  if (project.user_id !== user.id) return null
+  // Check if owner or collaborator
+  const isOwner = project.user_id === user.id
+  const hasAccess = isOwner || await canAccessProject(id)
+  if (!hasAccess) return null
 
   // Get messages
   const { data: messages } = await supabase
@@ -63,7 +94,7 @@ export async function getProject(id: string): Promise<ProjectWithData | null> {
     .eq('project_id', id)
     .order('created_at', { ascending: true })
 
-  return { ...project, messages: messages || [] }
+  return { ...project, messages: messages || [], is_shared: !isOwner }
 }
 
 export async function createProject(data: CreateProjectData): Promise<Project | null> {
@@ -105,14 +136,21 @@ export async function updateProject(projectId: string, data: UpdateProjectData):
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Only owner can edit
+  // Check access (owner or collaborator)
   const { data: projectCheck } = await supabase
     .from('projects')
     .select('user_id')
     .eq('id', projectId)
     .single()
 
-  if (!projectCheck || projectCheck.user_id !== user.id) return null
+  if (!projectCheck) return null
+
+  const isOwner = projectCheck.user_id === user.id
+  const hasAccess = isOwner || await canAccessProject(projectId)
+  if (!hasAccess) return null
+
+  // Only owner can rename
+  if (data.name !== undefined && !isOwner) return null
 
   // Validate name if being updated
   if (data.name !== undefined) {
