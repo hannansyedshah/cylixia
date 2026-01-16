@@ -5,8 +5,10 @@ import type { OpenAIMode } from '@/types/openai'
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode
+  projectId: string
   projectName: string
   isNist: boolean
+  isOwner: boolean
   hasContext: boolean
   hasDatasets: boolean
   privacyMode: boolean
@@ -21,8 +23,10 @@ interface WorkspaceLayoutProps {
 
 export function WorkspaceLayout({
   children,
+  projectId,
   projectName,
   isNist,
+  isOwner,
   hasContext,
   hasDatasets,
   privacyMode,
@@ -37,8 +41,10 @@ export function WorkspaceLayout({
   return (
     <div className="h-screen flex flex-col bg-black overflow-hidden">
       <WorkspaceHeader
+        projectId={projectId}
         projectName={projectName}
         isNist={isNist}
+        isOwner={isOwner}
         hasContext={hasContext}
         hasDatasets={hasDatasets}
         privacyMode={privacyMode}

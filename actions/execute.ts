@@ -1,6 +1,7 @@
 'use server'
 
 import { savePlots } from '@/lib/db/plots'
+import { canEditProject } from '@/lib/db/collaborators'
 import type { ExecuteRequest, ExecuteResponse, RawExecuteResponse } from '@/types/execute'
 
 const R_EXECUTION_URL = process.env.R_EXECUTION_URL!
@@ -8,6 +9,13 @@ const R_EXECUTION_URL = process.env.R_EXECUTION_URL!
 export async function executeCode(request: ExecuteRequest): Promise<ExecuteResponse> {
   if (!R_EXECUTION_URL) {
     return { stderr: 'R_EXECUTION_URL not configured' }
+  }
+
+  if (request.projectId) {
+    const canEdit = await canEditProject(request.projectId)
+    if (!canEdit) {
+      return { stderr: 'You do not have permission to execute code in this project' }
+    }
   }
 
   try {

@@ -126,6 +126,15 @@ export function useDashboard() {
     }
   }
 
+  const refreshProjects = async () => {
+    try {
+      const projects = await getProjects()
+      setProjects(projects)
+    } catch (error) {
+      console.error('Failed to refresh projects:', error)
+    }
+  }
+
   return {
     // Auth
     user,
@@ -147,6 +156,7 @@ export function useDashboard() {
     handleCreateProject,
     handleDeleteProject,
     handleEditProject,
-    handleUpdateProject
+    handleUpdateProject,
+    refreshProjects
   }
 }

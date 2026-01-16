@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { ProjectCard } from '@/components/dashboard/ProjectCard'
 import { CreateProjectModal } from '@/components/dashboard/CreateProjectModal'
 import { EditProjectModal } from '@/components/dashboard/EditProjectModal'
+import { InvitationsBanner } from '@/components/dashboard/InvitationsBanner'
 import { Button } from '@/components/ui/button'
 import { Plus, FolderOpen, Search } from 'lucide-react'
 import { useDashboard } from '@/hooks/dashboard/useDashboard'
@@ -24,7 +25,8 @@ export default function DashboardPage() {
     handleCreateProject,
     handleDeleteProject,
     handleEditProject,
-    handleUpdateProject
+    handleUpdateProject,
+    refreshProjects
   } = useDashboard()
 
   if (!user) {
@@ -48,6 +50,9 @@ export default function DashboardPage() {
               Manage your data visualization projects
             </p>
           </div>
+
+          {/* Pending Invitations */}
+          <InvitationsBanner onInvitationAccepted={refreshProjects} />
 
           {/* Actions + Search */}
           <div className="mb-8">

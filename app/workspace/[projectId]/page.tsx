@@ -17,6 +17,7 @@ export default function WorkspacePage() {
   const {
     user,
     project,
+    canEdit,
     loading,
     executingCode,
     loadingProject,
@@ -58,10 +59,14 @@ export default function WorkspacePage() {
 
   if (!project) return null
 
+  const isOwner = project.user_id === user.id
+
   return (
     <WorkspaceLayout
+      projectId={projectId}
       projectName={project.name}
       isNist={project.hipaa_compliant}
+      isOwner={isOwner}
       hasContext={!!contextWindow}
       hasDatasets={datasets.length > 0}
       privacyMode={privacyMode}
@@ -98,6 +103,7 @@ export default function WorkspacePage() {
                 hasContext={!!contextWindow}
                 hasDatasets={datasets.length > 0}
                 privacyMode={privacyMode}
+                readOnly={!canEdit}
                 onPrivacyModeChange={setPrivacyMode}
                 onSendMessage={handleSendMessage}
               />
@@ -108,6 +114,7 @@ export default function WorkspacePage() {
               plotUrl={lastExecutionPlots.length > 1 ? JSON.stringify(lastExecutionPlots) : lastExecutionPlots[0] || null}
               loading={loading || executingCode}
               focusMode={focusMode}
+              readOnly={!canEdit}
               onFocusModeChange={setFocusMode}
               onChange={handleCodeChange}
               onRun={handleRunCode}

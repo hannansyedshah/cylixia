@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Message } from '@/types/database'
+import { canAccessProject, canEditProject } from '@/lib/db/collaborators'
 
 interface CreateMessageData {
   role: 'user' | 'assistant'
@@ -15,14 +16,9 @@ export async function getMessages(projectId: string): Promise<Message[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  // Only owner can access
-  const { data: project } = await supabase
-    .from('projects')
-    .select('id, user_id')
-    .eq('id', projectId)
-    .single()
-
-  if (!project || project.user_id !== user.id) return []
+  // Check access (owner or collaborator)
+  const hasAccess = await canAccessProject(projectId)
+  if (!hasAccess) return []
 
   const { data: messages } = await supabase
     .from('messages')
@@ -38,14 +34,9 @@ export async function createMessage(projectId: string, data: CreateMessageData):
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Only owner can create messages
-  const { data: project } = await supabase
-    .from('projects')
-    .select('id, user_id')
-    .eq('id', projectId)
-    .single()
-
-  if (!project || project.user_id !== user.id) return null
+  // Check edit permission (owner or editor collaborator)
+  const canEdit = await canEditProject(projectId)
+  if (!canEdit) return null
 
   const messageData: any = {
     project_id: projectId,

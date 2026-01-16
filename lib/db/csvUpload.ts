@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { CsvUpload } from '@/types/dataset'
+import { canAccessProject, canEditProject } from './collaborators'
 
 interface SaveDatasetParams {
   projectId: string
@@ -22,7 +23,11 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
     .eq('id', projectId)
     .single()
 
-  if (!project || project.user_id !== user.id) return null
+  if (!project) return null
+
+  const isOwner = project.user_id === user.id
+  const canEdit = isOwner || await canEditProject(projectId)
+  if (!canEdit) return null
 
   const id = crypto.randomUUID()
   const storagePath = `${user.id}/${projectId}/${id}.csv`
@@ -58,15 +63,14 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
 }
 
 export async function getDatasets(projectId: string): Promise<CsvUpload[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const hasAccess = await canAccessProject(projectId)
+  if (!hasAccess) return []
 
+  const supabase = await createClient()
   const { data } = await supabase
     .from('csv_uploads')
     .select('*')
     .eq('project_id', projectId)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   return data || []
@@ -79,12 +83,15 @@ export async function deleteDataset(id: string): Promise<boolean> {
 
   const { data: upload } = await supabase
     .from('csv_uploads')
-    .select('storage_path')
+    .select('storage_path, project_id')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!upload) return false
+
+  // Check if user can edit this project
+  const canEdit = await canEditProject(upload.project_id)
+  if (!canEdit) return false
 
   await supabase.storage.from('csvupload').remove([upload.storage_path])
 
@@ -92,24 +99,23 @@ export async function deleteDataset(id: string): Promise<boolean> {
     .from('csv_uploads')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id)
 
   return !error
 }
 
 export async function getDatasetContent(id: string): Promise<string | null> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
 
   const { data: upload } = await supabase
     .from('csv_uploads')
-    .select('storage_path')
+    .select('storage_path, project_id')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!upload) return null
+
+  const hasAccess = await canAccessProject(upload.project_id)
+  if (!hasAccess) return null
 
   const { data, error } = await supabase.storage
     .from('csvupload')

@@ -16,6 +16,7 @@ interface ChatPanelProps {
   hasContext: boolean
   hasDatasets: boolean
   privacyMode: boolean
+  readOnly?: boolean
   onPrivacyModeChange: (enabled: boolean) => void
   onSendMessage: (prompt: string) => void
 }
@@ -29,6 +30,7 @@ export function ChatPanel({
   hasContext,
   hasDatasets,
   privacyMode,
+  readOnly = false,
   onPrivacyModeChange,
   onSendMessage
 }: ChatPanelProps) {
@@ -137,30 +139,36 @@ export function ChatPanel({
 
       {/* Input */}
       <div className="p-4 border-t border-zinc-800 bg-zinc-900">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Ask about your data..."
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            disabled={loading}
-            className="flex-1 h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
-          />
-          <Button
-            onClick={handleSend}
-            disabled={loading || !prompt.trim()}
-            className="h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
-          >
-            {isNist ? (
-              <>
-                <Sparkles className="h-4 w-4 mr-1" />
-                {hasContext ? 'Send' : 'Contextualize'}
-              </>
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        {readOnly ? (
+          <div className="text-center text-zinc-500 text-sm py-2">
+            You have view-only access to this project
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ask about your data..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              disabled={loading}
+              className="flex-1 h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+            />
+            <Button
+              onClick={handleSend}
+              disabled={loading || !prompt.trim()}
+              className="h-11 bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+            >
+              {isNist ? (
+                <>
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  {hasContext ? 'Send' : 'Contextualize'}
+                </>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        )}
       </div>
 
       <style jsx>{`

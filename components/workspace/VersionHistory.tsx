@@ -10,6 +10,7 @@ interface VersionHistoryProps {
   projectId: string
   currentCode: string
   currentPlotUrl?: string
+  readOnly?: boolean
   onVersionRestore?: (code: string, plotUrl?: string) => void
   onSaveVersion?: (code: string, plotUrl?: string, description?: string) => void
 }
@@ -88,7 +89,7 @@ function PlotGallery({ plotUrls, versionNumber }: { plotUrls: string[], versionN
   )
 }
 
-export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersionRestore, onSaveVersion }: VersionHistoryProps) {
+export function VersionHistory({ projectId, currentCode, currentPlotUrl, readOnly = false, onVersionRestore, onSaveVersion }: VersionHistoryProps) {
   const {
     versions,
     loading,
@@ -128,7 +129,7 @@ export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersi
           <span>History</span>
         </Button>
 
-        {canSave && !showDescriptionInput && (
+        {canSave && !readOnly && !showDescriptionInput && (
           <Button
             variant="outline"
             size="sm"
@@ -141,7 +142,7 @@ export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersi
           </Button>
         )}
 
-        {canSave && showDescriptionInput && (
+        {canSave && !readOnly && showDescriptionInput && (
           <>
             <input
               type="text"
@@ -272,7 +273,7 @@ export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersi
                           </div>
 
                           <div className="flex flex-col space-y-1 ml-4">
-                            {canRestore && (
+                            {canRestore && !readOnly && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -283,16 +284,18 @@ export function VersionHistory({ projectId, currentCode, currentPlotUrl, onVersi
                                 <span>Restore</span>
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDeleteVersion(version.id)}
-                              disabled={deleting === version.id}
-                              className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50"
-                            >
-                              <X className="h-3 w-3" />
-                              <span>{deleting === version.id ? 'Deleting...' : 'Delete'}</span>
-                            </Button>
+                            {!readOnly && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteVersion(version.id)}
+                                disabled={deleting === version.id}
+                                className="flex items-center space-x-1 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/50"
+                              >
+                                <X className="h-3 w-3" />
+                                <span>{deleting === version.id ? 'Deleting...' : 'Delete'}</span>
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

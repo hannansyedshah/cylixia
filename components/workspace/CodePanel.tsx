@@ -11,6 +11,7 @@ interface CodePanelProps {
   plotUrl: string | null
   loading: boolean
   focusMode: boolean
+  readOnly?: boolean
   onFocusModeChange: (focusMode: boolean) => void
   onChange: (code: string) => void
   onRun: () => void
@@ -24,6 +25,7 @@ export function CodePanel({
   plotUrl,
   loading,
   focusMode,
+  readOnly = false,
   onFocusModeChange,
   onChange,
   onRun,
@@ -44,6 +46,7 @@ export function CodePanel({
             projectId={projectId}
             currentCode={code}
             currentPlotUrl={plotUrl ?? undefined}
+            readOnly={readOnly}
             onVersionRestore={onVersionRestore}
             onSaveVersion={onSaveVersion}
           />
@@ -60,18 +63,18 @@ export function CodePanel({
           <Button
             onClick={onRun}
             size="sm"
-            disabled={loading}
-            className="bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+            disabled={loading || readOnly}
+            className="bg-emerald-500 hover:bg-emerald-400 text-black font-medium disabled:opacity-50"
           >
             <Play className="h-4 w-4 mr-2" />
-            Run
+            {readOnly ? 'View Only' : 'Run'}
           </Button>
         </div>
       </div>
 
       {/* Editor */}
       <div className="flex-1 min-h-0">
-        <CodeEditor value={code} onChange={onChange} />
+        <CodeEditor value={code} onChange={onChange} readOnly={readOnly} />
       </div>
     </div>
   )
