@@ -33,8 +33,38 @@ export async function canAccessProject(projectId: string): Promise<boolean> {
   return !!collab
 }
 
+export async function canEditProject(projectId: string): Promise<boolean> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  // Check if owner
+  const { data: project } = await supabase
+    .from('projects')
+    .select('user_id')
+    .eq('id', projectId)
+    .single()
+
+  if (project?.user_id === user.id) return true
+
+  // Check if accepted collaborator with editor role
+  const { data: collab } = await supabase
+    .from('project_collaborators')
+    .select('id, role')
+    .eq('project_id', projectId)
+    .eq('user_id', user.id)
+    .eq('status', 'accepted')
+    .single()
+
+  return collab?.role === 'editor'
+}
+
 // Invite collaborator by email (owner only)
-export async function inviteCollaborator(projectId: string, email: string): Promise<Collaborator | null> {
+export async function inviteCollaborator(
+  projectId: string,
+  email: string,
+  role: 'editor' | 'viewer' = 'editor'
+): Promise<Collaborator | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -60,6 +90,7 @@ export async function inviteCollaborator(projectId: string, email: string): Prom
       user_id: null,
       status: 'pending',
       invited_by: user.id,
+      role,
     })
     .select()
     .single()
