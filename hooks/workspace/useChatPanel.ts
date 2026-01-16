@@ -46,7 +46,7 @@ export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
   const isExpanded = useCallback((id: string) => expandedIds.has(id), [expandedIds])
 
   const handleAttachImage = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return
+    if (!files?.length) return
     setImageError(null)
 
     const remainingSlots = MAX_IMAGE_COUNT - attachedImages.length
@@ -55,29 +55,25 @@ export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
       return
     }
 
-    const filesToProcess = Array.from(files).slice(0, remainingSlots)
-    const newImages: AttachedImage[] = []
+    const results = await Promise.all(
+      Array.from(files).slice(0, remainingSlots).map(processImageFile)
+    )
 
-    for (const file of filesToProcess) {
-      const result = await processImageFile(file)
-      if ('error' in result) {
-        setImageError(result.error)
-        return
-      }
-      newImages.push(result)
+    const error = results.find(r => 'error' in r)
+    if (error && 'error' in error) {
+      setImageError(error.error)
+      return
     }
 
-    setAttachedImages(prev => [...prev, ...newImages])
+    setAttachedImages(prev => [...prev, ...(results as AttachedImage[])])
   }, [attachedImages.length])
 
-  const handleRemoveImage = useCallback((index: number) => {
+  const handleRemoveImage = (index: number) => {
     setAttachedImages(prev => prev.filter((_, i) => i !== index))
     setImageError(null)
-  }, [])
+  }
 
-  const triggerFileInput = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
+  const triggerFileInput = () => fileInputRef.current?.click()
 
   return {
     prompt,
