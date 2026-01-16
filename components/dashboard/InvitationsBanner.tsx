@@ -1,39 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Mail, Check, X } from 'lucide-react'
-import { getPendingInvitations, acceptInvitation } from '@/lib/db/collaborators'
-import type { CollaboratorWithProject } from '@/lib/db/collaborators'
+import { useInvitations } from '@/hooks/dashboard/useInvitations'
 
 interface InvitationsBannerProps {
   onInvitationAccepted: () => void
 }
 
 export function InvitationsBanner({ onInvitationAccepted }: InvitationsBannerProps) {
-  const [invitations, setInvitations] = useState<CollaboratorWithProject[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const load = async () => {
-      const data = await getPendingInvitations()
-      setInvitations(data)
-      setLoading(false)
-    }
-    load()
-  }, [])
-
-  const handleAccept = async (id: string) => {
-    const success = await acceptInvitation(id)
-    if (success) {
-      setInvitations(prev => prev.filter(i => i.id !== id))
-      onInvitationAccepted()
-    }
-  }
-
-  const handleDismiss = (id: string) => {
-    setInvitations(prev => prev.filter(i => i.id !== id))
-  }
+  const {
+    invitations,
+    loading,
+    handleAccept,
+    handleDismiss
+  } = useInvitations(onInvitationAccepted)
 
   if (loading || invitations.length === 0) return null
 
