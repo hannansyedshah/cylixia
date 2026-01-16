@@ -56,3 +56,13 @@ export interface SavePlotParams {
   projectId: string
   plotBase64: string
 }
+
+export interface Collaborator {
+  id: string
+  project_id: string
+  email: string
+  user_id: string | null
+  status: 'pending' | 'accepted'
+  invited_by: string
+  created_at: string
+}
