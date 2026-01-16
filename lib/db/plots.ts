@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { PLOTS_BUCKET, buildPlotStoragePath, extractStoragePathFromUrl } from '@/lib/utils/storagePaths'
-import { canAccessProject } from '@/lib/db/collaborators'
+import { canEditProject } from '@/lib/db/collaborators'
 import type { SavePlotParams } from '@/types/database'
 
 async function savePlot(params: SavePlotParams): Promise<string | null> {
@@ -19,8 +19,8 @@ async function savePlot(params: SavePlotParams): Promise<string | null> {
     .single()
 
   if (!project) return null
-  const hasAccess = await canAccessProject(projectId)
-  if (!hasAccess) return null
+  const canEdit = await canEditProject(projectId)
+  if (!canEdit) return null
 
   const id = crypto.randomUUID()
   const storagePath = buildPlotStoragePath(project.user_id, projectId, id)
