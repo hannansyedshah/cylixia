@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Mascot } from '@/components/homepage/Mascot'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { getProfile } from '@/lib/db/profile'
-import { ArrowLeft, Shield, Edit3, Database } from 'lucide-react'
+import { ArrowLeft, Shield, Edit3, Database, Users } from 'lucide-react'
 import type { OpenAIMode } from '@/types/openai'
+import { CollaboratorsModal } from '@/components/workspace/CollaboratorsModal'
 
 interface WorkspaceHeaderProps {
+  projectId: string
   projectName: string
   isNist: boolean
+  isOwner: boolean
   hasContext: boolean
   hasDatasets: boolean
   privacyMode: boolean
@@ -25,8 +28,10 @@ interface WorkspaceHeaderProps {
 }
 
 export function WorkspaceHeader({
+  projectId,
   projectName,
   isNist,
+  isOwner,
   hasContext,
   hasDatasets,
   privacyMode,
@@ -41,6 +46,7 @@ export function WorkspaceHeader({
   const { user } = useSessionStore()
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null)
   const [now, setNow] = useState<Date>(new Date())
+  const [showCollaborators, setShowCollaborators] = useState(false)
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -124,6 +130,16 @@ export function WorkspaceHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCollaborators(true)}
+            className="h-8 bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+          >
+            <Users className="w-3.5 h-3.5 mr-1" />
+            Share
+          </Button>
+
           {isNist && (
             <Button
               size="sm"
@@ -168,6 +184,14 @@ export function WorkspaceHeader({
           </div>
         </div>
       </div>
+
+      {showCollaborators && (
+        <CollaboratorsModal
+          projectId={projectId}
+          isOwner={isOwner}
+          onClose={() => setShowCollaborators(false)}
+        />
+      )}
     </div>
   )
 }
