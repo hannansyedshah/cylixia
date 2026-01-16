@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { CsvUpload } from '@/types/dataset'
+import { canAccessProject } from './collaborators'
 
 interface SaveDatasetParams {
   projectId: string
@@ -58,15 +59,14 @@ export async function saveDataset(params: SaveDatasetParams): Promise<CsvUpload 
 }
 
 export async function getDatasets(projectId: string): Promise<CsvUpload[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
+  const hasAccess = await canAccessProject(projectId)
+  if (!hasAccess) return []
 
+  const supabase = await createClient()
   const { data } = await supabase
     .from('csv_uploads')
     .select('*')
     .eq('project_id', projectId)
-    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   return data || []
@@ -99,17 +99,17 @@ export async function deleteDataset(id: string): Promise<boolean> {
 
 export async function getDatasetContent(id: string): Promise<string | null> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
 
   const { data: upload } = await supabase
     .from('csv_uploads')
-    .select('storage_path')
+    .select('storage_path, project_id')
     .eq('id', id)
-    .eq('user_id', user.id)
     .single()
 
   if (!upload) return null
+
+  const hasAccess = await canAccessProject(upload.project_id)
+  if (!hasAccess) return null
 
   const { data, error } = await supabase.storage
     .from('csvupload')
