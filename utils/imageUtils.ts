@@ -1,7 +1,3 @@
-/**
- * Image utilities for OpenAI vision support
- */
-
 import type { AllowedMimeType, AttachedImage, ValidationResult } from '@/types/image'
 
 export const MAX_IMAGE_SIZE = 4 * 1024 * 1024 // 4MB
