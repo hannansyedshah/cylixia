@@ -2,13 +2,8 @@
  * User Message Builder for Code Generation
  */
 
-import type { OpenAIRequest } from '@/types/openai'
+import type { OpenAIRequest, MessageContent, TextContent, ImageContent } from '@/types/openai'
 import { PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from '../prompts/systemPrompt'
-
-// OpenAI vision content types
-type TextContent = { type: 'text'; text: string }
-type ImageContent = { type: 'image_url'; image_url: { url: string } }
-export type MessageContent = string | Array<TextContent | ImageContent>
 
 export function buildUserMessage(request: OpenAIRequest): MessageContent {
   const sections: string[] = []
