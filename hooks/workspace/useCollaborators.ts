@@ -12,6 +12,7 @@ import type { Collaborator } from '@/types/database'
 export function useCollaborators(projectId: string) {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'editor' | 'viewer'>('editor')
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
@@ -20,6 +21,8 @@ export function useCollaborators(projectId: string) {
 
   const emailRef = useRef(email)
   emailRef.current = email
+  const roleRef = useRef(role)
+  roleRef.current = role
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +36,7 @@ export function useCollaborators(projectId: string) {
   const handleInvite = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault()
     const currentEmail = emailRef.current.trim()
+    const currentRole = roleRef.current
     if (!currentEmail) return
 
     if (!isValidEmail(currentEmail)) {
@@ -44,11 +48,12 @@ export function useCollaborators(projectId: string) {
     setError(null)
 
     try {
-      const collab = await inviteCollaborator(projectId, currentEmail)
+      const collab = await inviteCollaborator(projectId, currentEmail, currentRole)
 
       if (collab) {
         setCollaborators(prev => [...prev, collab])
         setEmail('')
+        setRole('editor')
       } else {
         setError('Failed to invite. Email may already be invited.')
       }
@@ -99,6 +104,8 @@ export function useCollaborators(projectId: string) {
     collaborators,
     email,
     setEmail,
+    role,
+    setRole,
     isInitialLoading,
     isSubmitting,
     canInvite,
