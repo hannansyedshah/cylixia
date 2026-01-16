@@ -63,6 +63,7 @@ export interface Collaborator {
   email: string
   user_id: string | null
   status: 'pending' | 'accepted'
+  role: 'editor' | 'viewer'
   invited_by: string
   created_at: string
 }
