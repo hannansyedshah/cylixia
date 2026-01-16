@@ -17,7 +17,7 @@ import { useRealtimeMessages } from '@/hooks/workspace/useRealtimeMessages'
 import type { Message } from '@/types/database'
 import type { DatasetItem } from '@/types/dataset'
 import type { OpenAIMode } from '@/types/openai'
-import type { AttachedImage } from '@/utils/imageUtils'
+import type { AttachedImage } from '@/types/image'
 
 export function useWorkspace(projectId: string) {
   const router = useRouter()
