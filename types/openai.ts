@@ -7,6 +7,7 @@ export interface OpenAIRequest {
   prompt: string
   existingCode?: string
   csvFiles?: Array<{ fileName: string; csvData: string }>
+  images?: Array<{ fileName: string; base64Data: string; mimeType: string }>
   privacyMode: boolean
   contextWindow?: string
   isNistProject: boolean
