@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Project, Message } from '@/types/database'
-import { canAccessProject } from '@/lib/db/collaborators'
+import { canAccessProject, canEditProject } from '@/lib/db/collaborators'
 
 export interface ProjectWithData extends Project {
   messages?: Message[]
@@ -10,6 +10,7 @@ export interface ProjectWithData extends Project {
   stderr?: string
   plot_url?: string | null
   is_shared?: boolean
+  can_edit?: boolean
 }
 
 interface CreateProjectData {
@@ -87,6 +88,9 @@ export async function getProject(id: string): Promise<ProjectWithData | null> {
   const hasAccess = isOwner || await canAccessProject(id)
   if (!hasAccess) return null
 
+  // Check if user can edit (owner or editor collaborator)
+  const canEdit = isOwner || await canEditProject(id)
+
   // Get messages
   const { data: messages } = await supabase
     .from('messages')
@@ -94,7 +98,7 @@ export async function getProject(id: string): Promise<ProjectWithData | null> {
     .eq('project_id', id)
     .order('created_at', { ascending: true })
 
-  return { ...project, messages: messages || [], is_shared: !isOwner }
+  return { ...project, messages: messages || [], is_shared: !isOwner, can_edit: canEdit }
 }
 
 export async function createProject(data: CreateProjectData): Promise<Project | null> {
@@ -146,8 +150,8 @@ export async function updateProject(projectId: string, data: UpdateProjectData):
   if (!projectCheck) return null
 
   const isOwner = projectCheck.user_id === user.id
-  const hasAccess = isOwner || await canAccessProject(projectId)
-  if (!hasAccess) return null
+  const canEdit = isOwner || await canEditProject(projectId)
+  if (!canEdit) return null
 
   // Only owner can rename
   if (data.name !== undefined && !isOwner) return null
