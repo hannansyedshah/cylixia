@@ -37,7 +37,7 @@ export function InvitationsBanner({ onInvitationAccepted }: InvitationsBannerPro
           >
             <div>
               <p className="text-white font-medium">{inv.project_name}</p>
-              <p className="text-xs text-zinc-500">You've been invited to collaborate</p>
+              <p className="text-xs text-zinc-500">You&apos;ve been invited to collaborate</p>
             </div>
             <div className="flex gap-2">
               <Button
