@@ -36,20 +36,10 @@ export function fileToBase64(file: File): Promise<string> {
   })
 }
 
-export async function processImageFile(file: File): Promise<AttachedImage | { error: string }> {
+export async function processImageFile(file: File): Promise<AttachedImage> {
   const validation = validateImageFile(file)
-  if (!validation.valid) {
-    return { error: validation.error! }
-  }
+  if (!validation.valid) throw new Error(validation.error)
 
-  try {
-    const base64Data = await fileToBase64(file)
-    return {
-      fileName: file.name,
-      base64Data,
-      mimeType: file.type as AllowedMimeType
-    }
-  } catch {
-    return { error: 'Failed to process image file' }
-  }
+  const base64Data = await fileToBase64(file)
+  return { fileName: file.name, base64Data, mimeType: file.type as AllowedMimeType }
 }
