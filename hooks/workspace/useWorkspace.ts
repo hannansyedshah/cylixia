@@ -17,6 +17,7 @@ import { useRealtimeMessages } from '@/hooks/workspace/useRealtimeMessages'
 import type { Message } from '@/types/database'
 import type { DatasetItem } from '@/types/dataset'
 import type { OpenAIMode } from '@/types/openai'
+import type { AttachedImage } from '@/utils/imageUtils'
 
 export function useWorkspace(projectId: string) {
   const router = useRouter()
@@ -161,7 +162,7 @@ export function useWorkspace(projectId: string) {
     updateCode(projectId, newCode).catch(console.error)
   }, [projectId, canEdit])
 
-  const handleSendMessage = async (prompt: string) => {
+  const handleSendMessage = async (prompt: string, images?: AttachedImage[]) => {
     if (!project || loading || !canEdit) return
 
     if (project.hipaa_compliant && !contextWindow) {
@@ -189,6 +190,7 @@ export function useWorkspace(projectId: string) {
         mode: mode,
         existingCode: project.code,
         csvFiles,
+        images,
         privacyMode,
         contextWindow: project.hipaa_compliant ? contextWindow || undefined : undefined,
         isNistProject: project.hipaa_compliant
