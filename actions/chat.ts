@@ -30,10 +30,7 @@ function getMockCode(language: Language, prompt: string, existingCode?: string):
   if (existingCode) {
     return `# Updated ${config.name} code based on user request\n${existingCode}\n\n# Apply changes here`
   }
-  if (language === 'python') {
-    return `# Generated Python code for: ${prompt}\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n# Create your visualization\nplt.plot(data['x'], data['y'])\nplt.show()`
-  }
-  return `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
+  return `# Generated ${config.name} code for: ${prompt}\n${config.mockCodeTemplate}`
 }
 
 export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
