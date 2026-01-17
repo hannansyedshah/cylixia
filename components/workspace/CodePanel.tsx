@@ -5,6 +5,7 @@ import { CodeEditor } from './CodeEditor'
 import { VersionHistory } from './VersionHistory'
 import { Play, Maximize2, Minimize2, Code2 } from 'lucide-react'
 import type { Language } from '@/types/database'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CodePanelProps {
   code: string
@@ -43,7 +44,7 @@ export function CodePanel({
         <div className="flex items-center gap-4">
           <span className="text-sm font-semibold flex items-center text-white">
             <Code2 className="h-4 w-4 mr-2 text-emerald-500" />
-            {language === 'python' ? 'Python' : 'R'} Code Editor
+            {getLanguageConfig(language).name} Code Editor
           </span>
           <VersionHistory
             projectId={projectId}
