@@ -5,20 +5,11 @@ export const MAX_IMAGE_COUNT = 3
 export const ALLOWED_TYPES: AllowedMimeType[] = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
 export function validateImageFile(file: File): ValidationResult {
-  if (!ALLOWED_TYPES.includes(file.type as AllowedMimeType)) {
-    return {
-      valid: false,
-      error: `Invalid file type: ${file.type}. Allowed types: PNG, JPEG, GIF, WebP`
-    }
-  }
+  if (!ALLOWED_TYPES.includes(file.type as AllowedMimeType))
+    return { valid: false, error: `Invalid file type: ${file.type}. Allowed types: PNG, JPEG, GIF, WebP` }
 
-  if (file.size > MAX_IMAGE_SIZE) {
-    const sizeMB = (file.size / (1024 * 1024)).toFixed(1)
-    return {
-      valid: false,
-      error: `File too large: ${sizeMB}MB. Maximum size is 4MB`
-    }
-  }
+  if (file.size > MAX_IMAGE_SIZE)
+    return { valid: false, error: `File too large: ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum size is 4MB` }
 
   return { valid: true }
 }
