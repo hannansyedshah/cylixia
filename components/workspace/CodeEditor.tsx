@@ -2,6 +2,7 @@
 
 import { Editor } from '@monaco-editor/react'
 import type { Language } from '@/types/database'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CodeEditorProps {
   value: string
@@ -11,11 +12,12 @@ interface CodeEditorProps {
 }
 
 export function CodeEditor({ value, onChange, readOnly = false, language = 'r' }: CodeEditorProps) {
+  const monacoLanguage = getLanguageConfig(language).monacoLanguage
   return (
     <Editor
       height="100%"
-      defaultLanguage={language}
-      language={language}
+      defaultLanguage={monacoLanguage}
+      language={monacoLanguage}
       value={value}
       onChange={(value) => onChange(value || '')}
       theme="vs-dark"
