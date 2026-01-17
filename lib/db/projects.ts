@@ -1,8 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { Project, Message } from '@/types/database'
+import type { Project, Message, Language } from '@/types/database'
 import { canAccessProject, canEditProject } from '@/lib/db/collaborators'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 export interface ProjectWithData extends Project {
   messages?: Message[]
@@ -17,6 +18,7 @@ interface CreateProjectData {
   name: string
   description?: string
   hipaaCompliant?: boolean
+  language?: Language
 }
 
 interface UpdateProjectData {
@@ -119,14 +121,18 @@ export async function createProject(data: CreateProjectData): Promise<Project | 
 
   if (existing) return null
 
+  const language = data.language || 'r'
+  const config = getLanguageConfig(language)
+
   const { data: project, error } = await supabase
     .from('projects')
     .insert({
       user_id: user.id,
       name: trimmedName,
       description: data.description,
-      code: '# Your R code will appear here\n',
+      code: config.defaultCode,
       hipaa_compliant: data.hipaaCompliant || false,
+      language,
     })
     .select()
     .single()
