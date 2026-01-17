@@ -13,6 +13,7 @@ export interface LanguageConfig {
   defaultCode: string
   monacoLanguage: string
   badgeColor: 'blue' | 'yellow'
+  mockCodeTemplate: string
 }
 
 export function getBadgeClasses(color: string): string {
