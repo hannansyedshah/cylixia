@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Language } from '@/types/database'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface AILoadingProps {
   elapsedSeconds: number
@@ -116,7 +117,7 @@ export function CodeExecutionLoading({ className = '', language = 'r' }: CodeExe
       </div>
 
       {/* Text */}
-      <p className="text-sm font-medium text-zinc-300">Executing {language === 'python' ? 'Python' : 'R'} Code</p>
+      <p className="text-sm font-medium text-zinc-300">Executing {getLanguageConfig(language).name} Code</p>
 
       {/* Circular progress ring */}
       <svg className="absolute w-32 h-32 -z-10 opacity-10" viewBox="0 0 100 100">
