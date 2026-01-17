@@ -1,6 +1,7 @@
-// OpenAI API types for R code generation
+// OpenAI API types for code generation
 
 export type OpenAIMode = 'generate' | 'ask'
+export type Language = 'r' | 'python'
 
 export type TextContent = { type: 'text'; text: string }
 export type ImageContent = { type: 'image_url'; image_url: { url: string } }
@@ -15,6 +16,7 @@ export interface OpenAIRequest {
   privacyMode: boolean
   contextWindow?: string
   isNistProject: boolean
+  language: Language
 }
 
 export interface OpenAIResponse {
