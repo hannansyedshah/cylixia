@@ -44,4 +44,6 @@ Focus on clear, educational explanations.
 Include code snippets only when they illustrate your answer.`,
   codeIndicators: ['library(', 'ggplot(', '<-'],
   defaultCode: '# Your R code will appear here\n',
+  monacoLanguage: 'r',
+  badgeColor: 'blue',
 }
