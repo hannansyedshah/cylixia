@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Trash2, FolderOpen, Edit2, Calendar, Users, Shield, Layers, Code } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { Language } from '@/types/database'
+import { getLanguageConfig, getBadgeClasses } from '@/templates/openai/languages'
 
 interface ProjectCardProps {
   id: string
@@ -85,13 +86,9 @@ export function ProjectCard({ id, name, description, createdAt, updatedAt, isSha
       </h3>
 
       <div className="flex items-center gap-2 mb-3">
-        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 border ${
-          language === 'python'
-            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-        }`}>
+        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 border ${getBadgeClasses(getLanguageConfig(language).badgeColor)}`}>
           <Code className="w-3 h-3" />
-          <span>{language === 'python' ? 'Python' : 'R'}</span>
+          <span>{getLanguageConfig(language).name}</span>
         </span>
         {isShared && (
           <span className="text-xs bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full flex items-center gap-1 border border-purple-500/20">
