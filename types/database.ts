@@ -1,5 +1,7 @@
 // Core database entity types
 
+export type Language = 'r' | 'python'
+
 export interface Project {
   id: string
   user_id: string
@@ -8,6 +10,7 @@ export interface Project {
   code: string | null
   hipaa_compliant: boolean
   context_window: string | null
+  language: Language
   created_at: string
   updated_at: string
 }
@@ -49,6 +52,7 @@ export interface CodeVersion {
   plot_url: string | null
   description: string | null
   user_id: string
+  language: Language
   created_at: string
 }
 
