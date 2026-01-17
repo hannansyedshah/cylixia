@@ -46,4 +46,8 @@ Include code snippets only when they illustrate your answer.`,
   defaultCode: '# Your R code will appear here\n',
   monacoLanguage: 'r',
   badgeColor: 'blue',
+  mockCodeTemplate: `library(ggplot2)
+
+# Create your visualization
+ggplot(data, aes(x, y)) + geom_point()`,
 }
