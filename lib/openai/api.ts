@@ -17,7 +17,7 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
     const completion = await client.chat.completions.create({
       model: CONFIG.model,
       messages: [
-        { role: 'system', content: getSystemPrompt(request.mode, request.isNistProject) },
+        { role: 'system', content: getSystemPrompt(request.mode, request.isNistProject, request.language) },
         { role: 'user', content: buildUserMessage(request) }
       ],
       temperature: CONFIG.temperature,
@@ -25,7 +25,7 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
     })
 
     const responseText = completion.choices[0]?.message?.content || ''
-    return parseResponse(responseText, request.mode)
+    return parseResponse(responseText, request.mode, request.language)
   } catch (error) {
     handleApiError(error)
   }
