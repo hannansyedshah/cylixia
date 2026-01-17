@@ -1,14 +1,14 @@
-import type { OpenAIMode } from '@/types/openai'
-import { BASE_PROMPT, PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from './base'
-import { GENERATE_OUTPUT_FORMAT } from './generate'
-import { ASK_OUTPUT_FORMAT } from './ask'
+import type { OpenAIMode, Language } from '@/types/openai'
+import { getLanguageConfig } from '../languages'
 import { NIST_ADDENDUM } from './nist'
 
-export { PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL }
+export const PRIVACY_NOTE_RANDOMIZED = '⚠️ NOTE: This CSV data has been RANDOMIZED for privacy protection. Use for structural analysis only.'
+export const PRIVACY_NOTE_ORIGINAL = '✓ NOTE: This is ORIGINAL data with real values.'
 
-export function getSystemPrompt(mode: OpenAIMode, isNistProject: boolean): string {
+export function getSystemPrompt(mode: OpenAIMode, isNistProject: boolean, language: Language): string {
+  const config = getLanguageConfig(language)
   const nist = isNistProject ? NIST_ADDENDUM : ''
-  const outputFormat = mode === 'generate' ? GENERATE_OUTPUT_FORMAT : ASK_OUTPUT_FORMAT
+  const outputFormat = mode === 'generate' ? config.generateFormat : config.askFormat
 
-  return `${BASE_PROMPT}${nist}${outputFormat}`
+  return `${config.basePrompt}${nist}${outputFormat}`
 }
