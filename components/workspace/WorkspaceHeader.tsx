@@ -6,13 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Mascot } from '@/components/homepage/Mascot'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { getProfile } from '@/lib/db/profile'
-import { ArrowLeft, Shield, Edit3, Database, Users } from 'lucide-react'
+import { ArrowLeft, Shield, Edit3, Database, Users, Code } from 'lucide-react'
 import type { OpenAIMode } from '@/types/openai'
+import type { Language } from '@/types/database'
 import { CollaboratorsModal } from '@/components/workspace/CollaboratorsModal'
 
 interface WorkspaceHeaderProps {
   projectId: string
   projectName: string
+  language: Language
   isNist: boolean
   isOwner: boolean
   hasContext: boolean
@@ -30,6 +32,7 @@ interface WorkspaceHeaderProps {
 export function WorkspaceHeader({
   projectId,
   projectName,
+  language,
   isNist,
   isOwner,
   hasContext,
@@ -110,6 +113,14 @@ export function WorkspaceHeader({
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900/50">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold text-white truncate max-w-[300px]">{projectName}</h1>
+          <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 border ${
+            language === 'python'
+              ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+              : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+          }`}>
+            <Code className="h-3 w-3" />
+            {language === 'python' ? 'Python' : 'R'}
+          </span>
           {isNist ? (
             <span className="px-2 py-0.5 text-xs font-medium bg-teal-500/20 text-teal-400 rounded-full flex items-center gap-1 border border-teal-500/30">
               <Shield className="h-3 w-3" /> NIST
