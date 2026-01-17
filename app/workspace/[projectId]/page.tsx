@@ -134,6 +134,7 @@ export default function WorkspacePage() {
               projectId={projectId}
               projectName={project.name}
               loading={executingCode}
+              language={project.language}
               onDeletePlot={handleDeletePlot}
             />
           </div>
