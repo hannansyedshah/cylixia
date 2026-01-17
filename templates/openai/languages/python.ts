@@ -47,4 +47,10 @@ Include code snippets only when they illustrate your answer.`,
   defaultCode: '# Your Python code will appear here\n',
   monacoLanguage: 'python',
   badgeColor: 'yellow',
+  mockCodeTemplate: `import pandas as pd
+import matplotlib.pyplot as plt
+
+# Create your visualization
+plt.plot(data['x'], data['y'])
+plt.show()`,
 }
