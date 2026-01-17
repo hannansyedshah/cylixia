@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { X, Shield, FolderPlus } from 'lucide-react'
 import type { Language } from '@/types/database'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CreateProjectModalProps {
   onClose: () => void
@@ -84,28 +85,20 @@ export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProp
                 Language
               </Label>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLanguage('r')}
-                  className={`flex-1 h-11 rounded-lg font-medium transition-all ${
-                    language === 'r'
-                      ? 'bg-emerald-500 text-black'
-                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300'
-                  }`}
-                >
-                  R
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage('python')}
-                  className={`flex-1 h-11 rounded-lg font-medium transition-all ${
-                    language === 'python'
-                      ? 'bg-emerald-500 text-black'
-                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300'
-                  }`}
-                >
-                  Python
-                </button>
+                {(['r', 'python'] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setLanguage(lang)}
+                    className={`flex-1 h-11 rounded-lg font-medium transition-all ${
+                      language === lang
+                        ? 'bg-emerald-500 text-black'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300'
+                    }`}
+                  >
+                    {getLanguageConfig(lang).name}
+                  </button>
+                ))}
               </div>
             </div>
 
