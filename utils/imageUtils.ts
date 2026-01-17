@@ -1,6 +1,6 @@
 import type { AllowedMimeType, AttachedImage, ValidationResult } from '@/types/image'
 
-export const MAX_IMAGE_SIZE = 4 * 1024 * 1024 // 4MB
+export const MAX_IMAGE_SIZE = 4 * 1024 * 1024
 export const MAX_IMAGE_COUNT = 3
 export const ALLOWED_TYPES: AllowedMimeType[] = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
 
