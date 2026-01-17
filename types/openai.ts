@@ -1,4 +1,5 @@
-// OpenAI API types for R code generation
+// OpenAI API types for code generation
+import type { Language } from '@/templates/openai/languages'
 
 export type OpenAIMode = 'generate' | 'ask'
 
@@ -15,6 +16,7 @@ export interface OpenAIRequest {
   privacyMode: boolean
   contextWindow?: string
   isNistProject: boolean
+  language: Language
 }
 
 export interface OpenAIResponse {

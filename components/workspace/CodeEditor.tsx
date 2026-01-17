@@ -1,18 +1,23 @@
 'use client'
 
 import { Editor } from '@monaco-editor/react'
+import type { Language } from '@/templates/openai/languages'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CodeEditorProps {
   value: string
   onChange: (value: string) => void
   readOnly?: boolean
+  language?: Language
 }
 
-export function CodeEditor({ value, onChange, readOnly = false }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, readOnly = false, language = 'r' }: CodeEditorProps) {
+  const monacoLanguage = getLanguageConfig(language).monacoLanguage
   return (
     <Editor
       height="100%"
-      defaultLanguage="r"
+      defaultLanguage={monacoLanguage}
+      language={monacoLanguage}
       value={value}
       onChange={(value) => onChange(value || '')}
       theme="vs-dark"

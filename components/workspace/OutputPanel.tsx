@@ -5,6 +5,7 @@ import { PlotViewer } from './PlotViewer'
 import { TerminalView } from './TerminalView'
 import { CodeExecutionLoading } from './LoadingStates'
 import { BarChart3 } from 'lucide-react'
+import type { Language } from '@/templates/openai/languages'
 
 interface OutputPanelProps {
   plotUrl: string | null
@@ -14,10 +15,11 @@ interface OutputPanelProps {
   projectId: string
   projectName: string
   loading?: boolean
+  language: Language
   onDeletePlot?: (index: number) => void
 }
 
-export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, loading = false, onDeletePlot }: OutputPanelProps) {
+export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, loading = false, language, onDeletePlot }: OutputPanelProps) {
   const [showTerminal, setShowTerminal] = useState(false)
 
   return (
@@ -57,7 +59,7 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, 
         {/* Code Execution Loading Overlay */}
         {loading && (
           <div className="absolute inset-0 z-20 bg-zinc-900/95 backdrop-blur-sm flex items-center justify-center">
-            <CodeExecutionLoading />
+            <CodeExecutionLoading language={language} />
           </div>
         )}
 

@@ -65,6 +65,7 @@ export default function WorkspacePage() {
     <WorkspaceLayout
       projectId={projectId}
       projectName={project.name}
+      language={project.language}
       isNist={project.hipaa_compliant}
       isOwner={isOwner}
       hasContext={!!contextWindow}
@@ -115,6 +116,7 @@ export default function WorkspacePage() {
               loading={loading || executingCode}
               focusMode={focusMode}
               readOnly={!canEdit}
+              language={project.language}
               onFocusModeChange={setFocusMode}
               onChange={handleCodeChange}
               onRun={handleRunCode}
@@ -132,6 +134,7 @@ export default function WorkspacePage() {
               projectId={projectId}
               projectName={project.name}
               loading={executingCode}
+              language={project.language}
               onDeletePlot={handleDeletePlot}
             />
           </div>

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { Language } from '@/templates/openai/languages'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface AILoadingProps {
   elapsedSeconds: number
@@ -53,9 +55,10 @@ export function AILoading({ elapsedSeconds, estimatedSeconds }: AILoadingProps) 
 
 interface CodeExecutionLoadingProps {
   className?: string
+  language?: Language
 }
 
-export function CodeExecutionLoading({ className = '' }: CodeExecutionLoadingProps) {
+export function CodeExecutionLoading({ className = '', language = 'r' }: CodeExecutionLoadingProps) {
   const [dots, setDots] = useState<Array<{ x: number; y: number; delay: number }>>([])
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export function CodeExecutionLoading({ className = '' }: CodeExecutionLoadingPro
       </div>
 
       {/* Text */}
-      <p className="text-sm font-medium text-zinc-300">Executing R Code</p>
+      <p className="text-sm font-medium text-zinc-300">Executing {getLanguageConfig(language).name} Code</p>
 
       {/* Circular progress ring */}
       <svg className="absolute w-32 h-32 -z-10 opacity-10" viewBox="0 0 100 100">

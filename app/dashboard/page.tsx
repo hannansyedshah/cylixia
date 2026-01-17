@@ -151,6 +151,7 @@ export default function DashboardPage() {
                   updatedAt={new Date(project.updated_at).getTime()}
                   isShared={project.is_shared || project.user_id !== user?.id}
                   isNistCompliant={project.hipaa_compliant}
+                  language={project.language}
                   onDelete={handleDeleteProject}
                   onEdit={handleEditProject}
                 />

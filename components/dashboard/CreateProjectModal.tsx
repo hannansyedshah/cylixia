@@ -5,21 +5,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { X, Shield, FolderPlus } from 'lucide-react'
+import type { Language } from '@/templates/openai/languages'
+import { SUPPORTED_LANGUAGES, getLanguageConfig } from '@/templates/openai/languages'
 
 interface CreateProjectModalProps {
   onClose: () => void
-  onCreate: (name: string, description: string, hipaaCompliant: boolean) => void
+  onCreate: (name: string, description: string, hipaaCompliant: boolean, language: Language) => void
 }
 
 export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [hipaaCompliant, setHipaaCompliant] = useState(false)
+  const [language, setLanguage] = useState<Language>('r')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (name.trim()) {
-      onCreate(name, description, hipaaCompliant)
+      onCreate(name, description, hipaaCompliant, language)
       onClose()
     }
   }
@@ -75,6 +78,28 @@ export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProp
                 onChange={(e) => setDescription(e.target.value)}
                 className="h-12 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-zinc-300">
+                Language
+              </Label>
+              <div className="flex gap-2">
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setLanguage(lang)}
+                    className={`flex-1 h-11 rounded-lg font-medium transition-all ${
+                      language === lang
+                        ? 'bg-emerald-500 text-black'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-300'
+                    }`}
+                  >
+                    {getLanguageConfig(lang).name}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-800/50 border border-teal-500/20">

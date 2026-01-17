@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { CodeEditor } from './CodeEditor'
 import { VersionHistory } from './VersionHistory'
 import { Play, Maximize2, Minimize2, Code2 } from 'lucide-react'
+import type { Language } from '@/templates/openai/languages'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CodePanelProps {
   code: string
@@ -12,6 +14,7 @@ interface CodePanelProps {
   loading: boolean
   focusMode: boolean
   readOnly?: boolean
+  language: Language
   onFocusModeChange: (focusMode: boolean) => void
   onChange: (code: string) => void
   onRun: () => void
@@ -26,6 +29,7 @@ export function CodePanel({
   loading,
   focusMode,
   readOnly = false,
+  language,
   onFocusModeChange,
   onChange,
   onRun,
@@ -40,7 +44,7 @@ export function CodePanel({
         <div className="flex items-center gap-4">
           <span className="text-sm font-semibold flex items-center text-white">
             <Code2 className="h-4 w-4 mr-2 text-emerald-500" />
-            R Code Editor
+            {getLanguageConfig(language).name} Code Editor
           </span>
           <VersionHistory
             projectId={projectId}
@@ -74,7 +78,7 @@ export function CodePanel({
 
       {/* Editor */}
       <div className="flex-1 min-h-0">
-        <CodeEditor value={code} onChange={onChange} readOnly={readOnly} />
+        <CodeEditor value={code} onChange={onChange} readOnly={readOnly} language={language} />
       </div>
     </div>
   )

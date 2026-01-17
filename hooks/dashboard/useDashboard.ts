@@ -6,6 +6,7 @@ import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects'
 import type { Project } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 
 interface DashboardProject extends Project {
   is_shared?: boolean
@@ -83,9 +84,9 @@ export function useDashboard() {
   }, [projects, filterType, searchQuery])
 
   // Handlers
-  const handleCreateProject = async (name: string, description: string, hipaaCompliant: boolean = false) => {
+  const handleCreateProject = async (name: string, description: string, hipaaCompliant: boolean = false, language: Language = 'r') => {
     try {
-      const project = await createProject({ name, description, hipaaCompliant })
+      const project = await createProject({ name, description, hipaaCompliant, language })
       if (!project) {
         alert('A project with that name already exists. Please choose a different name.')
         return

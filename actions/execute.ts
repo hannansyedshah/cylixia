@@ -2,13 +2,15 @@
 
 import { savePlots } from '@/lib/db/plots'
 import { canEditProject } from '@/lib/db/collaborators'
+import { getLanguageConfig } from '@/templates/openai/languages'
 import type { ExecuteRequest, ExecuteResponse, RawExecuteResponse } from '@/types/execute'
 
-const R_EXECUTION_URL = process.env.R_EXECUTION_URL!
-
 export async function executeCode(request: ExecuteRequest): Promise<ExecuteResponse> {
-  if (!R_EXECUTION_URL) {
-    return { stderr: 'R_EXECUTION_URL not configured' }
+  const config = getLanguageConfig(request.language)
+  const executionUrl = process.env[config.executionUrlEnvVar]
+
+  if (!executionUrl) {
+    return { stderr: `${config.name} execution service not configured` }
   }
 
   if (request.projectId) {
@@ -19,7 +21,7 @@ export async function executeCode(request: ExecuteRequest): Promise<ExecuteRespo
   }
 
   try {
-    const response = await fetch(R_EXECUTION_URL, {
+    const response = await fetch(executionUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

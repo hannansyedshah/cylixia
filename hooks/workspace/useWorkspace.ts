@@ -193,7 +193,8 @@ export function useWorkspace(projectId: string) {
         images,
         privacyMode,
         contextWindow: project.hipaa_compliant ? contextWindow || undefined : undefined,
-        isNistProject: project.hipaa_compliant
+        isNistProject: project.hipaa_compliant,
+        language: project.language
       })
 
       if (mode !== 'ask' && data.code) {
@@ -227,7 +228,7 @@ export function useWorkspace(projectId: string) {
         .filter(d => d.csvText)
         .map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) }))
 
-      const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId })
+      const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId, language: project.language })
 
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
