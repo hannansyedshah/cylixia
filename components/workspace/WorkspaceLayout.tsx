@@ -2,11 +2,13 @@
 
 import { WorkspaceHeader } from './WorkspaceHeader'
 import type { OpenAIMode } from '@/types/openai'
+import type { Language } from '@/types/database'
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode
   projectId: string
   projectName: string
+  language: Language
   isNist: boolean
   isOwner: boolean
   hasContext: boolean
@@ -25,6 +27,7 @@ export function WorkspaceLayout({
   children,
   projectId,
   projectName,
+  language,
   isNist,
   isOwner,
   hasContext,
@@ -43,6 +46,7 @@ export function WorkspaceLayout({
       <WorkspaceHeader
         projectId={projectId}
         projectName={projectName}
+        language={language}
         isNist={isNist}
         isOwner={isOwner}
         hasContext={hasContext}
