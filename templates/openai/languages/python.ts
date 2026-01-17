@@ -45,4 +45,6 @@ Focus on clear, educational explanations.
 Include code snippets only when they illustrate your answer.`,
   codeIndicators: ['import ', 'def ', 'plt.'],
   defaultCode: '# Your Python code will appear here\n',
+  monacoLanguage: 'python',
+  badgeColor: 'yellow',
 }
