@@ -7,13 +7,6 @@ import type { Language } from '@/templates/openai/languages'
 import { getResponseMessage } from '@/templates/openai/responseMessages'
 import { getLanguageConfig } from '@/templates/openai/languages'
 
-interface ParsedJson {
-  explanation?: string
-  plot_description?: string
-  next_suggestions?: string[]
-  [key: string]: unknown
-}
-
 export function parseResponse(text: string, mode: OpenAIMode, language: Language = 'r'): OpenAIResponse {
   const config = getLanguageConfig(language)
   const jsonResponse = tryParseJson(text)
@@ -23,9 +16,9 @@ export function parseResponse(text: string, mode: OpenAIMode, language: Language
     return {
       code,
       message: getResponseMessage(mode),
-      explanation: jsonResponse.explanation,
-      plotDescription: jsonResponse.plot_description,
-      nextSuggestions: jsonResponse.next_suggestions
+      explanation: jsonResponse.explanation as string | undefined,
+      plotDescription: jsonResponse.plot_description as string | undefined,
+      nextSuggestions: jsonResponse.next_suggestions as string[] | undefined
     }
   }
 
@@ -50,7 +43,7 @@ export function parseResponse(text: string, mode: OpenAIMode, language: Language
   }
 }
 
-function tryParseJson(text: string): ParsedJson | null {
+function tryParseJson(text: string): Record<string, unknown> | null {
   try {
     let jsonText = text
 
