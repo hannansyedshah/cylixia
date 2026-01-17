@@ -2,21 +2,29 @@
  * OpenAI Response Parser
  */
 
-import type { OpenAIResponse, OpenAIMode } from '@/types/openai'
+import type { OpenAIResponse, OpenAIMode, Language } from '@/types/openai'
 import { getResponseMessage } from '@/templates/openai/responseMessages'
+import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface ParsedJson {
   r_code?: string
+  python_code?: string
   explanation?: string
   plot_description?: string
   next_suggestions?: string[]
 }
 
-export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
+export function parseResponse(text: string, mode: OpenAIMode, language: Language = 'r'): OpenAIResponse {
+  const config = getLanguageConfig(language)
   const jsonResponse = tryParseJson(text)
+
   if (jsonResponse) {
+    const code = (jsonResponse as Record<string, unknown>)[config.codeField] as string | undefined
+      || jsonResponse.r_code
+      || jsonResponse.python_code
+      || ''
     return {
-      code: jsonResponse.r_code || '',
+      code,
       message: getResponseMessage(mode),
       explanation: jsonResponse.explanation,
       plotDescription: jsonResponse.plot_description,
@@ -24,7 +32,7 @@ export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
     }
   }
 
-  const codeBlock = extractCodeBlock(text)
+  const codeBlock = extractCodeBlock(text, config.codeBlockTag)
   if (codeBlock) {
     return {
       code: codeBlock,
@@ -32,7 +40,7 @@ export function parseResponse(text: string, mode: OpenAIMode): OpenAIResponse {
     }
   }
 
-  if (looksLikeRCode(text)) {
+  if (looksLikeCode(text, config.codeIndicators)) {
     return {
       code: text.trim(),
       message: getResponseMessage('generate')
@@ -65,11 +73,12 @@ function tryParseJson(text: string): ParsedJson | null {
   }
 }
 
-function extractCodeBlock(text: string): string | null {
-  const match = text.match(/```r?\n?([\s\S]*?)```/)
+function extractCodeBlock(text: string, codeBlockTag: string): string | null {
+  const pattern = new RegExp(`\`\`\`(?:${codeBlockTag})?\\n?([\\s\\S]*?)\`\`\``)
+  const match = text.match(pattern)
   return match ? match[1].trim() : null
 }
 
-function looksLikeRCode(text: string): boolean {
-  return text.includes('library(') || text.includes('ggplot(') || text.includes('<-')
+function looksLikeCode(text: string, codeIndicators: string[]): boolean {
+  return codeIndicators.some(indicator => text.includes(indicator))
 }
