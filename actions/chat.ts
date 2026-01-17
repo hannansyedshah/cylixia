@@ -57,7 +57,6 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     }
   }
 
-  // Prepare CSV files (randomize if privacy mode enabled)
   let csvFilesPayload: Array<{ fileName: string; csvData: string }> = []
 
   if (Array.isArray(csvFiles) && csvFiles.length > 0) {
