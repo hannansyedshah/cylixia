@@ -1,18 +1,21 @@
 'use client'
 
 import { Editor } from '@monaco-editor/react'
+import type { Language } from '@/types/database'
 
 interface CodeEditorProps {
   value: string
   onChange: (value: string) => void
   readOnly?: boolean
+  language?: Language
 }
 
-export function CodeEditor({ value, onChange, readOnly = false }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, readOnly = false, language = 'r' }: CodeEditorProps) {
   return (
     <Editor
       height="100%"
-      defaultLanguage="r"
+      defaultLanguage={language}
+      language={language}
       value={value}
       onChange={(value) => onChange(value || '')}
       theme="vs-dark"
