@@ -3,15 +3,17 @@
  */
 
 import type { OpenAIRequest, MessageContent, TextContent, ImageContent } from '@/types/openai'
+import { getLanguageConfig } from '../languages'
 import { PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from '../prompts/systemPrompt'
 
 export function buildUserMessage(request: OpenAIRequest): MessageContent {
   const sections: string[] = []
+  const config = getLanguageConfig(request.language)
 
   sections.push(`USER REQUEST: ${request.prompt}`)
 
   if (request.existingCode) {
-    sections.push(`CURRENT R CODE:\n\`\`\`r\n${request.existingCode}\n\`\`\``)
+    sections.push(`CURRENT ${config.name.toUpperCase()} CODE:\n\`\`\`${config.codeBlockTag}\n${request.existingCode}\n\`\`\``)
   }
 
   if (request.csvFiles && request.csvFiles.length > 0) {
