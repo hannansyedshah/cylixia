@@ -116,6 +116,7 @@ export default function WorkspacePage() {
               loading={loading || executingCode}
               focusMode={focusMode}
               readOnly={!canEdit}
+              language={project.language}
               onFocusModeChange={setFocusMode}
               onChange={handleCodeChange}
               onRun={handleRunCode}
