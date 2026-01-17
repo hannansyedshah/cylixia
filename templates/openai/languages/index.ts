@@ -11,6 +11,16 @@ export interface LanguageConfig {
   askFormat: string
   codeIndicators: string[]
   defaultCode: string
+  monacoLanguage: string
+  badgeColor: 'blue' | 'yellow'
+}
+
+export function getBadgeClasses(color: string): string {
+  const colors: Record<string, string> = {
+    blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  }
+  return colors[color] || colors.blue
 }
 
 const languageConfigs: Record<Language, LanguageConfig> = {
