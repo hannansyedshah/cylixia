@@ -2,10 +2,10 @@
  * User Message Builder for Code Generation
  */
 
-import type { OpenAIRequest } from '@/types/openai'
+import type { OpenAIRequest, MessageContent, TextContent, ImageContent } from '@/types/openai'
 import { PRIVACY_NOTE_RANDOMIZED, PRIVACY_NOTE_ORIGINAL } from '../prompts/systemPrompt'
 
-export function buildUserMessage(request: OpenAIRequest): string {
+export function buildUserMessage(request: OpenAIRequest): MessageContent {
   const sections: string[] = []
 
   sections.push(`USER REQUEST: ${request.prompt}`)
@@ -29,5 +29,22 @@ export function buildUserMessage(request: OpenAIRequest): string {
     sections.push(`RESEARCH CONTEXT:\n${request.contextWindow}`)
   }
 
-  return sections.join('\n\n')
+  const textContent = sections.join('\n\n')
+
+  if (request.images && request.images.length > 0) {
+    const content: Array<TextContent | ImageContent> = [
+      { type: 'text', text: textContent }
+    ]
+
+    for (const image of request.images) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: `data:${image.mimeType};base64,${image.base64Data}` }
+      })
+    }
+
+    return content
+  }
+
+  return textContent
 }

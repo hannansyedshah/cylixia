@@ -1,16 +1,21 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import type { AttachedImage } from '@/types/image'
+import { processImageFile, MAX_IMAGE_COUNT } from '@/utils/imageUtils'
 
 interface UseChatPanelOptions {
   loading: boolean
-  onSendMessage: (prompt: string) => void
+  onSendMessage: (prompt: string, images?: AttachedImage[]) => void
 }
 
 export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
   const [prompt, setPrompt] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([])
+  const [imageError, setImageError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -26,9 +31,11 @@ export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
 
   const handleSend = useCallback(() => {
     if (!prompt.trim() || loading) return
-    onSendMessage(prompt)
+    onSendMessage(prompt, attachedImages.length > 0 ? attachedImages : undefined)
     setPrompt('')
-  }, [prompt, loading, onSendMessage])
+    setAttachedImages([])
+    setImageError(null)
+  }, [prompt, loading, onSendMessage, attachedImages])
 
   const handleCopy = useCallback(async (code: string, id: string) => {
     await navigator.clipboard.writeText(code)
@@ -38,6 +45,30 @@ export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
 
   const isExpanded = useCallback((id: string) => expandedIds.has(id), [expandedIds])
 
+  const handleAttachImage = useCallback(async (files: FileList | null) => {
+    if (!files?.length) return
+    setImageError(null)
+
+    const slots = MAX_IMAGE_COUNT - attachedImages.length
+    if (slots <= 0) return setImageError(`Maximum ${MAX_IMAGE_COUNT} images allowed`)
+
+    try {
+      const images = await Promise.all(
+        Array.from(files).slice(0, slots).map(processImageFile)
+      )
+      setAttachedImages(prev => [...prev, ...images])
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : 'Failed to process image')
+    }
+  }, [attachedImages.length])
+
+  const handleRemoveImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index))
+    setImageError(null)
+  }
+
+  const triggerFileInput = () => fileInputRef.current?.click()
+
   return {
     prompt,
     setPrompt,
@@ -45,6 +76,12 @@ export function useChatPanel({ loading, onSendMessage }: UseChatPanelOptions) {
     isExpanded,
     toggleExpand,
     handleSend,
-    handleCopy
+    handleCopy,
+    attachedImages,
+    imageError,
+    fileInputRef,
+    handleAttachImage,
+    handleRemoveImage,
+    triggerFileInput
   }
 }
