@@ -65,6 +65,7 @@ export default function WorkspacePage() {
     <WorkspaceLayout
       projectId={projectId}
       projectName={project.name}
+      language={project.language}
       isNist={project.hipaa_compliant}
       isOwner={isOwner}
       hasContext={!!contextWindow}
