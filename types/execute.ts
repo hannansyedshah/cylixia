@@ -1,7 +1,10 @@
+export type Language = 'r' | 'python'
+
 export interface ExecuteRequest {
   code: string
   csv_files?: Array<{ filename: string; data_base64: string }>
   projectId?: string
+  language: Language
 }
 
 export interface RawExecuteResponse {
