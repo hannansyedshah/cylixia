@@ -1,6 +1,5 @@
 // Core database entity types
-
-export type Language = 'r' | 'python'
+import type { Language } from '@/templates/openai/languages'
 
 export interface Project {
   id: string

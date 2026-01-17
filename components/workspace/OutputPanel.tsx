@@ -5,7 +5,7 @@ import { PlotViewer } from './PlotViewer'
 import { TerminalView } from './TerminalView'
 import { CodeExecutionLoading } from './LoadingStates'
 import { BarChart3 } from 'lucide-react'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 
 interface OutputPanelProps {
   plotUrl: string | null

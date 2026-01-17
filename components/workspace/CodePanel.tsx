@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { CodeEditor } from './CodeEditor'
 import { VersionHistory } from './VersionHistory'
 import { Play, Maximize2, Minimize2, Code2 } from 'lucide-react'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CodePanelProps {

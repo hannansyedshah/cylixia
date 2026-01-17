@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { X, Shield, FolderPlus } from 'lucide-react'
-import type { Language } from '@/types/database'
-import { getLanguageConfig } from '@/templates/openai/languages'
+import type { Language } from '@/templates/openai/languages'
+import { SUPPORTED_LANGUAGES, getLanguageConfig } from '@/templates/openai/languages'
 
 interface CreateProjectModalProps {
   onClose: () => void
@@ -85,7 +85,7 @@ export function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProp
                 Language
               </Label>
               <div className="flex gap-2">
-                {(['r', 'python'] as const).map((lang) => (
+                {SUPPORTED_LANGUAGES.map((lang) => (
                   <button
                     key={lang}
                     type="button"

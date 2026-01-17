@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface AILoadingProps {

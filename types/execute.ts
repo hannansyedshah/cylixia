@@ -1,4 +1,4 @@
-export type Language = 'r' | 'python'
+import type { Language } from '@/templates/openai/languages'
 
 export interface ExecuteRequest {
   code: string

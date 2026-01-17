@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { Project, Message, Language } from '@/types/database'
+import type { Project, Message } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 import { canAccessProject, canEditProject } from '@/lib/db/collaborators'
 import { getLanguageConfig } from '@/templates/openai/languages'
 

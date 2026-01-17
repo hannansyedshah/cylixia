@@ -2,16 +2,16 @@
  * OpenAI Response Parser
  */
 
-import type { OpenAIResponse, OpenAIMode, Language } from '@/types/openai'
+import type { OpenAIResponse, OpenAIMode } from '@/types/openai'
+import type { Language } from '@/templates/openai/languages'
 import { getResponseMessage } from '@/templates/openai/responseMessages'
 import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface ParsedJson {
-  r_code?: string
-  python_code?: string
   explanation?: string
   plot_description?: string
   next_suggestions?: string[]
+  [key: string]: unknown
 }
 
 export function parseResponse(text: string, mode: OpenAIMode, language: Language = 'r'): OpenAIResponse {
@@ -19,10 +19,7 @@ export function parseResponse(text: string, mode: OpenAIMode, language: Language
   const jsonResponse = tryParseJson(text)
 
   if (jsonResponse) {
-    const code = (jsonResponse as Record<string, unknown>)[config.codeField] as string | undefined
-      || jsonResponse.r_code
-      || jsonResponse.python_code
-      || ''
+    const code = (jsonResponse[config.codeField] as string) || ''
     return {
       code,
       message: getResponseMessage(mode),

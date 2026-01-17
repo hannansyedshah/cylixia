@@ -1,4 +1,5 @@
-import type { OpenAIMode, Language } from '@/types/openai'
+import type { OpenAIMode } from '@/types/openai'
+import type { Language } from '../languages'
 import { getLanguageConfig } from '../languages'
 import { NIST_ADDENDUM } from './nist'
 

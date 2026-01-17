@@ -2,17 +2,15 @@
 
 import { savePlots } from '@/lib/db/plots'
 import { canEditProject } from '@/lib/db/collaborators'
+import { getLanguageConfig } from '@/templates/openai/languages'
 import type { ExecuteRequest, ExecuteResponse, RawExecuteResponse } from '@/types/execute'
 
-const R_EXECUTION_URL = process.env.R_EXECUTION_URL
-const PYTHON_EXECUTION_URL = process.env.PYTHON_EXECUTION_URL
-
 export async function executeCode(request: ExecuteRequest): Promise<ExecuteResponse> {
-  const executionUrl = request.language === 'python' ? PYTHON_EXECUTION_URL : R_EXECUTION_URL
-  const languageLabel = request.language === 'python' ? 'Python' : 'R'
+  const config = getLanguageConfig(request.language)
+  const executionUrl = process.env[config.executionUrlEnvVar]
 
   if (!executionUrl) {
-    return { stderr: `${languageLabel} execution service not configured` }
+    return { stderr: `${config.name} execution service not configured` }
   }
 
   if (request.projectId) {

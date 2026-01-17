@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Trash2, FolderOpen, Edit2, Calendar, Users, Shield, Layers, Code } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 import { getLanguageConfig, getBadgeClasses } from '@/templates/openai/languages'
 
 interface ProjectCardProps {

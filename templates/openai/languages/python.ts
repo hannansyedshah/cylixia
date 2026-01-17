@@ -53,4 +53,5 @@ import matplotlib.pyplot as plt
 # Create your visualization
 plt.plot(data['x'], data['y'])
 plt.show()`,
+  executionUrlEnvVar: 'PYTHON_EXECUTION_URL',
 }

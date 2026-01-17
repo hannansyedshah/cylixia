@@ -3,7 +3,8 @@
 import { callOpenAI } from '@/lib/openai/api'
 import { randomizeCSVData } from '@/utils/dataRandomizer'
 import { getLanguageConfig } from '@/templates/openai/languages'
-import type { OpenAIMode, Language } from '@/types/openai'
+import type { Language } from '@/templates/openai/languages'
+import type { OpenAIMode } from '@/types/openai'
 
 interface ChatRequest {
   prompt: string

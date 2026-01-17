@@ -8,7 +8,7 @@ import { useSessionStore } from '@/lib/stores/sessionStore'
 import { getProfile } from '@/lib/db/profile'
 import { ArrowLeft, Shield, Edit3, Database, Users, Code } from 'lucide-react'
 import type { OpenAIMode } from '@/types/openai'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 import { CollaboratorsModal } from '@/components/workspace/CollaboratorsModal'
 import { getLanguageConfig, getBadgeClasses } from '@/templates/openai/languages'
 

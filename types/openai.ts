@@ -1,7 +1,7 @@
 // OpenAI API types for code generation
+import type { Language } from '@/templates/openai/languages'
 
 export type OpenAIMode = 'generate' | 'ask'
-export type Language = 'r' | 'python'
 
 export type TextContent = { type: 'text'; text: string }
 export type ImageContent = { type: 'image_url'; image_url: { url: string } }

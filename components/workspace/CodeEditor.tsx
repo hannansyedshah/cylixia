@@ -1,7 +1,7 @@
 'use client'
 
 import { Editor } from '@monaco-editor/react'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 import { getLanguageConfig } from '@/templates/openai/languages'
 
 interface CodeEditorProps {

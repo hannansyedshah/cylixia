@@ -1,6 +1,9 @@
-import type { Language } from '@/types/openai'
 import { rConfig } from './r'
 import { pythonConfig } from './python'
+
+// Single source of truth for supported languages
+export const SUPPORTED_LANGUAGES = ['r', 'python'] as const
+export type Language = typeof SUPPORTED_LANGUAGES[number]
 
 export interface LanguageConfig {
   name: string
@@ -14,6 +17,7 @@ export interface LanguageConfig {
   monacoLanguage: string
   badgeColor: 'blue' | 'yellow'
   mockCodeTemplate: string
+  executionUrlEnvVar: string
 }
 
 export function getBadgeClasses(color: string): string {

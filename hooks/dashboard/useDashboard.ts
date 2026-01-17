@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useSessionStore } from '@/lib/stores/sessionStore'
 import { supabase } from '@/lib/supabase/client'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects'
-import type { Project, Language } from '@/types/database'
+import type { Project } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 
 interface DashboardProject extends Project {
   is_shared?: boolean

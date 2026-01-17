@@ -2,7 +2,7 @@
 
 import { WorkspaceHeader } from './WorkspaceHeader'
 import type { OpenAIMode } from '@/types/openai'
-import type { Language } from '@/types/database'
+import type { Language } from '@/templates/openai/languages'
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode

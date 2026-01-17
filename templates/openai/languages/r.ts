@@ -50,4 +50,5 @@ Include code snippets only when they illustrate your answer.`,
 
 # Create your visualization
 ggplot(data, aes(x, y)) + geom_point()`,
+  executionUrlEnvVar: 'R_EXECUTION_URL',
 }
