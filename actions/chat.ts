@@ -2,6 +2,7 @@
 
 import { callOpenAI } from '@/lib/openai/api'
 import { randomizeCSVData } from '@/utils/dataRandomizer'
+import { getLanguageConfig } from '@/templates/openai/languages'
 import type { OpenAIMode, Language } from '@/types/openai'
 
 interface ChatRequest {
@@ -24,6 +25,17 @@ interface ChatResponse {
   nextSuggestions?: string[]
 }
 
+function getMockCode(language: Language, prompt: string, existingCode?: string): string {
+  const config = getLanguageConfig(language)
+  if (existingCode) {
+    return `# Updated ${config.name} code based on user request\n${existingCode}\n\n# Apply changes here`
+  }
+  if (language === 'python') {
+    return `# Generated Python code for: ${prompt}\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n# Create your visualization\nplt.plot(data['x'], data['y'])\nplt.show()`
+  }
+  return `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
+}
+
 export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
   const {
     prompt,
@@ -37,19 +49,13 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     language
   } = request
 
+  const config = getLanguageConfig(language)
+
   // Check if API key is configured
   if (!process.env.OPENAI_API_KEY) {
-    const mockCode = language === 'python'
-      ? existingCode
-        ? `# Updated Python code based on user request\n${existingCode}\n\n# Apply changes here`
-        : `# Generated Python code for: ${prompt}\nimport pandas as pd\nimport matplotlib.pyplot as plt\n\n# Create your visualization\nplt.plot(data['x'], data['y'])\nplt.show()`
-      : existingCode
-        ? `# Updated R code based on user request\n${existingCode}\n\n# Apply changes here`
-        : `# Generated R code for: ${prompt}\nlibrary(ggplot2)\n\n# Create your visualization\nggplot(data, aes(x, y)) + geom_point()`
-
     return {
       message: 'Mock response (add OPENAI_API_KEY to use real AI)',
-      code: mockCode,
+      code: getMockCode(language, prompt, existingCode),
     }
   }
 
@@ -78,8 +84,8 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
   })
 
   // For ask mode without code, return explanation only
-  const codeIndicator = language === 'python' ? 'import ' : 'library('
-  if (mode === 'ask' && (!response.code || !response.code.includes(codeIndicator))) {
+  const hasCodeIndicator = config.codeIndicators.some(indicator => response.code?.includes(indicator))
+  if (mode === 'ask' && (!response.code || !hasCodeIndicator)) {
     return {
       message: response.explanation || response.message,
       code: undefined,
