@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Table, ChevronDown, Database } from 'lucide-react'
-import { parseCsvRow } from '@/utils/csv'
+import { parseCsv } from '@/utils/csv'
 import type { DatasetItem } from '@/types/dataset'
 
 interface DataViewerProps {
@@ -16,19 +16,8 @@ export function DataViewer({ datasets }: DataViewerProps) {
   const selectedDataset = datasets[selectedIndex]
 
   const { headers, rows } = useMemo(() => {
-    if (!selectedDataset?.csvText) {
-      return { headers: [], rows: [] }
-    }
-
-    const lines = selectedDataset.csvText.split('\n').filter(line => line.trim())
-    if (lines.length === 0) {
-      return { headers: [], rows: [] }
-    }
-
-    const headers = parseCsvRow(lines[0])
-    const rows = lines.slice(1).map(line => parseCsvRow(line))
-
-    return { headers, rows }
+    if (!selectedDataset?.csvText) return { headers: [], rows: [] }
+    return parseCsv(selectedDataset.csvText)
   }, [selectedDataset])
 
   // Empty state
