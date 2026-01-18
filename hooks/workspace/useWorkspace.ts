@@ -182,7 +182,7 @@ export function useWorkspace(projectId: string) {
       }
 
       const csvFiles = datasets
-        .filter(d => d.csvText)
+        .filter(d => d.csvText && d.includeChat)
         .map(d => ({ fileName: d.fileName, csvData: d.csvText! }))
 
       const data = await sendChat({
@@ -225,7 +225,7 @@ export function useWorkspace(projectId: string) {
 
     try {
       const csvFiles = datasets
-        .filter(d => d.csvText)
+        .filter(d => d.csvText && d.includeRun)
         .map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) }))
 
       const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId, language: project.language })

@@ -14,7 +14,11 @@ IMPORTANT GUIDELINES:
 - Add helpful comments explaining key steps
 - Use modern Python idioms and syntax (f-strings, type hints where appropriate)
 - Handle edge cases gracefully
-- Always call plt.show() after creating matplotlib/seaborn plots`,
+- Always call plt.show() after creating matplotlib/seaborn plots
+
+When CSV files are provided:
+- Load them using pd.read_csv('filename.csv') with the exact filename shown
+- Always include the read_csv() call at the start of your code`,
   generateFormat: `
 
 OUTPUT FORMAT (JSON):
