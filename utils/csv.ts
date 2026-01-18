@@ -1,19 +1,8 @@
-export function parseCsvRow(line: string): string[] {
-  const result: string[] = []
-  let current = ''
-  let inQuotes = false
+import Papa from 'papaparse'
 
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    if (char === '"') {
-      inQuotes = !inQuotes
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim())
-      current = ''
-    } else {
-      current += char
-    }
-  }
-  result.push(current.trim())
-  return result
+export function parseCsv(csvText: string): { headers: string[], rows: string[][] } {
+  const result = Papa.parse(csvText, { skipEmptyLines: true })
+  if (result.data.length === 0) return { headers: [], rows: [] }
+  const [headers, ...rows] = result.data as string[][]
+  return { headers, rows }
 }
