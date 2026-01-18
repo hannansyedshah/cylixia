@@ -3,9 +3,13 @@
 import { useState } from 'react'
 import { PlotViewer } from './PlotViewer'
 import { TerminalView } from './TerminalView'
+import { DataViewer } from './DataViewer'
 import { CodeExecutionLoading } from './LoadingStates'
 import { BarChart3 } from 'lucide-react'
 import type { Language } from '@/templates/openai/languages'
+import type { DatasetItem } from '@/types/dataset'
+
+type ViewMode = 'plot' | 'plot-terminal' | 'plot-data'
 
 interface OutputPanelProps {
   plotUrl: string | null
@@ -16,11 +20,12 @@ interface OutputPanelProps {
   projectName: string
   loading?: boolean
   language: Language
+  lastRunDatasets: DatasetItem[]
   onDeletePlot?: (index: number) => void
 }
 
-export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, loading = false, language, onDeletePlot }: OutputPanelProps) {
-  const [showTerminal, setShowTerminal] = useState(false)
+export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, projectName, loading = false, language, lastRunDatasets, onDeletePlot }: OutputPanelProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>('plot')
 
   return (
     <div className="h-full flex flex-col bg-zinc-900">
@@ -32,9 +37,9 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, 
         </span>
         <div className="flex text-xs">
           <button
-            onClick={() => setShowTerminal(false)}
+            onClick={() => setViewMode('plot')}
             className={`px-3 py-1.5 rounded-l-lg border transition-all ${
-              !showTerminal
+              viewMode === 'plot'
                 ? 'bg-zinc-700 border-zinc-600 text-white font-medium'
                 : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700'
             }`}
@@ -42,14 +47,24 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, 
             Plot Only
           </button>
           <button
-            onClick={() => setShowTerminal(true)}
-            className={`px-3 py-1.5 rounded-r-lg border-t border-r border-b transition-all ${
-              showTerminal
+            onClick={() => setViewMode('plot-terminal')}
+            className={`px-3 py-1.5 border-t border-r border-b transition-all ${
+              viewMode === 'plot-terminal'
                 ? 'bg-zinc-700 border-zinc-600 text-white font-medium'
                 : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700'
             }`}
           >
             + Terminal
+          </button>
+          <button
+            onClick={() => setViewMode('plot-data')}
+            className={`px-3 py-1.5 rounded-r-lg border-t border-r border-b transition-all ${
+              viewMode === 'plot-data'
+                ? 'bg-zinc-700 border-zinc-600 text-white font-medium'
+                : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-700'
+            }`}
+          >
+            + Data
           </button>
         </div>
       </div>
@@ -63,12 +78,19 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, 
           </div>
         )}
 
-        {showTerminal && (
+        {viewMode === 'plot-terminal' && (
           <div className="w-1/2 border-r border-zinc-700">
             <TerminalView stdout={stdout} stderr={stderr} projectId={projectId} />
           </div>
         )}
-        <div className={showTerminal ? 'w-1/2' : 'w-full'}>
+
+        {viewMode === 'plot-data' && (
+          <div className="w-1/2 border-r border-zinc-700">
+            <DataViewer datasets={lastRunDatasets} />
+          </div>
+        )}
+
+        <div className={viewMode === 'plot' ? 'w-full' : 'w-1/2'}>
           <PlotViewer
             plotUrl={plotUrl}
             plotUrls={galleryPlots}

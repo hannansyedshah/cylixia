@@ -33,6 +33,7 @@ export default function WorkspacePage() {
     stderrText,
     galleryPlots,
     lastExecutionPlots,
+    lastRunDatasets,
     datasets,
     setDatasets,
     datasetsNeedReupload,
@@ -135,6 +136,7 @@ export default function WorkspacePage() {
               projectName={project.name}
               loading={executingCode}
               language={project.language}
+              lastRunDatasets={lastRunDatasets}
               onDeletePlot={handleDeletePlot}
             />
           </div>
