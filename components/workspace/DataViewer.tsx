@@ -32,7 +32,6 @@ export function DataViewer({ datasets }: DataViewerProps) {
 
   return (
     <div className="h-full flex flex-col bg-zinc-900">
-      {/* Header with dropdown */}
       <div className="p-2 bg-zinc-800/50 border-b border-zinc-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Table className="h-4 w-4 text-blue-400" />
@@ -77,7 +76,6 @@ export function DataViewer({ datasets }: DataViewerProps) {
         )}
       </div>
 
-      {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-zinc-800">
@@ -109,7 +107,6 @@ export function DataViewer({ datasets }: DataViewerProps) {
         </table>
       </div>
 
-      {/* Footer */}
       <div className="px-3 py-1.5 bg-zinc-800/50 border-t border-zinc-700 text-xs text-zinc-500">
         {rows.length} rows × {headers.length} columns
       </div>
