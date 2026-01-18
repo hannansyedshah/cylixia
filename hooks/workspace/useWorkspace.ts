@@ -225,7 +225,6 @@ export function useWorkspace(projectId: string) {
     setExecutingCode(true)
 
     try {
-      // Capture datasets with csvText that will be sent to the executor
       const datasetsToSend = datasets.filter(d => d.csvText && d.includeRun)
 
       const csvFiles = datasetsToSend
@@ -233,7 +232,6 @@ export function useWorkspace(projectId: string) {
 
       const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId, language: project.language })
 
-      // Store the datasets that were sent for display in Data tab
       setLastRunDatasets(datasetsToSend)
 
       setStdoutText(data.stdout || '')
