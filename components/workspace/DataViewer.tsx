@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Table, ChevronDown, Database } from 'lucide-react'
+import { parseCsvRow } from '@/utils/csv'
 import type { DatasetItem } from '@/types/dataset'
 
 interface DataViewerProps {
@@ -24,29 +25,8 @@ export function DataViewer({ datasets }: DataViewerProps) {
       return { headers: [], rows: [] }
     }
 
-    // Parse CSV (simple parser - handles basic cases)
-    const parseRow = (line: string): string[] => {
-      const result: string[] = []
-      let current = ''
-      let inQuotes = false
-
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        if (char === '"') {
-          inQuotes = !inQuotes
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim())
-          current = ''
-        } else {
-          current += char
-        }
-      }
-      result.push(current.trim())
-      return result
-    }
-
-    const headers = parseRow(lines[0])
-    const rows = lines.slice(1).map(line => parseRow(line))
+    const headers = parseCsvRow(lines[0])
+    const rows = lines.slice(1).map(line => parseCsvRow(line))
 
     return { headers, rows }
   }, [selectedDataset])
