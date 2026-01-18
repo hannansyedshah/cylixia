@@ -41,6 +41,7 @@ export function useWorkspace(projectId: string) {
   const [stderrText, setStderrText] = useState('')
   const [galleryPlots, setGalleryPlots] = useState<string[]>([])
   const [lastExecutionPlots, setLastExecutionPlots] = useState<string[]>([])
+  const [lastRunDatasets, setLastRunDatasets] = useState<DatasetItem[]>([])
 
   // Datasets
   const [datasets, setDatasets] = useState<DatasetItem[]>([])
@@ -224,11 +225,14 @@ export function useWorkspace(projectId: string) {
     setExecutingCode(true)
 
     try {
-      const csvFiles = datasets
-        .filter(d => d.csvText && d.includeRun)
+      const datasetsToSend = datasets.filter(d => d.csvText && d.includeRun)
+
+      const csvFiles = datasetsToSend
         .map(d => ({ filename: d.fileName, data_base64: encodeBase64(d.csvText!) }))
 
       const data = await executeCode({ code: project.code, csv_files: csvFiles, projectId, language: project.language })
+
+      setLastRunDatasets(datasetsToSend)
 
       setStdoutText(data.stdout || '')
       setStderrText(data.stderr || '')
@@ -348,6 +352,7 @@ export function useWorkspace(projectId: string) {
     stderrText,
     galleryPlots,
     lastExecutionPlots,
+    lastRunDatasets,
 
     // Datasets
     datasets,
