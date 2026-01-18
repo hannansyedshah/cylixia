@@ -8,8 +8,7 @@ import { CodeExecutionLoading } from './LoadingStates'
 import { BarChart3 } from 'lucide-react'
 import type { Language } from '@/templates/openai/languages'
 import type { DatasetItem } from '@/types/dataset'
-
-type ViewMode = 'plot' | 'plot-terminal' | 'plot-data'
+import type { ViewMode } from '@/types/workspace'
 
 interface OutputPanelProps {
   plotUrl: string | null
