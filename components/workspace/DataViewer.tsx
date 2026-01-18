@@ -20,7 +20,6 @@ export function DataViewer({ datasets }: DataViewerProps) {
     return parseCsv(selectedDataset.csvText)
   }, [selectedDataset])
 
-  // Empty state
   if (datasets.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-zinc-500 p-4">
