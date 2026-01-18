@@ -1,5 +1,7 @@
 // Workspace and editor-related types
 
+export type ViewMode = 'plot' | 'plot-terminal' | 'plot-data'
+
 export interface ProjectUpdate {
   id: string
   code: string
