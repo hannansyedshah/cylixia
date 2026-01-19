@@ -22,7 +22,8 @@ export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse
         { role: 'system', content: getSystemPrompt(request.mode, request.isNistProject, request.language) },
         { role: 'user', content: buildUserMessage(request) }
       ],
-      max_completion_tokens: CONFIG.maxTokens.codeGeneration
+      temperature: CONFIG.temperature,
+      max_tokens: CONFIG.maxTokens.codeGeneration
     })
 
     const responseText = completion.choices[0]?.message?.content || ''
@@ -42,7 +43,8 @@ export async function generateContext(request: OpenAIContextRequest): Promise<st
         { role: 'system', content: CONTEXT_SYSTEM_PROMPT },
         { role: 'user', content: buildContextMessage(request) }
       ],
-      max_completion_tokens: CONFIG.maxTokens.contextGeneration
+      temperature: CONFIG.temperature,
+      max_tokens: CONFIG.maxTokens.contextGeneration
     })
 
     const context = completion.choices[0]?.message?.content || ''
@@ -65,7 +67,8 @@ export async function generateFormatScript(request: FormatScriptRequest): Promis
         { role: 'system', content: FORMAT_SYSTEM_PROMPT },
         { role: 'user', content: buildFormatMessage(prompt, csvSample, fileName) }
       ],
-      max_completion_tokens: CONFIG.maxTokens.codeGeneration,
+      temperature: CONFIG.temperature,
+      max_tokens: CONFIG.maxTokens.codeGeneration,
       response_format: { type: 'json_object' }
     })
 

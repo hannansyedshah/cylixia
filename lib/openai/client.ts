@@ -5,7 +5,8 @@
 import OpenAI from 'openai'
 
 export const CONFIG = {
-  model: 'o3',
+  model: 'gpt-4o',
+  temperature: 0.3,
   maxTokens: {
     codeGeneration: 4096,
     contextGeneration: 1024
