@@ -138,7 +138,7 @@ export function ChatPanel({
               type="checkbox"
               checked={privacyMode}
               onChange={(e) => onPrivacyModeChange(e.target.checked)}
-              className="w-3 h-3 rounded border-zinc-600 bg-zinc-700 text-emerald-500 focus:ring-emerald-500"
+              className="w-3 h-3 rounded border-zinc-600 bg-zinc-700 accent-emerald-500 focus:ring-emerald-500"
             />
             <span className="text-xs text-zinc-300">Randomize</span>
           </label>
