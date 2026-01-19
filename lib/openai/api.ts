@@ -68,40 +68,14 @@ export async function generateFormatScript(request: FormatScriptRequest): Promis
         { role: 'user', content: buildFormatMessage(prompt, csvSample, fileName) }
       ],
       temperature: CONFIG.temperature,
-      max_tokens: CONFIG.maxTokens.codeGeneration
+      max_tokens: CONFIG.maxTokens.codeGeneration,
+      response_format: { type: 'json_object' }
     })
 
-    const responseText = completion.choices[0]?.message?.content || ''
-
-    // Parse the JSON response
-    try {
-      // Remove potential markdown code blocks
-      const cleanedResponse = responseText
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim()
-
-      const parsed = JSON.parse(cleanedResponse)
-
-      return {
-        code: parsed.python_code || '',
-        explanation: parsed.explanation || 'Transformation code generated'
-      }
-    } catch {
-      // If JSON parsing fails, try to extract code from the response
-      const codeMatch = responseText.match(/```python\s*([\s\S]*?)```/)
-      if (codeMatch) {
-        return {
-          code: codeMatch[1].trim(),
-          explanation: 'Code extracted from response'
-        }
-      }
-
-      return {
-        code: '',
-        explanation: 'Failed to parse AI response. Please try again.'
-      }
+    const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}')
+    return {
+      code: parsed.python_code || '',
+      explanation: parsed.explanation || 'Transformation code generated'
     }
   } catch (error) {
     handleApiError(error)
