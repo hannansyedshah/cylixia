@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { Editor } from '@monaco-editor/react'
 import { Send, Play, Save, Loader2, Code, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useFormatChatPanel } from '@/hooks/workspace/useFormatChatPanel'
 import type { FormatMessage } from '@/types/format'
 
 interface FormatChatPanelProps {
@@ -31,20 +31,7 @@ export function FormatChatPanel({
   onSaveResult,
   onCodeChange
 }: FormatChatPanelProps) {
-  const [prompt, setPrompt] = useState('')
-
-  const handleSend = () => {
-    if (!prompt.trim() || loading) return
-    onSendPrompt(prompt.trim())
-    setPrompt('')
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
+  const { prompt, setPrompt, handleSend, handleKeyDown } = useFormatChatPanel({ loading, onSendPrompt })
 
   return (
     <div className="h-full flex flex-col bg-zinc-900">
