@@ -146,7 +146,7 @@ export function CSVDataEditor({
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 bg-zinc-800/50 border-b border-zinc-700">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
               <Trash2 className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -169,19 +169,19 @@ export function CSVDataEditor({
         </div>
 
         {/* Info Banner with Legend */}
-        <div className="px-8 py-4 bg-purple-500/10 border-b border-purple-500/30">
+        <div className="px-8 py-4 bg-emerald-500/10 border-b border-emerald-500/30">
           <div className="flex items-start justify-between gap-6">
             <div className="flex items-start gap-3 flex-1">
-              <AlertCircle className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm text-purple-300 font-semibold">
+                <p className="text-sm text-emerald-300 font-semibold">
                   {autoRedactedColumns.length > 0 ? 'Review Auto-Redacted Data & Remove More' : 'Remove Unwanted Data'}
                 </p>
-                <p className="text-xs text-purple-400/80 mt-1">
+                <p className="text-xs text-emerald-400/80 mt-1">
                   {autoRedactedColumns.length > 0 ? (
                     <>
                       <strong>{autoRedactedColumns.length} sensitive column(s)</strong> were automatically redacted.
-                      Click headers or row numbers to toggle removal. Red = removed, Purple = included.
+                      Click headers or row numbers to toggle removal. Red = removed, Green = included.
                     </>
                   ) : (
                     <>
@@ -196,7 +196,7 @@ export function CSVDataEditor({
             {/* Legend */}
             <div className="flex items-center gap-4 text-xs flex-shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-purple-500/20 border border-purple-500/50"></div>
+                <div className="w-4 h-4 rounded bg-emerald-500/20 border border-emerald-500/50"></div>
                 <span className="text-zinc-400">Included</span>
               </div>
               <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ export function CSVDataEditor({
                         className={`border px-4 py-3 text-sm font-bold cursor-pointer transition-all duration-150 ${
                           isRemoved
                             ? 'bg-red-500/20 text-red-400 border-red-500/50 line-through'
-                            : 'bg-purple-500/20 text-purple-300 border-purple-500/50 hover:bg-purple-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30'
                         }`}
                       >
                         <div className="flex items-center justify-center gap-2">
@@ -289,7 +289,7 @@ export function CSVDataEditor({
               <Button
                 onClick={loadMoreRows}
                 variant="outline"
-                className="border border-purple-500/50 bg-zinc-800 hover:bg-purple-500/20 text-purple-300 font-semibold px-6 py-3"
+                className="border border-emerald-500/50 bg-zinc-800 hover:bg-emerald-500/20 text-emerald-300 font-semibold px-6 py-3"
               >
                 <ChevronDown className="w-4 h-4 mr-2" />
                 Load More Rows ({displayedRowCount} of {originalRows.length} shown)
@@ -343,7 +343,7 @@ export function CSVDataEditor({
               </Button>
               <Button
                 onClick={handleConfirm}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <Check className="w-4 h-4 mr-2" />
                 {hasChanges ? 'Apply Changes & Upload' : 'Continue Without Changes'}

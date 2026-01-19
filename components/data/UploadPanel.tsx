@@ -275,10 +275,10 @@ export function UploadPanel({
 
               <button
                 onClick={() => handleUploadChoice('editor')}
-                className="w-full p-4 rounded-lg border border-purple-500/30 bg-zinc-800/50 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all text-left group"
+                className="w-full p-4 rounded-lg border border-emerald-500/30 bg-zinc-800/50 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-left group"
               >
                 <div className="flex items-start gap-3">
-                  <Eye className="w-5 h-5 text-purple-400 mt-1 flex-shrink-0" />
+                  <Eye className="w-5 h-5 text-emerald-400 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-white mb-1">
                       Manual Editor
