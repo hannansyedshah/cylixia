@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { X, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormatChatPanel } from './FormatChatPanel'
@@ -28,9 +27,9 @@ export function FormatModal({ isOpen, dataset, projectId, onClose, onSave }: For
     sendPrompt,
     runScript,
     saveResult,
-    updateCode,
-    reset
+    updateCode
   } = useFormatModal({
+    isOpen,
     dataset,
     projectId,
     onSaveComplete: () => {
@@ -38,13 +37,6 @@ export function FormatModal({ isOpen, dataset, projectId, onClose, onSave }: For
       onClose()
     }
   })
-
-  // Reset state when modal opens/closes
-  useEffect(() => {
-    if (!isOpen) {
-      reset()
-    }
-  }, [isOpen, reset])
 
   if (!isOpen || !dataset) return null
 
