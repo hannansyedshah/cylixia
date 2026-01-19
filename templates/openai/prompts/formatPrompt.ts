@@ -1,7 +1,3 @@
-/**
- * System Prompt for CSV Format Script Generation
- */
-
 export const FORMAT_SYSTEM_PROMPT = `You are a Python data transformation expert.
 Generate clean Python code that transforms CSV data based on user instructions.
 
