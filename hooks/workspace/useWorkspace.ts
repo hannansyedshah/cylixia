@@ -11,6 +11,7 @@ import { getDatasets, getDatasetContent } from '@/lib/db/csvUpload'
 import { deletePlot } from '@/lib/db/plots'
 import { updateProject } from '@/lib/db/projects'
 import { sendChat } from '@/actions/chat'
+import { sendAskData } from '@/actions/askData'
 import { executeCode } from '@/actions/execute'
 import { useElapsedTimer } from '@/hooks/workspace/useElapsedTimer'
 import { useRealtimeMessages } from '@/hooks/workspace/useRealtimeMessages'
@@ -186,9 +187,8 @@ export function useWorkspace(projectId: string) {
         .filter(d => d.csvText && d.includeChat)
         .map(d => ({ fileName: d.fileName, csvData: d.csvText! }))
 
-      const data = await sendChat({
+      const requestParams = {
         prompt,
-        mode: mode,
         existingCode: project.code,
         csvFiles,
         images,
@@ -196,22 +196,39 @@ export function useWorkspace(projectId: string) {
         contextWindow: project.hipaa_compliant ? contextWindow || undefined : undefined,
         isNistProject: project.hipaa_compliant,
         language: project.language
-      })
-
-      if (mode !== 'ask' && data.code) {
-        handleCodeChange(data.code)
       }
 
-      const assistantMessage = await createMessage(projectId, {
-        role: 'assistant',
-        content: data.message || data.explanation || 'Generated code.',
-        code: data.code
-      })
-      if (assistantMessage) {
-        setProject((prev: any) => prev ? {
-          ...prev,
-          messages: [...(prev.messages || []), assistantMessage]
-        } : prev)
+      if (mode === 'ask') {
+        const askResponse = await sendAskData(requestParams)
+
+        const assistantMessage = await createMessage(projectId, {
+          role: 'assistant',
+          content: askResponse.message || askResponse.explanation || 'Here is my response.'
+        })
+        if (assistantMessage) {
+          setProject((prev: any) => prev ? {
+            ...prev,
+            messages: [...(prev.messages || []), assistantMessage]
+          } : prev)
+        }
+      } else {
+        const chatResponse = await sendChat({ ...requestParams, mode: 'generate' })
+
+        if (chatResponse.code) {
+          handleCodeChange(chatResponse.code)
+        }
+
+        const assistantMessage = await createMessage(projectId, {
+          role: 'assistant',
+          content: chatResponse.message || chatResponse.explanation || 'Generated code.',
+          code: chatResponse.code
+        })
+        if (assistantMessage) {
+          setProject((prev: any) => prev ? {
+            ...prev,
+            messages: [...(prev.messages || []), assistantMessage]
+          } : prev)
+        }
       }
     } catch (e) {
       console.error('Chat error:', e)

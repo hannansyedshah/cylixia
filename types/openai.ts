@@ -42,3 +42,29 @@ export interface FormatScriptResponse {
   code: string
   explanation: string
 }
+
+export interface AskDataRequest {
+  prompt: string
+  existingCode?: string
+  csvFiles?: Array<{ fileName: string; csvData: string }>
+  images?: Array<{ fileName: string; base64Data: string; mimeType: string }>
+  privacyMode: boolean
+  contextWindow?: string
+  isNistProject: boolean
+  language: Language
+}
+
+export interface AskDataResponse {
+  explanation: string
+  codeSnippet?: string
+  nextSuggestions?: string[]
+}
+
+export type SendAskDataInput = Partial<Pick<AskDataRequest, 'privacyMode' | 'isNistProject'>> & Omit<AskDataRequest, 'privacyMode' | 'isNistProject'>
+
+export interface SendAskDataResponse {
+  message: string
+  explanation?: string
+  codeSnippet?: string
+  nextSuggestions?: string[]
+}
