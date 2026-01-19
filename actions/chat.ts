@@ -103,18 +103,7 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
 
 export async function formatData(request: FormatScriptRequest): Promise<FormatScriptResponse> {
   if (!process.env.OPENAI_API_KEY) {
-    return {
-      code: `import pandas as pd
-import numpy as np
-
-df = pd.read_csv('input.csv')
-
-# Mock transformation - API key not configured
-# Your transformation: ${request.prompt}
-
-df.to_csv('input.csv', index=False)`,
-      explanation: 'Mock response (add OPENAI_API_KEY to use real AI)'
-    }
+    return { code: '', explanation: 'API key not configured' }
   }
 
   return generateFormatScript(request)
