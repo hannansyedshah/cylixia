@@ -1,5 +1,3 @@
-// Format Modal UI State Types
-
 export interface FormatMessage {
   id: string
   role: 'user' | 'assistant'

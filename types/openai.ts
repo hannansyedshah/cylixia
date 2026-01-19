@@ -32,7 +32,6 @@ export interface OpenAIContextRequest {
   csvFiles: Array<{ fileName: string; csvData: string }>
 }
 
-// Format Script Types
 export interface FormatScriptRequest {
   prompt: string
   csvSample: string
