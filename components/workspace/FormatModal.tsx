@@ -52,14 +52,14 @@ export function FormatModal({ isOpen, dataset, projectId, onClose, onSave }: For
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="relative w-full max-w-6xl h-[85vh] flex flex-col">
         {/* Gradient background */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-emerald-600/20 rounded-2xl blur-xl" />
+        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-2xl blur-xl" />
 
         <div className="relative bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col h-full">
           {/* Header */}
-          <div className="px-6 py-4 bg-gradient-to-r from-blue-900/50 to-emerald-900/50 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
+          <div className="px-6 py-4 bg-gradient-to-r from-emerald-900/50 to-emerald-900/50 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 backdrop-blur-sm flex items-center justify-center border border-blue-500/30">
-                <Wand2 className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center border border-emerald-500/30">
+                <Wand2 className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">Format Data</h2>

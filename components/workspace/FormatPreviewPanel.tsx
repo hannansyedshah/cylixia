@@ -24,7 +24,7 @@ export function FormatPreviewPanel({ originalCsv, previewCsv, error }: FormatPre
       {/* Header */}
       <div className="p-3 bg-zinc-800/50 border-b border-zinc-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Table className="h-4 w-4 text-blue-400" />
+          <Table className="h-4 w-4 text-emerald-500" />
           <span className="text-sm font-medium text-white">Preview</span>
         </div>
 

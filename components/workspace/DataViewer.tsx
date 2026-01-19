@@ -38,12 +38,12 @@ export function DataViewer({ datasets, projectId, onDatasetSave }: DataViewerPro
     <div className="h-full flex flex-col bg-zinc-900">
       <div className="p-2 bg-zinc-800/50 border-b border-zinc-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Table className="h-4 w-4 text-blue-400" />
+          <Table className="h-4 w-4 text-emerald-500" />
           <span className="text-sm font-medium text-white">Data</span>
           {projectId && selectedDataset?.csvText && (
             <button
               onClick={() => setShowFormatModal(true)}
-              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-500/20 hover:bg-blue-500/30 rounded border border-blue-500/30 text-blue-300 hover:text-blue-200 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 rounded border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-colors"
             >
               <Wand2 className="h-3 w-3" />
               Format

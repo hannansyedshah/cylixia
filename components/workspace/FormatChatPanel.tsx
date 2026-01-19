@@ -65,7 +65,7 @@ export function FormatChatPanel({
                 key={msg.id}
                 className={`p-2 rounded-lg text-sm ${
                   msg.role === 'user'
-                    ? 'bg-blue-500/20 text-blue-200 ml-4'
+                    ? 'bg-emerald-500/20 text-emerald-200 ml-4'
                     : 'bg-zinc-800 text-zinc-300 mr-4'
                 }`}
               >
@@ -131,13 +131,13 @@ export function FormatChatPanel({
             onKeyDown={handleKeyDown}
             placeholder="Describe transformation..."
             disabled={loading}
-            className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500"
           />
           <Button
             onClick={handleSend}
             disabled={!prompt.trim() || loading}
             size="sm"
-            className="bg-blue-500 hover:bg-blue-400 text-white"
+            className="bg-emerald-500 hover:bg-emerald-400 text-white"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -169,7 +169,7 @@ export function FormatChatPanel({
           <Button
             onClick={onSaveResult}
             disabled={!hasPreview || saving}
-            className="flex-1 bg-teal-600 hover:bg-teal-500 text-white"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white"
           >
             {saving ? (
               <>
