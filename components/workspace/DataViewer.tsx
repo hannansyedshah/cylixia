@@ -1,17 +1,21 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Table, ChevronDown, Database } from 'lucide-react'
+import { Table, ChevronDown, Database, Wand2 } from 'lucide-react'
 import { parseCsv } from '@/utils/csv'
+import { FormatModal } from './FormatModal'
 import type { DatasetItem } from '@/types/dataset'
 
 interface DataViewerProps {
   datasets: DatasetItem[]
+  projectId?: string
+  onDatasetSave?: () => void
 }
 
-export function DataViewer({ datasets }: DataViewerProps) {
+export function DataViewer({ datasets, projectId, onDatasetSave }: DataViewerProps) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [showFormatModal, setShowFormatModal] = useState(false)
 
   const selectedDataset = datasets[selectedIndex]
 
@@ -34,8 +38,17 @@ export function DataViewer({ datasets }: DataViewerProps) {
     <div className="h-full flex flex-col bg-zinc-900">
       <div className="p-2 bg-zinc-800/50 border-b border-zinc-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Table className="h-4 w-4 text-blue-400" />
+          <Table className="h-4 w-4 text-emerald-500" />
           <span className="text-sm font-medium text-white">Data</span>
+          {projectId && selectedDataset?.csvText && (
+            <button
+              onClick={() => setShowFormatModal(true)}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-emerald-500/20 hover:bg-emerald-500/30 rounded border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              <Wand2 className="h-3 w-3" />
+              Format
+            </button>
+          )}
         </div>
 
         {datasets.length > 1 && (
@@ -110,6 +123,16 @@ export function DataViewer({ datasets }: DataViewerProps) {
       <div className="px-3 py-1.5 bg-zinc-800/50 border-t border-zinc-700 text-xs text-zinc-500">
         {rows.length} rows × {headers.length} columns
       </div>
+
+      {projectId && (
+        <FormatModal
+          isOpen={showFormatModal}
+          dataset={selectedDataset}
+          projectId={projectId}
+          onClose={() => setShowFormatModal(false)}
+          onSave={onDatasetSave}
+        />
+      )}
     </div>
   )
 }

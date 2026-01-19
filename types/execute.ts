@@ -18,3 +18,21 @@ export interface ExecuteResponse {
   stderr?: string
   plot_urls?: string[]
 }
+
+export interface ScriptExecuteRequest {
+  code: string
+  csv_file: {
+    filename: string
+    data_base64: string
+  }
+}
+
+export interface ScriptExecuteResponse {
+  success: boolean
+  stdout: string
+  stderr: string
+  csv_output: {
+    filename: string
+    data_base64: string
+  } | null
+}
