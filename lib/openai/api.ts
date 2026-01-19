@@ -2,13 +2,15 @@
  * OpenAI API - Code Generation & Context
  */
 
-import type { OpenAIRequest, OpenAIResponse, OpenAIContextRequest } from '@/types/openai'
+import type { OpenAIRequest, OpenAIResponse, OpenAIContextRequest, FormatScriptRequest, FormatScriptResponse } from '@/types/openai'
 import { getClient, handleApiError, CONFIG } from './client'
 import { parseResponse } from '@/utils/openaiParser'
 import { getSystemPrompt } from '@/templates/openai/prompts/systemPrompt'
 import { buildUserMessage } from '@/templates/openai/messages/userMessage'
 import { buildContextMessage } from '@/templates/openai/messages/contextMessage'
 import { CONTEXT_SYSTEM_PROMPT, getDefaultContext } from '@/templates/openai/contextPrompts'
+import { FORMAT_SYSTEM_PROMPT } from '@/templates/openai/prompts/formatPrompt'
+import { buildFormatMessage } from '@/templates/openai/messages/formatMessage'
 
 export async function callOpenAI(request: OpenAIRequest): Promise<OpenAIResponse> {
   try {
@@ -50,5 +52,58 @@ export async function generateContext(request: OpenAIContextRequest): Promise<st
   } catch (error) {
     console.error('Context generation error, using fallback:', error)
     return getDefaultContext(request.csvFiles)
+  }
+}
+
+export async function generateFormatScript(request: FormatScriptRequest): Promise<FormatScriptResponse> {
+  const { prompt, csvSample, fileName } = request
+
+  try {
+    const client = getClient()
+
+    const completion = await client.chat.completions.create({
+      model: CONFIG.model,
+      messages: [
+        { role: 'system', content: FORMAT_SYSTEM_PROMPT },
+        { role: 'user', content: buildFormatMessage(prompt, csvSample, fileName) }
+      ],
+      temperature: CONFIG.temperature,
+      max_tokens: CONFIG.maxTokens.codeGeneration
+    })
+
+    const responseText = completion.choices[0]?.message?.content || ''
+
+    // Parse the JSON response
+    try {
+      // Remove potential markdown code blocks
+      const cleanedResponse = responseText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim()
+
+      const parsed = JSON.parse(cleanedResponse)
+
+      return {
+        code: parsed.python_code || '',
+        explanation: parsed.explanation || 'Transformation code generated'
+      }
+    } catch {
+      // If JSON parsing fails, try to extract code from the response
+      const codeMatch = responseText.match(/```python\s*([\s\S]*?)```/)
+      if (codeMatch) {
+        return {
+          code: codeMatch[1].trim(),
+          explanation: 'Code extracted from response'
+        }
+      }
+
+      return {
+        code: '',
+        explanation: 'Failed to parse AI response. Please try again.'
+      }
+    }
+  } catch (error) {
+    handleApiError(error)
   }
 }

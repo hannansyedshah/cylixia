@@ -1,10 +1,10 @@
 'use server'
 
-import { callOpenAI } from '@/lib/openai/api'
+import { callOpenAI, generateFormatScript } from '@/lib/openai/api'
 import { randomizeCSVData } from '@/utils/dataRandomizer'
 import { getLanguageConfig } from '@/templates/openai/languages'
 import type { Language } from '@/templates/openai/languages'
-import type { OpenAIMode } from '@/types/openai'
+import type { OpenAIMode, FormatScriptRequest, FormatScriptResponse } from '@/types/openai'
 
 interface ChatRequest {
   prompt: string
@@ -99,4 +99,23 @@ export async function sendChat(request: ChatRequest): Promise<ChatResponse> {
     plotDescription: response.plotDescription,
     nextSuggestions: response.nextSuggestions,
   }
+}
+
+export async function formatData(request: FormatScriptRequest): Promise<FormatScriptResponse> {
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      code: `import pandas as pd
+import numpy as np
+
+df = pd.read_csv('input.csv')
+
+# Mock transformation - API key not configured
+# Your transformation: ${request.prompt}
+
+df.to_csv('input.csv', index=False)`,
+      explanation: 'Mock response (add OPENAI_API_KEY to use real AI)'
+    }
+  }
+
+  return generateFormatScript(request)
 }

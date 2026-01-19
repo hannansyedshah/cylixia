@@ -85,7 +85,7 @@ export function OutputPanel({ plotUrl, galleryPlots, stdout, stderr, projectId, 
 
         {viewMode === 'plot-data' && (
           <div className="w-1/2 border-r border-zinc-700">
-            <DataViewer datasets={lastRunDatasets} />
+            <DataViewer datasets={lastRunDatasets} projectId={projectId} />
           </div>
         )}
 
