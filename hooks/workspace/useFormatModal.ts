@@ -13,174 +13,66 @@ interface UseFormatModalProps {
 }
 
 const initialState: FormatModalState = {
-  messages: [],
-  generatedCode: '',
-  previewCsv: null,
-  loading: false,
-  executing: false,
-  saving: false,
-  error: null
+  messages: [], generatedCode: '', previewCsv: null,
+  loading: false, executing: false, saving: false, error: null
 }
+
+const toBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)))
+const fromBase64 = (str: string) => decodeURIComponent(escape(atob(str)))
+const createMessage = (role: 'user' | 'assistant', content: string): FormatMessage => ({
+  id: crypto.randomUUID(), role, content, timestamp: new Date()
+})
 
 export function useFormatModal({ isOpen, dataset, projectId, onSaveComplete }: UseFormatModalProps) {
   const [state, setState] = useState<FormatModalState>(initialState)
+  const update = (partial: Partial<FormatModalState>) => setState(prev => ({ ...prev, ...partial }))
 
-  useEffect(() => {
-    if (!isOpen) setState(initialState)
-  }, [isOpen])
+  useEffect(() => { if (!isOpen) setState(initialState) }, [isOpen])
 
   const sendPrompt = useCallback(async (prompt: string) => {
     if (!dataset?.csvText) return
-
-    // Add user message
-    const userMessage: FormatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: prompt,
-      timestamp: new Date()
-    }
-
-    setState(prev => ({
-      ...prev,
-      messages: [...prev.messages, userMessage],
-      loading: true,
-      error: null
-    }))
+    update({ messages: [...state.messages, createMessage('user', prompt)], loading: true, error: null })
 
     try {
-      const response = await formatData({
-        prompt,
-        csvSample: dataset.csvText,
-        fileName: dataset.fileName
-      })
-
-      // Add assistant message
-      const assistantMessage: FormatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: response.explanation,
-        timestamp: new Date()
-      }
-
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-        generatedCode: response.code,
-        loading: false
-      }))
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Failed to generate script'
-      }))
+      const { code, explanation } = await formatData({ prompt, csvSample: dataset.csvText, fileName: dataset.fileName })
+      update({ messages: [...state.messages, createMessage('user', prompt), createMessage('assistant', explanation)], generatedCode: code, loading: false })
+    } catch (e) {
+      update({ loading: false, error: e instanceof Error ? e.message : 'Failed to generate script' })
     }
-  }, [dataset])
+  }, [dataset, state.messages])
 
   const runScript = useCallback(async () => {
     if (!dataset?.csvText || !state.generatedCode) return
-
-    setState(prev => ({ ...prev, executing: true, error: null }))
+    update({ executing: true, error: null })
 
     try {
-      // Convert CSV text to base64
-      const csvBase64 = btoa(unescape(encodeURIComponent(dataset.csvText)))
-
       const response = await executeScript({
         code: state.generatedCode,
-        csv_file: {
-          filename: 'input.csv',
-          data_base64: csvBase64
-        }
+        csv_file: { filename: 'input.csv', data_base64: toBase64(dataset.csvText) }
       })
-
-      if (!response.success) {
-        setState(prev => ({
-          ...prev,
-          executing: false,
-          error: response.stderr || 'Script execution failed'
-        }))
-        return
-      }
-
-      if (response.csv_output) {
-        // Decode base64 output
-        const decodedCsv = decodeURIComponent(escape(atob(response.csv_output.data_base64)))
-        setState(prev => ({
-          ...prev,
-          previewCsv: decodedCsv,
-          executing: false
-        }))
-      } else {
-        setState(prev => ({
-          ...prev,
-          executing: false,
-          error: 'No output CSV generated'
-        }))
-      }
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        executing: false,
-        error: error instanceof Error ? error.message : 'Script execution failed'
-      }))
+      if (!response.success) return update({ executing: false, error: response.stderr || 'Execution failed' })
+      if (!response.csv_output) return update({ executing: false, error: 'No output generated' })
+      update({ previewCsv: fromBase64(response.csv_output.data_base64), executing: false })
+    } catch (e) {
+      update({ executing: false, error: e instanceof Error ? e.message : 'Execution failed' })
     }
   }, [dataset, state.generatedCode])
 
   const saveResult = useCallback(async () => {
     if (!state.previewCsv || !dataset) return
-
-    setState(prev => ({ ...prev, saving: true, error: null }))
+    update({ saving: true, error: null })
 
     try {
-      // Generate new filename with _formatted suffix
-      const baseName = dataset.fileName.replace(/\.csv$/i, '')
-      const newFileName = `${baseName}_formatted.csv`
-
-      await saveDataset({
-        projectId,
-        fileName: newFileName,
-        csvText: state.previewCsv
-      })
-
-      setState(prev => ({ ...prev, saving: false }))
+      const newFileName = `${dataset.fileName.replace(/\.csv$/i, '')}_formatted.csv`
+      await saveDataset({ projectId, fileName: newFileName, csvText: state.previewCsv })
+      update({ saving: false })
       onSaveComplete?.()
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        saving: false,
-        error: error instanceof Error ? error.message : 'Failed to save dataset'
-      }))
+    } catch (e) {
+      update({ saving: false, error: e instanceof Error ? e.message : 'Failed to save' })
     }
   }, [state.previewCsv, dataset, projectId, onSaveComplete])
 
-  const updateCode = useCallback((code: string) => {
-    setState(prev => ({ ...prev, generatedCode: code, previewCsv: null }))
-  }, [])
+  const updateCode = useCallback((code: string) => update({ generatedCode: code, previewCsv: null }), [])
 
-  const clearPreview = useCallback(() => {
-    setState(prev => ({ ...prev, previewCsv: null }))
-  }, [])
-
-  const reset = useCallback(() => {
-    setState({
-      messages: [],
-      generatedCode: '',
-      previewCsv: null,
-      loading: false,
-      executing: false,
-      saving: false,
-      error: null
-    })
-  }, [])
-
-  return {
-    ...state,
-    sendPrompt,
-    runScript,
-    saveResult,
-    updateCode,
-    clearPreview,
-    reset
-  }
+  return { ...state, sendPrompt, runScript, saveResult, updateCode }
 }
