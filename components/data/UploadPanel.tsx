@@ -163,10 +163,10 @@ export function UploadPanel({
                     </>
                   )}
                   <label className="ml-auto text-xs flex items-center gap-1 text-zinc-400">
-                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} className="rounded border-zinc-600 bg-zinc-700 text-emerald-500" /> Chat
+                    <input type="checkbox" checked={item.includeChat} onChange={() => toggleFlag(item.id, 'includeChat')} disabled={isPlaceholder} className="rounded border-zinc-600 bg-zinc-700 accent-emerald-500" /> Chat
                   </label>
                   <label className="text-xs flex items-center gap-1 text-zinc-400">
-                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={isPlaceholder} className="rounded border-zinc-600 bg-zinc-700 text-emerald-500" /> Run
+                    <input type="checkbox" checked={item.includeRun} onChange={() => toggleFlag(item.id, 'includeRun')} disabled={isPlaceholder} className="rounded border-zinc-600 bg-zinc-700 accent-emerald-500" /> Run
                   </label>
                   <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="h-7 w-7 hover:bg-red-500/20 text-red-400">
                     <X className="h-4 w-4" />
