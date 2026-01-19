@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { formatData } from '@/actions/chat'
 import { executeScript } from '@/actions/executeScript'
 import { saveDataset } from '@/lib/db/csvUpload'
@@ -6,21 +6,28 @@ import type { FormatMessage, FormatModalState } from '@/types/format'
 import type { DatasetItem } from '@/types/dataset'
 
 interface UseFormatModalProps {
+  isOpen: boolean
   dataset: DatasetItem | null
   projectId: string
   onSaveComplete?: () => void
 }
 
-export function useFormatModal({ dataset, projectId, onSaveComplete }: UseFormatModalProps) {
-  const [state, setState] = useState<FormatModalState>({
-    messages: [],
-    generatedCode: '',
-    previewCsv: null,
-    loading: false,
-    executing: false,
-    saving: false,
-    error: null
-  })
+const initialState: FormatModalState = {
+  messages: [],
+  generatedCode: '',
+  previewCsv: null,
+  loading: false,
+  executing: false,
+  saving: false,
+  error: null
+}
+
+export function useFormatModal({ isOpen, dataset, projectId, onSaveComplete }: UseFormatModalProps) {
+  const [state, setState] = useState<FormatModalState>(initialState)
+
+  useEffect(() => {
+    if (!isOpen) setState(initialState)
+  }, [isOpen])
 
   const sendPrompt = useCallback(async (prompt: string) => {
     if (!dataset?.csvText) return
