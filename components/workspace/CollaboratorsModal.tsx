@@ -131,7 +131,7 @@ export function CollaboratorsModal({ projectId, isOwner, onClose }: Collaborator
                     disabled={isSubmitting}
                     className={`flex-1 h-9 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                       role === 'viewer'
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
                         : 'bg-zinc-800/50 text-zinc-400 border border-zinc-700 hover:border-zinc-600'
                     }`}
                   >
@@ -175,7 +175,7 @@ export function CollaboratorsModal({ projectId, isOwner, onClose }: Collaborator
                           <Pencil className="h-3 w-3" /> Editor
                         </span>
                       ) : (
-                        <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                        <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1">
                           <Eye className="h-3 w-3" /> Viewer
                         </span>
                       )}
