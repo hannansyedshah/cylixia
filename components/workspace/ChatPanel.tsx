@@ -1,7 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Send, Sparkles, Copy, Check, Maximize2, Minimize2, ImagePlus, X } from 'lucide-react'
 import { useChatPanel } from '@/hooks/workspace/useChatPanel'
 import { AILoading } from './LoadingStates'
@@ -51,6 +51,25 @@ export function ChatPanel({
     handleRemoveImage,
     triggerFileInput
   } = useChatPanel({ loading, onSendMessage })
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+
+    el.style.height = 'auto'
+
+    const maxHeight = 192 // 12rem ~ roughly 8-10 lines depending on content
+    const newHeight = Math.min(el.scrollHeight, maxHeight)
+
+    el.style.height = `${newHeight}px`
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [])
+
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [prompt, adjustTextareaHeight])
 
   return (
     <div className="flex flex-col h-full bg-zinc-900">
@@ -203,13 +222,28 @@ export function ChatPanel({
               >
                 <ImagePlus className="h-4 w-4" />
               </Button>
-              <Input
+              <textarea
+                ref={textareaRef}
                 placeholder="Ask about your data..."
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onChange={(e) => {
+                  setPrompt(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSend()
+                  }
+                }}
+                onFocus={(e) => {
+                  const el = e.target
+                  const length = el.value.length
+                  // Place caret at the end so you resume where you left off
+                  el.setSelectionRange(length, length)
+                }}
                 disabled={loading}
-                className="flex-1 h-11 bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+                rows={1}
+                className="flex-1 h-11 max-h-48 bg-zinc-800/50 border border-zinc-700 text-white placeholder:text-zinc-500 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-md px-3 py-2 text-sm resize-none leading-relaxed"
               />
               <Button
                 onClick={handleSend}
