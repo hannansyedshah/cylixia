@@ -16,6 +16,8 @@ Today that means either learning R, or waiting on the one person in the lab who 
 
 That last point came up in nearly every discovery interview, and it shaped the architecture more than anything else.
 
+📄 **[ARCHITECTURE.md](./ARCHITECTURE.md)** — full request-path walkthrough: deployment topology, LLM routing, response parsing, container execution.
+
 ---
 
 ## Architecture
